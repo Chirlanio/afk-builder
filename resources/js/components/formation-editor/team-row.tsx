@@ -1,5 +1,6 @@
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { CLASS_LABEL, FACTION_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type {
@@ -26,6 +27,8 @@ interface TeamRowProps {
     classById: Record<number, HeroClass>;
     tierById: Record<number, Tier>;
     onRemoveHero: (slotPosition: number) => void;
+    onSuggest?: () => void;
+    isSuggesting?: boolean;
 }
 
 interface FactionBonus {
@@ -88,7 +91,7 @@ function computeFactionBonus(
     return null;
 }
 
-export function TeamRow({ team, heroById, factionById, classById, tierById, onRemoveHero }: TeamRowProps) {
+export function TeamRow({ team, heroById, factionById, classById, tierById, onRemoveHero, onSuggest, isSuggesting }: TeamRowProps) {
     const heroesInTeam: Hero[] = team.slots
         .map((s) => (s.heroId ? heroById[s.heroId] : null))
         .filter((h): h is Hero => h !== null);
@@ -105,6 +108,7 @@ export function TeamRow({ team, heroById, factionById, classById, tierById, onRe
 
     const hasTank = classesPresent.has('tank');
     const hasSupport = classesPresent.has('support');
+    const hasEmptySlots = filledCount < 5;
 
     return (
         <div className="flex flex-col gap-2 rounded-xl border bg-card p-3">
@@ -137,6 +141,23 @@ export function TeamRow({ team, heroById, factionById, classById, tierById, onRe
                             <AlertCircle className="size-3" />
                             Sem {CLASS_LABEL.support}
                         </Badge>
+                    )}
+                    {onSuggest && hasEmptySlots && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={onSuggest}
+                            disabled={isSuggesting}
+                            className="h-7 gap-1 text-xs"
+                        >
+                            {isSuggesting ? (
+                                <Loader2 className="size-3 animate-spin" />
+                            ) : (
+                                <Sparkles className="size-3" />
+                            )}
+                            {isSuggesting ? 'Sugerindo...' : 'Sugerir'}
+                        </Button>
                     )}
                 </div>
             </div>

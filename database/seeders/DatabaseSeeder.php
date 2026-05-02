@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             HeroClassSeeder::class,
             TierSeeder::class,
             ChallengeTypeSeeder::class,
+            HeroSynergySeeder::class,
         ]);
     }
 }

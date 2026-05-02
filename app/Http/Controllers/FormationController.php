@@ -7,8 +7,13 @@ use App\Models\Faction;
 use App\Models\Formation;
 use App\Models\Hero;
 use App\Models\HeroClass;
+use App\Models\HeroSynergy;
 use App\Models\Tier;
 use App\Models\UserHero;
+use App\Services\Optimization\ScoringProfile;
+use App\Services\Optimization\SingleTeamOptimizer;
+use App\Services\Optimization\TeamScorer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -174,6 +179,92 @@ class FormationController extends Controller
         return back();
     }
 
+    public function suggestTeam(
+        Request $request,
+        Formation $formation,
+        int $position,
+        SingleTeamOptimizer $optimizer,
+    ): JsonResponse {
+        abort_unless($formation->user_id === $request->user()->id, 403);
+
+        $formation->load('challengeType:id,scoring_profile,teams_must_be_unique');
+
+        $teamsCount = $formation->teams_count;
+        if ($position < 1 || $position > $teamsCount) {
+            abort(404);
+        }
+
+        $data = $request->validate([
+            'teams' => ['required', 'array', 'min:'.$teamsCount, 'max:'.$teamsCount],
+            'teams.*.position' => ['required', 'integer', 'min:1', 'max:'.$teamsCount],
+            'teams.*.heroes' => ['array', 'max:5'],
+            'teams.*.heroes.*.slot' => ['required', 'integer', 'min:1', 'max:5'],
+            'teams.*.heroes.*.hero_id' => ['required', 'integer', Rule::exists('heroes', 'id')->where('is_active', true)],
+        ]);
+
+        $targetTeam = collect($data['teams'])->firstWhere('position', $position);
+        if ($targetTeam === null) {
+            abort(404);
+        }
+
+        $lockedSlots = collect($targetTeam['heroes'] ?? [])
+            ->keyBy('slot')
+            ->all();
+        $lockedHeroIds = array_map(fn ($h) => (int) $h['hero_id'], $lockedSlots);
+
+        $blockedHeroIds = [];
+        if ($formation->challengeType->teams_must_be_unique) {
+            foreach ($data['teams'] as $team) {
+                if ((int) $team['position'] === $position) {
+                    continue;
+                }
+                foreach ($team['heroes'] ?? [] as $h) {
+                    $blockedHeroIds[] = (int) $h['hero_id'];
+                }
+            }
+        }
+
+        $heroPoolById = $this->loadHeroPool($formation, $request->user()->id);
+        $userHeroesById = $this->loadUserHeroes($request->user()->id);
+        $synergyWeights = $this->loadSynergyWeights();
+        $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
+
+        $result = $optimizer->optimize(
+            $heroPoolById,
+            $userHeroesById,
+            $synergyWeights,
+            $profile,
+            array_values($lockedHeroIds),
+            $blockedHeroIds,
+        );
+
+        $suggestedIds = $result['hero_ids'];
+        $newIds = array_values(array_diff($suggestedIds, $lockedHeroIds));
+
+        $emptySlots = [];
+        for ($s = 1; $s <= 5; $s++) {
+            if (! isset($lockedSlots[$s])) {
+                $emptySlots[] = $s;
+            }
+        }
+
+        $additions = [];
+        foreach ($newIds as $idx => $heroId) {
+            if (! isset($emptySlots[$idx])) {
+                break;
+            }
+            $additions[] = [
+                'slot' => $emptySlots[$idx],
+                'hero_id' => $heroId,
+            ];
+        }
+
+        return response()->json([
+            'additions' => $additions,
+            'score' => $result['score']->toArray(),
+        ]);
+    }
+
     public function destroy(Request $request, Formation $formation): RedirectResponse
     {
         abort_unless($formation->user_id === $request->user()->id, 403);
@@ -181,6 +272,45 @@ class FormationController extends Controller
         $formation->delete();
 
         return redirect()->route('formations.index');
+    }
+
+    /**
+     * @return array<int, Hero>
+     */
+    private function loadHeroPool(Formation $formation, int $userId): array
+    {
+        $query = Hero::query()
+            ->with(['faction:id,code', 'heroClass:id,code', 'tier:id,code'])
+            ->where('is_active', true)
+            ->where('pending_review', false);
+
+        if ($formation->mode === 'real') {
+            $rosterIds = UserHero::where('user_id', $userId)->pluck('hero_id')->all();
+            $query->whereIn('id', $rosterIds);
+        }
+
+        return $query->get()->keyBy('id')->all();
+    }
+
+    /**
+     * @return array<int, UserHero>
+     */
+    private function loadUserHeroes(int $userId): array
+    {
+        return UserHero::where('user_id', $userId)->get()->keyBy('hero_id')->all();
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function loadSynergyWeights(): array
+    {
+        $map = [];
+        foreach (HeroSynergy::all(['hero_a_id', 'hero_b_id', 'weight']) as $s) {
+            $map[TeamScorer::pairKey($s->hero_a_id, $s->hero_b_id)] = $s->weight;
+        }
+
+        return $map;
     }
 
     /**

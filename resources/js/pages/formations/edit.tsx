@@ -1,5 +1,6 @@
 import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
 import { Save, Target } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
@@ -70,6 +71,7 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
     const [teams, setTeams] = useState<TeamSlotsState[]>(() => teamsFromFormation(formation.teams, formation.teams_count));
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [suggestingTeamPos, setSuggestingTeamPos] = useState<number | null>(null);
     const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
 
     const enforceUnique = formation.challenge_type.teams_must_be_unique;
@@ -161,6 +163,48 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
         setIsDirty(true);
     };
 
+    const suggestForTeam = async (teamPos: number) => {
+        setSuggestingTeamPos(teamPos);
+        try {
+            const payload = {
+                teams: teams.map((team) => ({
+                    position: team.position,
+                    heroes: team.slots
+                        .map((slot, idx) => ({ slot: idx + 1, hero_id: slot.heroId }))
+                        .filter((h): h is { slot: number; hero_id: number } => h.hero_id !== null),
+                })),
+            };
+
+            const response = await axios.post<{ additions: Array<{ slot: number; hero_id: number }> }>(
+                `/formations/${formation.id}/teams/${teamPos}/suggest`,
+                payload,
+            );
+
+            const additions = response.data.additions;
+            if (additions.length === 0) return;
+
+            setTeams((prev) =>
+                prev.map((team) =>
+                    team.position === teamPos
+                        ? {
+                              ...team,
+                              slots: team.slots.map((slot, idx) => {
+                                  const slotPos = idx + 1;
+                                  const addition = additions.find((a) => a.slot === slotPos);
+                                  return addition ? { heroId: addition.hero_id } : slot;
+                              }),
+                          }
+                        : team,
+                ),
+            );
+            setIsDirty(true);
+        } catch (error) {
+            console.error('Falha ao sugerir herois:', error);
+        } finally {
+            setSuggestingTeamPos(null);
+        }
+    };
+
     const save = () => {
         setIsSaving(true);
 
@@ -250,6 +294,8 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
                                     classById={classById}
                                     tierById={tierById}
                                     onRemoveHero={(slotPosition) => removeFromSlot(team.position, slotPosition)}
+                                    onSuggest={() => suggestForTeam(team.position)}
+                                    isSuggesting={suggestingTeamPos === team.position}
                                 />
                             ))}
                         </div>

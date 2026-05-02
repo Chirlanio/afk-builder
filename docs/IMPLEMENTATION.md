@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-01 (Fase 4 concluída)
+> **Última atualização:** 2026-05-02 (Fases 5.1 e 5.2 concluídas — scoring + auto-preencher 1 equipe)
 
 ---
 
@@ -123,12 +123,56 @@ Models Eloquent com relacionamentos completos (incluindo `Hero::synergyPartners`
 
 **Save:** botão explícito com indicador "Alterações não salvas" — não autosave (você pode estar experimentando combinações).
 
-### ⏭️ Fase 5 — Algoritmo de otimização (pendente)
+### 🚧 Fase 5 — Algoritmo de otimização (em progresso)
 
-Escopo planejado:
-- `TeamOptimizer` service: scoring de 1 equipe (bônus de facção + balanço de classes + sinergias curadas + poder bruto), pesos vindos de `challenge_types.scoring_profile`
-- `MultiTeamPartitioner` service: distribui até 7 equipes sem sobreposição (heurística greedy + swaps locais; PLI se não convergir)
-- Endpoint "Sugerir formação" integrado ao editor (botão "auto-preencher esta equipe" + "auto-distribuir todas as equipes")
+#### ✅ 5.1 — Backend de scoring (concluído)
+
+`app/Services/Optimization/`:
+
+- **`PowerCalculator`** — fórmula a partir de UserHero: `ascension_value*100 + level + SI*5 + furniture*30 + engraving*0.5`. No modo `target` (sem UserHero), usa baseline pelo tier do herói (common: asc=3 lvl=100; legendary: asc=9 lvl=160; ascended: asc=12 lvl=240).
+- **`ScoringProfile`** — value object dos pesos vindos de `challenge_types.scoring_profile`.
+- **`ScoreBreakdown`** — resultado com componentes separados (factionBonus, classBalance, synergy, power, total) + detalhes textuais.
+- **`TeamScorer`** — pontua 1 equipe combinando:
+  - **Faction bonus base:** 5-stack (1.0) e 3+2 (0.6), com Celestial agindo como wildcard, **Dimensionais excluídos** do stacking.
+  - **Faction bonus especial:** Hypogean recebe `count*0.1` (progressivo, qualquer quantidade); Draconis ganha `+0.3` quando 2+ na equipe (self-advantage).
+  - **Class balance:** tank presente (+0.3), support presente (+0.3), variedade `n_classes*0.08`.
+  - **Synergy:** soma `weight/10` de cada par com entrada em `hero_synergies`.
+  - **Power:** soma normalizada por 2000.
+  - Pesos finais: `total = bonus*W_faction + class*W_class + synergy*W_synergy + power*W_power`.
+
+**Synergias seedadas** (17 duos clássicos AFK Arena Originals): Lucius+Rosaline (15), Eironn+Antandra (14), Ezizh+Skreg (13), Athalia+Hendrik (12), Brutus+Lyca (12), Eironn+Khazard (12), Ezizh+Twins (12), Eironn+Albedo (11), Belinda+Mehira (11), Estrilda+Rowan (11), Atheus+Solise (11), Talene+Lucius (10), Numisu+Brutus (10), Lyca+Estrilda (10), Mehira+Tasi (10), Belinda+Pippa (10), Hendrik+Rowan (10).
+
+Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (encontrado como `elijah-lailah`), Daimon (em `pending_review` — tier vazio na wiki).
+
+**Testes:** 10 cenários cobertos em `tests/Feature/Optimization/TeamScorerTest.php` — 5-stack puro, 3+2, Celestial wildcard, Dimensional excluído, Hypogean progressivo, Draconis self-advantage, sem tank/support, time balanceado, par com synergia, total ponderado.
+
+#### ✅ 5.2 — Auto-preencher 1 equipe (concluído)
+
+- **`SingleTeamOptimizer`** (`app/Services/Optimization/`) — preenche slots vazios da equipe-alvo:
+  - **≤ 2 slots vazios** → busca exaustiva (combinatória completa).
+  - **≥ 3 slots vazios** → greedy (escolhe melhor herói por vez) + hill climb (até 100 iterações de swaps locais, para por fixed-point).
+  - Respeita `lockedHeroIds` (já posicionados na equipe — não mexe) e `blockedHeroIds` (alocados em outras equipes quando `teams_must_be_unique`).
+  - Usa `TeamScorer` + `ScoringProfile` do `challenge_type`.
+
+- **Endpoint** `POST /formations/{formation}/teams/{position}/suggest` (rota `formations.teams.suggest`):
+  - Recebe payload com o estado completo das equipes do editor (heróis já posicionados não-salvos).
+  - Carrega pool conforme `mode`: catálogo todo (`target`) ou apenas roster (`real`).
+  - Carrega synergias de `hero_synergies` e UserHero do roster pra calcular power real.
+  - Retorna `{additions: [{slot, hero_id}], score: ScoreBreakdown}` — apenas heróis novos, com slot atribuído nos vazios em ordem.
+
+- **UI** (`team-row.tsx` + `edit.tsx`):
+  - Botão **Sugerir** com ícone `Sparkles` aparece em cada equipe enquanto houver slots vazios.
+  - Loading state com `Loader2 animate-spin` enquanto requisita.
+  - Aplica heróis no estado local + marca `isDirty=true` (não salva — usuário ainda precisa clicar "Salvar").
+  - Usa `axios` (CSRF via cookie XSRF-TOKEN do Laravel).
+
+- **Testes:** 5 cenários em `tests/Feature/Optimization/SingleTeamOptimizerTest.php` — preencher 5 vazios, preencher 2 preservando locked, respeitar blocked, pool menor que 5, synergia influencia escolha. Total 15 testes verdes em `Optimization/`.
+
+#### ⏭️ 5.3 — Auto-distribuir todas as equipes (pendente)
+
+- `MultiTeamPartitioner` service — greedy (melhor equipe primeiro) + swaps locais entre equipes.
+- Endpoint `POST /formations/{formation}/suggest-all`.
+- Botão "Auto-distribuir todas" no editor.
 
 ### ⏭️ Fase 6 — Polimento (pendente)
 
