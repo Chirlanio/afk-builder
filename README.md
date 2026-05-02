@@ -95,7 +95,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 2. Importação automática do catálogo (Fandom MediaWiki API) | ✅ |
 | 3. Catálogo + roster do usuário (cards por facção, tema in-game, modal CRUD) | ✅ |
 | 4. Editor de formações com drag-and-drop | ✅ |
-| 5. Algoritmo de otimização (sugerir formação automaticamente) | 🚧 5.1 ✅ scoring · 5.2 ✅ sugerir 1 equipe · 5.3 pendente |
+| 5. Algoritmo de otimização (sugerir formação automaticamente) | ✅ |
 | 6. Polimento (histórico, comparação, share) | ⏭️ pendente |
 
 ## Quirks do ambiente Windows/WAMP

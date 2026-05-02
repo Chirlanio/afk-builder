@@ -10,6 +10,7 @@ use App\Models\HeroClass;
 use App\Models\HeroSynergy;
 use App\Models\Tier;
 use App\Models\UserHero;
+use App\Services\Optimization\MultiTeamPartitioner;
 use App\Services\Optimization\ScoringProfile;
 use App\Services\Optimization\SingleTeamOptimizer;
 use App\Services\Optimization\TeamScorer;
@@ -262,6 +263,90 @@ class FormationController extends Controller
         return response()->json([
             'additions' => $additions,
             'score' => $result['score']->toArray(),
+        ]);
+    }
+
+    public function suggestAll(
+        Request $request,
+        Formation $formation,
+        MultiTeamPartitioner $partitioner,
+    ): JsonResponse {
+        abort_unless($formation->user_id === $request->user()->id, 403);
+
+        $formation->load('challengeType:id,scoring_profile,teams_must_be_unique');
+
+        $teamsCount = $formation->teams_count;
+
+        $data = $request->validate([
+            'teams' => ['required', 'array', 'min:'.$teamsCount, 'max:'.$teamsCount],
+            'teams.*.position' => ['required', 'integer', 'min:1', 'max:'.$teamsCount],
+            'teams.*.heroes' => ['array', 'max:5'],
+            'teams.*.heroes.*.slot' => ['required', 'integer', 'min:1', 'max:5'],
+            'teams.*.heroes.*.hero_id' => ['required', 'integer', Rule::exists('heroes', 'id')->where('is_active', true)],
+        ]);
+
+        $lockedSlotsByTeam = [];
+        $lockedByTeam = [];
+        foreach ($data['teams'] as $team) {
+            $pos = (int) $team['position'];
+            $slots = [];
+            $ids = [];
+            foreach ($team['heroes'] ?? [] as $h) {
+                $slots[(int) $h['slot']] = (int) $h['hero_id'];
+                $ids[] = (int) $h['hero_id'];
+            }
+            $lockedSlotsByTeam[$pos] = $slots;
+            $lockedByTeam[$pos] = $ids;
+        }
+
+        $heroPoolById = $this->loadHeroPool($formation, $request->user()->id);
+        $userHeroesById = $this->loadUserHeroes($request->user()->id);
+        $synergyWeights = $this->loadSynergyWeights();
+        $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
+
+        $result = $partitioner->optimize(
+            $heroPoolById,
+            $userHeroesById,
+            $synergyWeights,
+            $profile,
+            $lockedByTeam,
+            $teamsCount,
+            (bool) $formation->challengeType->teams_must_be_unique,
+        );
+
+        $teamsResponse = [];
+        foreach ($result['teams'] as $pos => $heroIds) {
+            $lockedSlots = $lockedSlotsByTeam[$pos] ?? [];
+            $lockedIds = $lockedByTeam[$pos] ?? [];
+            $newIds = array_values(array_diff($heroIds, $lockedIds));
+
+            $emptySlots = [];
+            for ($s = 1; $s <= 5; $s++) {
+                if (! isset($lockedSlots[$s])) {
+                    $emptySlots[] = $s;
+                }
+            }
+
+            $additions = [];
+            foreach ($newIds as $idx => $heroId) {
+                if (! isset($emptySlots[$idx])) {
+                    break;
+                }
+                $additions[] = [
+                    'slot' => $emptySlots[$idx],
+                    'hero_id' => $heroId,
+                ];
+            }
+
+            $teamsResponse[] = [
+                'position' => $pos,
+                'additions' => $additions,
+            ];
+        }
+
+        return response()->json([
+            'teams' => $teamsResponse,
+            'total_score' => round($result['total_score'], 3),
         ]);
     }
 

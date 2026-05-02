@@ -29,6 +29,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('formations/{formation}/teams/{position}/suggest', [FormationController::class, 'suggestTeam'])
         ->whereNumber('position')
         ->name('formations.teams.suggest');
+    Route::post('formations/{formation}/suggest-all', [FormationController::class, 'suggestAll'])
+        ->name('formations.suggest-all');
     Route::delete('formations/{formation}', [FormationController::class, 'destroy'])->name('formations.destroy');
 });
 

@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fases 5.1 e 5.2 concluídas — scoring + auto-preencher 1 equipe)
+> **Última atualização:** 2026-05-02 (Fase 5 completa — scoring + auto-preencher 1 + auto-distribuir todas)
 
 ---
 
@@ -123,7 +123,7 @@ Models Eloquent com relacionamentos completos (incluindo `Hero::synergyPartners`
 
 **Save:** botão explícito com indicador "Alterações não salvas" — não autosave (você pode estar experimentando combinações).
 
-### 🚧 Fase 5 — Algoritmo de otimização (em progresso)
+### ✅ Fase 5 — Algoritmo de otimização
 
 #### ✅ 5.1 — Backend de scoring (concluído)
 
@@ -168,11 +168,22 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
 
 - **Testes:** 5 cenários em `tests/Feature/Optimization/SingleTeamOptimizerTest.php` — preencher 5 vazios, preencher 2 preservando locked, respeitar blocked, pool menor que 5, synergia influencia escolha. Total 15 testes verdes em `Optimization/`.
 
-#### ⏭️ 5.3 — Auto-distribuir todas as equipes (pendente)
+#### ✅ 5.3 — Auto-distribuir todas as equipes (concluído)
 
-- `MultiTeamPartitioner` service — greedy (melhor equipe primeiro) + swaps locais entre equipes.
-- Endpoint `POST /formations/{formation}/suggest-all`.
-- Botão "Auto-distribuir todas" no editor.
+- **`MultiTeamPartitioner`** (`app/Services/Optimization/`):
+  - **Initial fill:** chama `SingleTeamOptimizer` em cada equipe (1..N) com `blockedHeroIds` acumulando heróis já alocados (quando `enforceUnique`).
+  - **Swap pass:** para cada par (i,j) de equipes, tenta trocar heróis não-locked, aceita se a soma dos scores melhora. Itera até convergir (max 50 passes, fixed-point).
+  - Modo não-unique: pula swap pass (cada equipe é independente).
+
+- **Endpoint** `POST /formations/{formation}/suggest-all` (rota `formations.suggest-all`):
+  - Recebe estado completo do editor.
+  - Retorna `{teams: [{position, additions: [{slot, hero_id}]}], total_score}` — agrupado por equipe, apenas heróis novos.
+
+- **UI** (`edit.tsx`):
+  - Botão **Sugerir todas** ao lado do **Salvar** no header do editor.
+  - Aplica `additions` em cada equipe via `setTeams` no estado local; marca `isDirty=true`.
+
+- **Testes:** 5 cenários em `tests/Feature/Optimization/MultiTeamPartitionerTest.php` — 3 equipes unique sem sobreposição, preserva locked, locked em uma bloqueia em outras, pool insuficiente, modo não-unique repete heróis. Total **20 testes verdes em `Optimization/`** e **46 testes verdes** no projeto.
 
 ### ⏭️ Fase 6 — Polimento (pendente)
 

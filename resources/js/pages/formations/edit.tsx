@@ -1,7 +1,7 @@
 import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { Save, Target } from 'lucide-react';
+import { Loader2, Save, Sparkles, Target } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
 import { HeroPool } from '@/components/formation-editor/hero-pool';
@@ -72,6 +72,7 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [suggestingTeamPos, setSuggestingTeamPos] = useState<number | null>(null);
+    const [isSuggestingAll, setIsSuggestingAll] = useState(false);
     const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
 
     const enforceUnique = formation.challenge_type.teams_must_be_unique;
@@ -205,6 +206,50 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
         }
     };
 
+    const suggestAll = async () => {
+        setIsSuggestingAll(true);
+        try {
+            const payload = {
+                teams: teams.map((team) => ({
+                    position: team.position,
+                    heroes: team.slots
+                        .map((slot, idx) => ({ slot: idx + 1, hero_id: slot.heroId }))
+                        .filter((h): h is { slot: number; hero_id: number } => h.hero_id !== null),
+                })),
+            };
+
+            const response = await axios.post<{
+                teams: Array<{ position: number; additions: Array<{ slot: number; hero_id: number }> }>;
+            }>(`/formations/${formation.id}/suggest-all`, payload);
+
+            const additionsByPos = new Map<number, Array<{ slot: number; hero_id: number }>>();
+            for (const t of response.data.teams) {
+                additionsByPos.set(t.position, t.additions);
+            }
+
+            setTeams((prev) =>
+                prev.map((team) => {
+                    const additions = additionsByPos.get(team.position);
+                    if (!additions || additions.length === 0) return team;
+
+                    return {
+                        ...team,
+                        slots: team.slots.map((slot, idx) => {
+                            const slotPos = idx + 1;
+                            const addition = additions.find((a) => a.slot === slotPos);
+                            return addition ? { heroId: addition.hero_id } : slot;
+                        }),
+                    };
+                }),
+            );
+            setIsDirty(true);
+        } catch (error) {
+            console.error('Falha ao sugerir todas as equipes:', error);
+        } finally {
+            setIsSuggestingAll(false);
+        }
+    };
+
     const save = () => {
         setIsSaving(true);
 
@@ -276,6 +321,14 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
 
                         <div className="flex items-center gap-2">
                             {isDirty && <span className="text-xs text-amber-600 dark:text-amber-400">Alterações não salvas</span>}
+                            <Button
+                                variant="outline"
+                                onClick={suggestAll}
+                                disabled={isSuggestingAll || isSaving}
+                            >
+                                {isSuggestingAll ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                                {isSuggestingAll ? 'Sugerindo...' : 'Sugerir todas'}
+                            </Button>
                             <Button onClick={save} disabled={!isDirty || isSaving}>
                                 <Save className="size-4" />
                                 {isSaving ? 'Salvando...' : 'Salvar'}
