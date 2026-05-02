@@ -1,0 +1,305 @@
+import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { Head, router } from '@inertiajs/react';
+import { Save, Target } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { HeroChip } from '@/components/formation-editor/hero-chip';
+import { HeroPool } from '@/components/formation-editor/hero-pool';
+import { TeamRow, type TeamSlotsState } from '@/components/formation-editor/team-row';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import AppLayout from '@/layouts/app-layout';
+import { FACTION_THEME } from '@/lib/afk';
+import { cn } from '@/lib/utils';
+import type { BreadcrumbItem } from '@/types';
+import type {
+    ChallengeType,
+    ClassCode,
+    Faction,
+    FactionCode,
+    Formation,
+    FormationTeam,
+    Hero,
+    HeroClass,
+    Tier,
+    TierCode,
+} from '@/types/afk';
+
+interface PageProps {
+    formation: Formation & {
+        challenge_type: ChallengeType;
+        teams: FormationTeam[];
+    };
+    heroPool: Hero[];
+    factions: Faction[];
+    heroClasses: HeroClass[];
+    tiers: Tier[];
+}
+
+function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlotsState[] {
+    const byPosition = new Map(teams.map((t) => [t.position, t]));
+
+    return Array.from({ length: teamsCount }, (_, i) => {
+        const position = i + 1;
+        const team = byPosition.get(position);
+        const slots = Array.from({ length: 5 }, (_, slotIdx) => {
+            const slotPosition = slotIdx + 1;
+            const teamHero = team?.team_heroes?.find((h) => h.slot === slotPosition);
+            return { heroId: teamHero?.hero_id ?? null };
+        });
+        return {
+            position,
+            name: team?.name ?? null,
+            slots,
+        };
+    });
+}
+
+export default function FormationsEdit({ formation, heroPool, factions, heroClasses, tiers }: PageProps) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Formações', href: '/formations' },
+        { title: formation.name, href: `/formations/${formation.id}/edit` },
+    ];
+
+    const heroById = useMemo(() => Object.fromEntries(heroPool.map((h) => [h.id, h])) as Record<number, Hero>, [heroPool]);
+    const factionById = useMemo(() => Object.fromEntries(factions.map((f) => [f.id, f])) as Record<number, Faction>, [factions]);
+    const classById = useMemo(() => Object.fromEntries(heroClasses.map((c) => [c.id, c])) as Record<number, HeroClass>, [heroClasses]);
+    const tierById = useMemo(() => Object.fromEntries(tiers.map((t) => [t.id, t])) as Record<number, Tier>, [tiers]);
+
+    const [name, setName] = useState(formation.name);
+    const [teams, setTeams] = useState<TeamSlotsState[]>(() => teamsFromFormation(formation.teams, formation.teams_count));
+    const [isDirty, setIsDirty] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
+
+    const enforceUnique = formation.challenge_type.teams_must_be_unique;
+
+    const placedHeroIds = useMemo(() => {
+        const set = new Set<number>();
+        for (const team of teams) {
+            for (const slot of team.slots) {
+                if (slot.heroId !== null) set.add(slot.heroId);
+            }
+        }
+        return set;
+    }, [teams]);
+
+    const sensors = useSensors(
+        useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    );
+
+    const updateSlot = useCallback((teams: TeamSlotsState[], teamPos: number, slotPos: number, heroId: number | null): TeamSlotsState[] => {
+        return teams.map((team) =>
+            team.position === teamPos
+                ? {
+                      ...team,
+                      slots: team.slots.map((slot, idx) => (idx + 1 === slotPos ? { heroId } : slot)),
+                  }
+                : team,
+        );
+    }, []);
+
+    const removeFromSlot = useCallback(
+        (teamPos: number, slotPos: number) => {
+            setTeams((prev) => updateSlot(prev, teamPos, slotPos, null));
+            setIsDirty(true);
+        },
+        [updateSlot],
+    );
+
+    const handleDragStart = (event: DragStartEvent) => {
+        const data = event.active.data.current as { kind: string; heroId: number | null } | undefined;
+        setActiveDragHeroId(data?.heroId ?? null);
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        setActiveDragHeroId(null);
+        const { active, over } = event;
+        if (!over) return;
+
+        const sourceData = active.data.current as { kind: 'pool' | 'slot'; heroId: number | null; teamPosition?: number; slotPosition?: number } | undefined;
+        const targetData = over.data.current as { kind: 'slot'; teamPosition: number; slotPosition: number } | undefined;
+        if (!sourceData || targetData?.kind !== 'slot') return;
+
+        const targetTeamPos = targetData.teamPosition;
+        const targetSlotPos = targetData.slotPosition;
+
+        setTeams((prev) => {
+            if (sourceData.kind === 'pool') {
+                const heroId = sourceData.heroId;
+                if (heroId === null) return prev;
+
+                if (enforceUnique) {
+                    const existingPos = findHeroPosition(prev, heroId);
+                    if (existingPos && (existingPos.teamPos !== targetTeamPos || existingPos.slotPos !== targetSlotPos)) {
+                        const targetCurrent = getSlotHero(prev, targetTeamPos, targetSlotPos);
+                        let next = updateSlot(prev, targetTeamPos, targetSlotPos, heroId);
+                        next = updateSlot(next, existingPos.teamPos, existingPos.slotPos, targetCurrent);
+                        return next;
+                    }
+                }
+
+                return updateSlot(prev, targetTeamPos, targetSlotPos, heroId);
+            }
+
+            if (sourceData.kind === 'slot' && sourceData.teamPosition !== undefined && sourceData.slotPosition !== undefined) {
+                const sourceTeamPos = sourceData.teamPosition;
+                const sourceSlotPos = sourceData.slotPosition;
+                if (sourceTeamPos === targetTeamPos && sourceSlotPos === targetSlotPos) return prev;
+
+                const sourceHero = getSlotHero(prev, sourceTeamPos, sourceSlotPos);
+                const targetHero = getSlotHero(prev, targetTeamPos, targetSlotPos);
+                let next = updateSlot(prev, targetTeamPos, targetSlotPos, sourceHero);
+                next = updateSlot(next, sourceTeamPos, sourceSlotPos, targetHero);
+                return next;
+            }
+
+            return prev;
+        });
+
+        setIsDirty(true);
+    };
+
+    const save = () => {
+        setIsSaving(true);
+
+        const payload = {
+            name,
+            notes: formation.notes,
+            teams: teams.map((team) => ({
+                position: team.position,
+                name: team.name,
+                heroes: team.slots
+                    .map((slot, idx) => ({ slot: idx + 1, hero_id: slot.heroId, row: null }))
+                    .filter((h): h is { slot: number; hero_id: number; row: null } => h.hero_id !== null),
+            })),
+        };
+
+        router.patch(`/formations/${formation.id}`, payload, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsDirty(false);
+            },
+            onFinish: () => {
+                setIsSaving(false);
+            },
+        });
+    };
+
+    const activeDragHero = activeDragHeroId !== null ? heroById[activeDragHeroId] : null;
+    const activeDragFaction = activeDragHero ? factionById[activeDragHero.faction_id] : null;
+    const activeDragClass = activeDragHero ? classById[activeDragHero.hero_class_id] : null;
+    const activeDragTier = activeDragHero ? tierById[activeDragHero.tier_id] : null;
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`Editar ${formation.name}`} />
+
+            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <div className="flex h-full flex-1 flex-col gap-3 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-1 items-center gap-2">
+                            <Input
+                                value={name}
+                                onChange={(e) => {
+                                    setName(e.target.value);
+                                    setIsDirty(true);
+                                }}
+                                maxLength={100}
+                                className="h-9 max-w-md text-base font-semibold"
+                            />
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <Badge variant="secondary">{formation.challenge_type.name_pt}</Badge>
+                                {formation.mode === 'target' && (
+                                    <Badge variant="outline" className="gap-1">
+                                        <Target className="size-3" />
+                                        Alvo
+                                    </Badge>
+                                )}
+                                {formation.challenge_type.is_pvp && (
+                                    <Badge variant="outline" className="border-rose-500/40 text-rose-600 dark:text-rose-400">
+                                        PvP
+                                    </Badge>
+                                )}
+                                {enforceUnique && (
+                                    <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
+                                        Heróis únicos por equipe
+                                    </Badge>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {isDirty && <span className="text-xs text-amber-600 dark:text-amber-400">Alterações não salvas</span>}
+                            <Button onClick={save} disabled={!isDirty || isSaving}>
+                                <Save className="size-4" />
+                                {isSaving ? 'Salvando...' : 'Salvar'}
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="grid flex-1 gap-3 lg:grid-cols-[1fr_320px]">
+                        <div className="flex flex-col gap-3 overflow-y-auto pr-1">
+                            {teams.map((team) => (
+                                <TeamRow
+                                    key={team.position}
+                                    team={team}
+                                    heroById={heroById}
+                                    factionById={factionById}
+                                    classById={classById}
+                                    tierById={tierById}
+                                    onRemoveHero={(slotPosition) => removeFromSlot(team.position, slotPosition)}
+                                />
+                            ))}
+                        </div>
+
+                        <div className="hidden h-[calc(100vh-180px)] lg:block">
+                            <HeroPool
+                                heroes={heroPool}
+                                factions={factions}
+                                heroClasses={heroClasses}
+                                factionById={factionById}
+                                classById={classById}
+                                tierById={tierById}
+                                placedHeroIds={placedHeroIds}
+                                enforceUnique={enforceUnique}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <DragOverlay dropAnimation={null}>
+                    {activeDragHero && activeDragFaction && activeDragClass && activeDragTier ? (
+                        <div className={cn('rotate-3 opacity-95')}>
+                            <HeroChip
+                                hero={activeDragHero}
+                                factionCode={activeDragFaction.code as FactionCode}
+                                classCode={activeDragClass.code as ClassCode}
+                                tierCode={activeDragTier.code as TierCode}
+                                size="md"
+                                className={FACTION_THEME[activeDragFaction.code as FactionCode].cardHoverGlow}
+                            />
+                        </div>
+                    ) : null}
+                </DragOverlay>
+            </DndContext>
+        </AppLayout>
+    );
+}
+
+function getSlotHero(teams: TeamSlotsState[], teamPos: number, slotPos: number): number | null {
+    const team = teams.find((t) => t.position === teamPos);
+    return team?.slots[slotPos - 1]?.heroId ?? null;
+}
+
+function findHeroPosition(teams: TeamSlotsState[], heroId: number): { teamPos: number; slotPos: number } | null {
+    for (const team of teams) {
+        for (let i = 0; i < team.slots.length; i++) {
+            if (team.slots[i].heroId === heroId) {
+                return { teamPos: team.position, slotPos: i + 1 };
+            }
+        }
+    }
+    return null;
+}
