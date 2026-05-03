@@ -153,7 +153,7 @@ export function HeroDetailModal({ slug, open, onOpenChange, onNavigate }: HeroDe
     return (
         <>
             <Dialog open={open} onOpenChange={handleClose}>
-                <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto p-0">
+                <DialogContent className="max-h-[92vh] max-w-5xl overflow-x-hidden overflow-y-auto p-0">
                     {/* Sempre presente para acessibilidade (radix exige). Visualmente o nome aparece dentro do header. */}
                     <DialogTitle className="sr-only">
                         {data?.hero.name ?? 'Detalhes do herói'}
@@ -280,7 +280,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
 
                     {/* Hero Name */}
                     <h1 className={cn(
-                        'text-2xl font-bold leading-tight sm:text-3xl',
+                        'max-w-full break-words text-2xl font-bold leading-tight sm:text-3xl',
                         awakened && 'bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 bg-clip-text text-transparent',
                         !awakened && factionTheme.headerText,
                     )}>
@@ -315,7 +315,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
             </header>
 
             {/* Upper: 3-col paperdoll com slots quadrados */}
-            <section className="mx-auto grid w-full max-w-3xl grid-cols-[96px_minmax(240px,1fr)_96px] gap-3 p-4 sm:grid-cols-[112px_minmax(280px,1fr)_112px]">
+            <section className="mx-auto grid w-full max-w-3xl grid-cols-[88px_minmax(0,1fr)_88px] gap-2 p-4 sm:grid-cols-[112px_minmax(0,1fr)_112px] sm:gap-3">
                 {/* Esquerda: Arma → Capacete → Assinatura (SI) */}
                 <div className="grid grid-cols-1 gap-1.5">
                     <EquipmentSlot icon={Sword} label="Arma" tier={userHero?.weapon_tier ?? null} level={userHero?.weapon_level ?? null} />
@@ -331,11 +331,11 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                 </div>
 
                 {/* Centro: portrait + power + stats strip */}
-                <div className="flex flex-col items-center gap-3">
+                <div className="flex min-w-0 flex-col items-center gap-3">
                     <div className={cn(
                         'relative aspect-[3/4] w-full overflow-hidden rounded-lg border-2',
                         factionTheme.cardGradient,
-                        awakened ? 'border-amber-400/90 shadow-[0_0_18px_-2px_rgba(251,191,36,0.55)]' : factionTheme.cardBorder,
+                        awakened ? 'border-amber-400/90 shadow-[inset_0_0_12px_rgba(251,191,36,0.45)]' : factionTheme.cardBorder,
                     )}>
                         {hero.portrait_url ? (
                             <img src={hero.portrait_url} alt={hero.name} className="size-full object-contain object-bottom" />
