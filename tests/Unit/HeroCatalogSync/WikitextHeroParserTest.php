@@ -30,6 +30,7 @@ class WikitextHeroParserTest extends TestCase
 |name = Lucius
 |title = Lightbringer
 |faction = Lightbearer
+|type = Strength
 |class = Tank
 |rarity = Ascended
 |gender = Male
@@ -47,7 +48,26 @@ TEXT;
         $this->assertSame('tank', $parsed['class_code']);
         $this->assertSame('ascended', $parsed['tier_code']);
         $this->assertSame('male', $parsed['gender']);
+        $this->assertSame('strength', $parsed['type']);
         $this->assertSame('Tank', $parsed['role_label']);
+    }
+
+    public function test_extrai_type_intelligence_e_agility(): void
+    {
+        $wt1 = "{{Hero|name=A|faction=Mauler|class=Mage|rarity=Ascended|type=Intelligence}}";
+        $wt2 = "{{Hero|name=B|faction=Mauler|class=Ranger|rarity=Ascended|type=Agility}}";
+
+        $this->assertSame('intelligence', $this->parser->parse($wt1)['type']);
+        $this->assertSame('agility', $this->parser->parse($wt2)['type']);
+    }
+
+    public function test_type_ausente_retorna_null(): void
+    {
+        $wt = "{{Hero|name=X|faction=Mauler|class=Tank|rarity=Ascended}}";
+        $parsed = $this->parser->parse($wt);
+
+        $this->assertNotNull($parsed);
+        $this->assertNull($parsed['type']);
     }
 
     public function test_fallback_para_nickname_quando_name_ausente(): void

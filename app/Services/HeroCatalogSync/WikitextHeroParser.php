@@ -51,6 +51,15 @@ class WikitextHeroParser
         'ascended' => 'ascended',
     ];
 
+    private const TYPE_MAP = [
+        'strength' => 'strength',
+        'str' => 'strength',
+        'intelligence' => 'intelligence',
+        'int' => 'intelligence',
+        'agility' => 'agility',
+        'agi' => 'agility',
+    ];
+
     /**
      * @return array<string, mixed>|null
      */
@@ -78,6 +87,7 @@ class WikitextHeroParser
         $classRaw = strtolower($this->cleanValue($params['class'] ?? ''));
         $rarityRaw = strtolower($this->cleanValue($params['rarity'] ?? ''));
         $genderRaw = strtolower($this->cleanValue($params['gender'] ?? ''));
+        $typeRaw = strtolower($this->cleanValue($params['type'] ?? ''));
 
         // role pode aparecer como `role=` ou `role1=` (varia entre páginas).
         $roleLabel = $this->cleanValue($params['role'] ?? '') ?: $this->cleanValue($params['role1'] ?? '') ?: null;
@@ -94,6 +104,7 @@ class WikitextHeroParser
                 '' => null,
                 default => 'other',
             },
+            'type' => self::TYPE_MAP[$typeRaw] ?? null,
             'role_label' => $roleLabel,
             'image_filename' => $this->extractImageFilename($params['image'] ?? ''),
         ];

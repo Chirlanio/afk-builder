@@ -18,6 +18,7 @@ class Hero extends Model
         'hero_class_id',
         'tier_id',
         'gender',
+        'type',
         'role_label',
         'special_mechanic',
         'portrait_url',

@@ -12,6 +12,8 @@ export type ClassCode = 'tank' | 'warrior' | 'ranger' | 'mage' | 'support';
 
 export type TierCode = 'common' | 'legendary' | 'ascended';
 
+export type HeroType = 'strength' | 'intelligence' | 'agility';
+
 export interface Faction {
     id: number;
     code: FactionCode;
@@ -47,6 +49,7 @@ export interface Hero {
     hero_class_id: number;
     tier_id: number;
     gender: 'male' | 'female' | 'other' | null;
+    type: HeroType | null;
     role_label: string | null;
     portrait_url: string | null;
     source_url: string | null;

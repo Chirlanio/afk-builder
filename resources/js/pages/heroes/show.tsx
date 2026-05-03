@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import AppLayout from '@/layouts/app-layout';
-import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME, localized, tierFromAscension } from '@/lib/afk';
+import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, HERO_TYPE_BADGE, HERO_TYPE_ICON, HERO_TYPE_LABEL, TIER_THEME, localized, tierFromAscension } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, Locale, SharedData } from '@/types';
 import type {
@@ -163,6 +163,15 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                                 <ClassIcon className="size-3" />
                                 {CLASS_LABEL[hero.hero_class.code as ClassCode]}
                             </Badge>
+                            {hero.type && (() => {
+                                const TypeIcon = HERO_TYPE_ICON[hero.type];
+                                return (
+                                    <Badge variant="outline" className={cn('gap-1', HERO_TYPE_BADGE[hero.type])}>
+                                        <TypeIcon className="size-3" />
+                                        {HERO_TYPE_LABEL[hero.type]}
+                                    </Badge>
+                                );
+                            })()}
                             <Badge className={cn('text-xs', tierTheme.badge)}>{tierTheme.label}</Badge>
                             {awakened && (
                                 <Badge className="gap-1 bg-gradient-to-r from-rose-500 via-amber-400 to-rose-500 text-white">

@@ -30,7 +30,7 @@ class EnrichHeroesCommand extends Command
             $query->where('slug', $slug);
         } elseif (! $this->option('force')) {
             $query->where(function ($q) {
-                $q->whereNull('lore')->orWhereDoesntHave('abilities');
+                $q->whereNull('lore')->orWhereNull('type')->orWhereDoesntHave('abilities');
             });
         }
 
@@ -50,6 +50,7 @@ class EnrichHeroesCommand extends Command
 
         $enrichedLore = 0;
         $enrichedAbilities = 0;
+        $enrichedType = 0;
         $errors = 0;
 
         foreach ($heroes as $i => $hero) {
@@ -62,13 +63,29 @@ class EnrichHeroesCommand extends Command
                     continue;
                 }
 
+                $parsed = $parser->parse($wt);
                 $lore = $parser->parseLore($wt);
                 $abilities = $parser->parseAbilities($wt);
 
-                $loreChanged = $lore !== $hero->lore;
-                if ($loreChanged) {
-                    $hero->update(['lore' => $lore]);
-                    $enrichedLore++;
+                $updates = [];
+                if ($lore !== $hero->lore) {
+                    $updates['lore'] = $lore;
+                }
+                if ($parsed && $parsed['type'] !== $hero->type) {
+                    $updates['type'] = $parsed['type'];
+                }
+                if ($parsed && ! empty($parsed['role_label']) && $parsed['role_label'] !== $hero->role_label) {
+                    $updates['role_label'] = $parsed['role_label'];
+                }
+
+                if (! empty($updates)) {
+                    $hero->update($updates);
+                    if (array_key_exists('lore', $updates)) {
+                        $enrichedLore++;
+                    }
+                    if (array_key_exists('type', $updates)) {
+                        $enrichedType++;
+                    }
                 }
 
                 if (! empty($abilities)) {
@@ -76,8 +93,9 @@ class EnrichHeroesCommand extends Command
                     $enrichedAbilities++;
                 }
 
-                $marker = ($loreChanged || ! empty($abilities)) ? '<fg=green>+</>' : '<fg=gray>=</>';
-                $this->line("  {$marker} [{$i}/{$total}] {$hero->slug} (lore: ".strlen($lore ?? '').' chars, abilities: '.count($abilities).')');
+                $marker = (! empty($updates) || ! empty($abilities)) ? '<fg=green>+</>' : '<fg=gray>=</>';
+                $typeLabel = $parsed['type'] ?? '?';
+                $this->line("  {$marker} [{$i}/{$total}] {$hero->slug} (lore: ".strlen($lore ?? '')." chars, abilities: ".count($abilities).", type: {$typeLabel})");
             } catch (Throwable $e) {
                 $errors++;
                 $this->line("  <fg=red>!</> [{$i}/{$total}] {$hero->slug}: {$e->getMessage()}");
@@ -85,7 +103,7 @@ class EnrichHeroesCommand extends Command
         }
 
         $this->newLine();
-        $this->info("Concluído. Lore atualizada: {$enrichedLore}, abilities atualizadas: {$enrichedAbilities}, erros: {$errors}.");
+        $this->info("Concluído. Lore: {$enrichedLore}, abilities: {$enrichedAbilities}, type: {$enrichedType}, erros: {$errors}.");
 
         return self::SUCCESS;
     }

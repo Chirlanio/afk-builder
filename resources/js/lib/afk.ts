@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
-import { Crosshair, Heart, Shield, Sparkles, Sword } from 'lucide-react';
-import type { ClassCode, FactionCode, TierCode } from '@/types/afk';
+import { Brain, Crosshair, Dumbbell, Heart, Shield, Sparkles, Sword, Wind } from 'lucide-react';
+import type { ClassCode, FactionCode, HeroType, TierCode } from '@/types/afk';
 
 export interface FactionTheme {
     label: string;
@@ -101,6 +101,24 @@ export const CLASS_LABEL: Record<ClassCode, string> = {
     ranger: 'Atirador',
     mage: 'Mago',
     support: 'Suporte',
+};
+
+export const HERO_TYPE_LABEL: Record<HeroType, string> = {
+    strength: 'Força',
+    intelligence: 'Inteligência',
+    agility: 'Agilidade',
+};
+
+export const HERO_TYPE_ICON: Record<HeroType, LucideIcon> = {
+    strength: Dumbbell,
+    intelligence: Brain,
+    agility: Wind,
+};
+
+export const HERO_TYPE_BADGE: Record<HeroType, string> = {
+    strength: 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40',
+    intelligence: 'bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-500/40',
+    agility: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40',
 };
 
 export interface TierTheme {

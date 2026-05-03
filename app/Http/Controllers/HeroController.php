@@ -23,7 +23,7 @@ class HeroController extends Controller
             ->get([
                 'id', 'slug', 'name', 'title',
                 'faction_id', 'hero_class_id', 'tier_id',
-                'gender', 'role_label', 'portrait_url',
+                'gender', 'type', 'role_label', 'portrait_url',
             ])
             ->map(function (Hero $hero) {
                 return array_merge($hero->toArray(), [

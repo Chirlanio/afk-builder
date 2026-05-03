@@ -146,6 +146,7 @@ class FandomSyncService
                     'hero_class_id' => $classId,
                     'tier_id' => $tierId,
                     'gender' => $parsed['gender'],
+                    'type' => $parsed['type'],
                     'role_label' => $parsed['role_label'],
                     'portrait_url' => $portraitUrl,
                     'source_url' => $sourceUrl,
