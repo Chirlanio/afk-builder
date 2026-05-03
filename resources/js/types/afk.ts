@@ -73,6 +73,32 @@ export interface HeroFurnitureAbility {
     f9_description: string | null;
 }
 
+export type ArtifactKind = 'dura' | 'class';
+
+export interface ArtifactAttribute {
+    stat: string;
+    value: string;
+}
+
+export interface ArtifactPower {
+    stars: number;
+    description: string;
+}
+
+export interface Artifact {
+    id: number;
+    slug: string;
+    name: string;
+    kind: ArtifactKind;
+    hero_class_id: number | null;
+    description: string | null;
+    attributes: ArtifactAttribute[];
+    powers: ArtifactPower[];
+    obtained_in: string | null;
+    portrait_url: string | null;
+    max_stars: number;
+}
+
 export interface HeroStats {
     id: number;
     hero_id: number;
@@ -108,6 +134,9 @@ export interface UserHero {
     signature_item: number;
     furniture: number;
     engraving: number;
+    artifact_id: number | null;
+    artifact_star_level: number | null;
+    artifact?: Artifact | null;
     notes: string | null;
 }
 

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ASCENSION_STAGES, ascensionStagesForTier, FACTION_THEME, TIER_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
-import type { FactionCode, Hero, TierCode, UserHero } from '@/types/afk';
+import type { Artifact, FactionCode, Hero, TierCode, UserHero } from '@/types/afk';
 
 interface RosterModalProps {
     open: boolean;
@@ -18,6 +18,7 @@ interface RosterModalProps {
     factionCode: FactionCode | null;
     tierCode: TierCode | null;
     userHero?: UserHero;
+    availableArtifacts?: Artifact[];
 }
 
 interface FormShape {
@@ -27,11 +28,13 @@ interface FormShape {
     signature_item: number;
     furniture: number;
     engraving: number;
+    artifact_id: number | null;
+    artifact_star_level: number | null;
     notes: string;
     [key: string]: string | number | null;
 }
 
-export function RosterModal({ open, onOpenChange, hero, factionCode, tierCode, userHero }: RosterModalProps) {
+export function RosterModal({ open, onOpenChange, hero, factionCode, tierCode, userHero, availableArtifacts = [] }: RosterModalProps) {
     const tierTheme = tierCode ? TIER_THEME[tierCode] : null;
     const factionTheme = factionCode ? FACTION_THEME[factionCode] : null;
     const validStages = tierTheme ? ascensionStagesForTier(tierTheme.maxLevel) : ASCENSION_STAGES;
@@ -44,6 +47,8 @@ export function RosterModal({ open, onOpenChange, hero, factionCode, tierCode, u
         signature_item: userHero?.signature_item ?? 0,
         furniture: userHero?.furniture ?? 0,
         engraving: userHero?.engraving ?? 0,
+        artifact_id: userHero?.artifact_id ?? null,
+        artifact_star_level: userHero?.artifact_star_level ?? null,
         notes: userHero?.notes ?? '',
     });
 
@@ -59,6 +64,8 @@ export function RosterModal({ open, onOpenChange, hero, factionCode, tierCode, u
             signature_item: userHero?.signature_item ?? 0,
             furniture: userHero?.furniture ?? 0,
             engraving: userHero?.engraving ?? 0,
+            artifact_id: userHero?.artifact_id ?? null,
+            artifact_star_level: userHero?.artifact_star_level ?? null,
             notes: userHero?.notes ?? '',
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,6 +82,8 @@ export function RosterModal({ open, onOpenChange, hero, factionCode, tierCode, u
             signature_item: form.data.signature_item,
             furniture: form.data.furniture,
             engraving: form.data.engraving,
+            artifact_id: form.data.artifact_id,
+            artifact_star_level: form.data.artifact_id ? form.data.artifact_star_level : null,
             notes: form.data.notes || null,
         };
 
@@ -209,6 +218,69 @@ export function RosterModal({ open, onOpenChange, hero, factionCode, tierCode, u
                             />
                         </div>
                     </div>
+
+                    {availableArtifacts.length > 0 && (
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="col-span-2 space-y-1">
+                                <Label htmlFor="artifact" title="Artefato equipado: Dura's (qualquer herói) ou Class (apenas para a classe correspondente).">
+                                    Artefato
+                                </Label>
+                                <Select
+                                    value={form.data.artifact_id ? String(form.data.artifact_id) : 'none'}
+                                    onValueChange={(v) => {
+                                        if (v === 'none') {
+                                            form.setData('artifact_id', null);
+                                            form.setData('artifact_star_level', null);
+                                        } else {
+                                            const id = Number(v);
+                                            form.setData('artifact_id', id);
+                                            if (!form.data.artifact_star_level) {
+                                                form.setData('artifact_star_level', 1);
+                                            }
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger id="artifact">
+                                        <SelectValue placeholder="—" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">— nenhum —</SelectItem>
+                                        {availableArtifacts.filter(a => a.kind === 'dura').length > 0 && (
+                                            <>
+                                                {availableArtifacts.filter(a => a.kind === 'dura').map((a) => (
+                                                    <SelectItem key={a.id} value={String(a.id)}>
+                                                        Dura's · {a.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </>
+                                        )}
+                                        {availableArtifacts.filter(a => a.kind === 'class').map((a) => (
+                                            <SelectItem key={a.id} value={String(a.id)}>
+                                                Classe · {a.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {form.data.artifact_id && (() => {
+                                const selected = availableArtifacts.find(a => a.id === form.data.artifact_id);
+                                const max = selected?.max_stars ?? 5;
+                                return (
+                                    <div className="space-y-1">
+                                        <Label htmlFor="art-stars">Estrelas (1-{max})</Label>
+                                        <Input
+                                            id="art-stars"
+                                            type="number"
+                                            min={1}
+                                            max={max}
+                                            value={form.data.artifact_star_level ?? 1}
+                                            onChange={(e) => form.setData('artifact_star_level', Math.min(max, Math.max(1, Number(e.target.value) || 1)))}
+                                        />
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
 
                     <div className="space-y-1">
                         <Label htmlFor="notes">Notas (opcional)</Label>

@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-03 (Fase 13c — stats integradas ao optimizer)
+> **Última atualização:** 2026-05-03 (Fase 14a — catálogo de artefatos via wiki)
 
 ---
 
@@ -455,6 +455,31 @@ Stats base (Nv 1) cadastradas manualmente por admin — Fandom não publica num�
 - **Eager loading:** `FormationController::loadHeroPool` e `FormationCompareController` agora incluem `'stats'` no `with()` pra que o calculator não dispare N+1.
 - **Comportamento:** com hero típico (HP=1500, ATK=200, DEF=100, demais=50), stats contribuem ~480 pontos — ~20-25% do total. Suficiente pra diferenciar heróis com mesmo level/ascension mas perfis diferentes; insuficiente pra dominar bonificações de facção/sinergia.
 - **Testes:** 6 novos cenários no `PowerCalculatorTest` (zero quando null, soma de pesos, campos nulos parciais, integração com forUserHero, backward-compat sem hero, targetBaseline com stats). **136 testes verdes** no projeto.
+
+---
+
+### ✅ Fase 14a — Artefatos via wiki sync
+
+Catálogo de Artefatos da Fandom (Dura's + Class) sincronizado, atribuível a heróis no roster com nível de estrelas.
+
+- **Schema:** tabela `artifacts` com `slug`, `name`, `kind` enum `dura|class`, `hero_class_id` FK nullable (só pra class), `description`, `attributes` json (`[{stat:'HP',value:'8%'}]`), `powers` json (`[{stars:1,description:'...'}]`), `obtained_in`, `portrait_url`, `max_stars` (5 dura/3 class), `is_active`. `user_heroes.artifact_id` FK nullable + `artifact_star_level` tinyint nullable.
+- **Parser** (`WikitextHeroParser`):
+  - `parseArtifactsIndex($wikitext)` retorna `['dura' => [...], 'class' => [...]]`.
+  - Helper `parseArtifactsTable()` lida com 5 colunas (Dura's) e 6 colunas (Class — com coluna de classe). Cells de attributes/powers vêm como `<div>...</div>` divididos via `parseDivList()`.
+  - `parseAttributeLine()` parseia `STAT: VALUE`. `parsePowerLine()` detecta `(Enhance to N stars to unlock)` e atribui `stars` (default 1).
+  - Bugfix: regex de nome agora aceita apóstrofes (`'''(.+?)'''` lazy) — antes falhava em `Dura's Eye`.
+- **Comando `artifacts:sync`** (`--dry-run`): fetch único da página `Artifacts`, parseia ambas as tabelas, mapeia `class_code` → `hero_class_id`, gera URL CDN via `Special:Filepath`, idempotente via `Hero::where('slug')->first()` + update/create. Auto define `max_stars` (5 dura, 3 class).
+- **Resultado da sync real:** **22 artefatos** criados — 7 Dura's (Grace, Eye, Call, Drape, Blade, Chalice of Vitality, Conviction) + 15 Class (Mage, Tank, Warrior, Ranger, Support distribuídos).
+- **Backend:**
+  - `UserHeroController::store/update` aceita `artifact_id` + `artifact_star_level`. `resolveArtifactFields()` valida ownership de classe (artifact class precisa bater com `hero.hero_class_id`) e clampa stars no `max_stars`.
+  - `HeroController::show` carrega `userHero.artifact` (com select específico de `description, portrait_url, max_stars`) + `availableArtifacts` (Dura's + class apropriada, ordenados Dura's primeiro via `orderByRaw`).
+- **UI:**
+  - `RosterModal` ganhou `<Select>` de artefato com 2 grupos (Dura's / Classe) + `<Input>` de stars (1 a max do artifact). Aparece só quando `availableArtifacts.length > 0`. Setar "nenhum" zera stars.
+  - `pages/heroes/show.tsx` ganhou seção **Artefato Equipado** com badge de kind, badge de estrelas (★/☆), portrait + nome + descrição. Mostrada só quando `userHero?.artifact` existe.
+- **Testes:**
+  - 2 novos no `WikitextHeroParserTest` (parse_artifacts_index_extrai_duras_e_class, retorna_vazio_sem_secoes).
+  - 8 novos em `UserHeroArtifactTest` (equipa Dura's, equipa class da mesma classe, ignora class de classe diferente, stars clamped no max, validação de FK, remove setando null, show carrega availableArtifacts filtrado por classe, show inclui artifact relation quando equipado).
+  - **146 testes verdes** no projeto.
 
 ---
 

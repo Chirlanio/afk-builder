@@ -16,6 +16,8 @@ class UserHero extends Model
         'signature_item',
         'furniture',
         'engraving',
+        'artifact_id',
+        'artifact_star_level',
         'power_rating',
         'notes',
     ];
@@ -26,6 +28,7 @@ class UserHero extends Model
         'signature_item' => 'integer',
         'furniture' => 'integer',
         'engraving' => 'integer',
+        'artifact_star_level' => 'integer',
         'power_rating' => 'integer',
     ];
 
@@ -37,5 +40,10 @@ class UserHero extends Model
     public function hero(): BelongsTo
     {
         return $this->belongsTo(Hero::class);
+    }
+
+    public function artifact(): BelongsTo
+    {
+        return $this->belongsTo(Artifact::class);
     }
 }

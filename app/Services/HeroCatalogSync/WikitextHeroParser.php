@@ -598,6 +598,170 @@ class WikitextHeroParser
     }
 
     /**
+     * Parseia a página "Artifacts" da Fandom extraindo:
+     *   - Dura's Artifacts (5 colunas: nome, descrição, atributos, powers, obtenção)
+     *   - Class Artifacts (6 colunas: nome, classe, descrição, atributos, powers, obtenção)
+     *
+     * Cada cell de atributos/powers é um conjunto de `<div>...</div>` com texto wikitext.
+     *
+     * @return array{dura: array<int, array<string, mixed>>, class: array<int, array<string, mixed>>}
+     */
+    public function parseArtifactsIndex(string $wikitext): array
+    {
+        return [
+            'dura' => $this->parseArtifactsTable($wikitext, "/===\s*Dura\\'s Artifacts\s*===\n(.*?)(?=\n==[^=])/s", false),
+            'class' => $this->parseArtifactsTable($wikitext, '/===\s*Class Specific Artifacts\s*===\n(.*?)(?=\n==[^=]|\z)/s', true),
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function parseArtifactsTable(string $wikitext, string $sectionPattern, bool $hasClassColumn): array
+    {
+        if (! preg_match($sectionPattern, $wikitext, $section)) {
+            return [];
+        }
+
+        if (! preg_match('/\{\|.*?\|\}/s', $section[1], $tableMatch)) {
+            return [];
+        }
+
+        $rows = preg_split('/\n\|-\s*\n/', $tableMatch[0]);
+        if ($rows === false || count($rows) < 2) {
+            return [];
+        }
+
+        $artifacts = [];
+
+        foreach ($rows as $rowText) {
+            if (preg_match('/^\{\|/', $rowText)) {
+                continue;
+            }
+
+            $cells = $this->extractRowCells($rowText);
+            $cellCount = count($cells);
+
+            $expected = $hasClassColumn ? 6 : 5;
+            if ($cellCount < $expected) {
+                continue;
+            }
+
+            // Pula header
+            if (stripos($cells[0], 'Artifact') !== false && stripos($cells[1], $hasClassColumn ? 'Class' : 'Detail') !== false) {
+                continue;
+            }
+
+            // Cell 0: imagem + nome
+            $first = $cells[0];
+            preg_match('/\[\[File:([^\|\]]+?)(?:\||\])/', $first, $imgMatch);
+            $imageFilename = isset($imgMatch[1]) ? trim($imgMatch[1]) : null;
+
+            preg_match("/'''(.+?)'''/", $first, $nameMatch);
+            $name = isset($nameMatch[1]) ? trim($nameMatch[1]) : '';
+
+            if ($name === '') {
+                continue;
+            }
+
+            $idx = 1;
+            $classRaw = null;
+            if ($hasClassColumn) {
+                $classRaw = strtolower($this->stripWikitextLight(trim($cells[$idx++])));
+            }
+
+            $description = trim($this->stripWikitextLight($cells[$idx++]));
+            $attributesRaw = $cells[$idx++];
+            $powersRaw = $cells[$idx++];
+            $obtainedRaw = $cells[$idx++];
+
+            $attributes = $this->parseDivList($attributesRaw, fn (string $line) => $this->parseAttributeLine($line));
+            $powers = $this->parseDivList($powersRaw, fn (string $line) => $this->parsePowerLine($line));
+            $obtainedIn = trim($this->stripWikitextLight($obtainedRaw));
+
+            $artifacts[] = [
+                'name' => $name,
+                'description' => $description,
+                'class_code' => $classRaw && isset(self::CLASS_MAP[$classRaw]) ? self::CLASS_MAP[$classRaw] : null,
+                'image_filename' => $imageFilename,
+                'attributes' => $attributes,
+                'powers' => $powers,
+                'obtained_in' => $obtainedIn,
+            ];
+        }
+
+        return $artifacts;
+    }
+
+    /**
+     * Extrai cada `<div>...</div>` de uma cell, aplicando $mapper a cada conteúdo limpo.
+     *
+     * @param  callable(string): mixed  $mapper
+     * @return array<int, mixed>
+     */
+    private function parseDivList(string $cell, callable $mapper): array
+    {
+        if (! preg_match_all('/<div[^>]*>(.*?)<\/div>/is', $cell, $matches)) {
+            // Sem divs: trata o cell inteiro como uma única linha
+            $clean = trim($this->stripWikitextLight($cell));
+            return $clean === '' ? [] : array_filter([$mapper($clean)]);
+        }
+
+        $items = [];
+        foreach ($matches[1] as $inner) {
+            $clean = trim($this->stripWikitextLight($inner));
+            if ($clean === '') {
+                continue;
+            }
+            $mapped = $mapper($clean);
+            if ($mapped !== null) {
+                $items[] = $mapped;
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * Linha tipo "HP: 8.00%" ou "CRIT: 5.00" → ['stat' => 'HP', 'value' => '8.00%'].
+     * Aceita "STAT:VALUE", "STAT: VALUE", "STAT VALUE".
+     *
+     * @return array{stat: string, value: string}|null
+     */
+    private function parseAttributeLine(string $line): ?array
+    {
+        if (! preg_match('/^([A-Za-z]+)\s*:?\s*(.+)$/', $line, $m)) {
+            return null;
+        }
+
+        return [
+            'stat' => strtoupper(trim($m[1])),
+            'value' => trim($m[2]),
+        ];
+    }
+
+    /**
+     * Linha de power → ['stars' => N, 'description' => 'texto'].
+     * Detecta "(Enhance to N stars to unlock)" no fim. Linhas sem essa marca
+     * são consideradas o power base (1 estrela / unlock inicial).
+     *
+     * @return array{stars: int, description: string}
+     */
+    private function parsePowerLine(string $line): array
+    {
+        $stars = 1;
+        if (preg_match('/\(Enhance to (\d+)\s*stars?\s*to unlock\)/i', $line, $m)) {
+            $stars = (int) $m[1];
+            $line = preg_replace('/\(Enhance to \d+\s*stars?\s*to unlock\)/i', '', $line) ?? $line;
+        }
+
+        return [
+            'stars' => $stars,
+            'description' => trim($line),
+        ];
+    }
+
+    /**
      * Parseia a página master "Hero Furniture Abilities" extraindo as habilidades
      * F3/F9 de cada herói (móvel exclusivo do Oak Inn).
      *

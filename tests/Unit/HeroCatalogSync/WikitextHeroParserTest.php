@@ -449,6 +449,94 @@ TEXT;
         $this->assertNull($result[2]['f9_description'], 'F9 ausente quando há só 1 div');
     }
 
+    public function test_parse_artifacts_index_extrai_duras_e_class(): void
+    {
+        $wikitext = <<<'TEXT'
+== Dura's Artifacts ==
+=== Lore ===
+Lore stuff.
+
+=== Dura's Artifacts ===
+{| class="wikitable"
+|-
+! Artifact
+! Details
+! Equipment Attributes
+! Artifact Powers
+! Obtained In
+|-
+| [[File:Artifact1.jpg|100x100px]]'''Dura's Grace'''
+| Forged by Dura.
+| <div>DODGE: 10.00</div><div>HP: 8.00%</div>
+| <div>Activates a divine shield.</div><div>Shield is stronger. (Enhance to 2 stars to unlock)</div><div>Shield reflects damage. (Enhance to 5 stars to unlock)</div>
+| [[Ranhorn's Strife]]
+|-
+| [[File:Artifact2.jpg|100x100px]]'''Dura's Eye'''
+| Sees weak spots.
+| <div>CRIT: 5.00</div>
+| <div>Grants Haste.</div>
+| [[Secrets of the Forest]]
+|}
+
+== Class Artifacts ==
+=== Class Specific Artifacts ===
+{| class="wikitable"
+|-
+! Artifact
+! Class
+! Details
+! Equipment Attributes
+! Artifact Powers
+! Obtained In
+|-
+|[[File:Wind.jpg|100x100px]]
+'''Windbinder'''
+|Mage
+|Listen to the wind.
+|<div>CDA: 10</div><div>ATK: 6%</div>
+|<div>Wielder gains Energy at start.</div><div>Effect doubled. (Enhance to 3 stars to unlock)</div>
+|Trials of God - [[Highburn]]
+|}
+TEXT;
+
+        $result = $this->parser->parseArtifactsIndex($wikitext);
+
+        $this->assertCount(2, $result['dura']);
+        $this->assertCount(1, $result['class']);
+
+        // Dura's Grace
+        $grace = $result['dura'][0];
+        $this->assertSame("Dura's Grace", $grace['name']);
+        $this->assertSame('Forged by Dura.', $grace['description']);
+        $this->assertSame('Artifact1.jpg', $grace['image_filename']);
+        $this->assertCount(2, $grace['attributes']);
+        $this->assertSame(['stat' => 'DODGE', 'value' => '10.00'], $grace['attributes'][0]);
+        $this->assertSame(['stat' => 'HP', 'value' => '8.00%'], $grace['attributes'][1]);
+        $this->assertCount(3, $grace['powers']);
+        $this->assertSame(1, $grace['powers'][0]['stars']);
+        $this->assertSame(2, $grace['powers'][1]['stars']);
+        $this->assertSame(5, $grace['powers'][2]['stars']);
+        $this->assertStringContainsString("Ranhorn", $grace['obtained_in']);
+
+        // Dura's Eye (com apóstrofe no nome)
+        $eye = $result['dura'][1];
+        $this->assertSame("Dura's Eye", $eye['name']);
+
+        // Windbinder
+        $wind = $result['class'][0];
+        $this->assertSame('Windbinder', $wind['name']);
+        $this->assertSame('mage', $wind['class_code']);
+        $this->assertCount(2, $wind['attributes']);
+        $this->assertCount(2, $wind['powers']);
+    }
+
+    public function test_parse_artifacts_retorna_vazio_sem_secoes(): void
+    {
+        $result = $this->parser->parseArtifactsIndex('Random text without artifact sections.');
+
+        $this->assertSame(['dura' => [], 'class' => []], $result);
+    }
+
     public function test_parse_abilities_aceita_formato_desperto_3_colunas(): void
     {
         // Despertos (Awakened) usam tabela sem coluna de Unlock Level.

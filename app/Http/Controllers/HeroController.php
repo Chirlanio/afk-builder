@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Artifact;
 use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroClass;
@@ -78,11 +79,27 @@ class HeroController extends Controller
 
         $userHero = $request->user()
             ->userHeroes()
+            ->with(['artifact:id,slug,name,kind,hero_class_id,description,portrait_url,max_stars'])
             ->where('hero_id', $hero->id)
             ->first([
                 'id', 'hero_id', 'level', 'ascension_code', 'ascension_value',
-                'signature_item', 'furniture', 'engraving', 'notes',
+                'signature_item', 'furniture', 'engraving',
+                'artifact_id', 'artifact_star_level', 'notes',
             ]);
+
+        // Artefatos disponíveis para esse herói: Dura's (qualquer um) + Class do mesmo class_id
+        $availableArtifacts = Artifact::query()
+            ->where('is_active', true)
+            ->where(function ($q) use ($hero) {
+                $q->where('kind', Artifact::KIND_DURA)
+                  ->orWhere(function ($q2) use ($hero) {
+                      $q2->where('kind', Artifact::KIND_CLASS)
+                         ->where('hero_class_id', $hero->hero_class_id);
+                  });
+            })
+            ->orderByRaw("CASE kind WHEN 'dura' THEN 0 ELSE 1 END")
+            ->orderBy('name')
+            ->get(['id', 'slug', 'name', 'kind', 'hero_class_id', 'description', 'attributes', 'powers', 'obtained_in', 'portrait_url', 'max_stars']);
 
         $synergyPartnerIds = HeroSynergy::query()
             ->where('hero_a_id', $hero->id)
@@ -124,6 +141,7 @@ class HeroController extends Controller
             'hero' => $heroPayload,
             'userHero' => $userHero,
             'synergies' => $synergies,
+            'availableArtifacts' => $availableArtifacts,
             'factions' => Faction::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'color_hex', 'display_order']),
             'heroClasses' => HeroClass::orderBy('display_order')

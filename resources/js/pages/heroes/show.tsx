@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, BarChart3, BookText, ExternalLink, Flame, Hotel, ListChecks, Lock, Pencil, Plus, Sparkles, Unlock, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, BookText, ExternalLink, Flame, Gem, Hotel, ListChecks, Lock, Pencil, Plus, Sparkles, Unlock, Users } from 'lucide-react';
 import { useState } from 'react';
 import { MarkdownContent } from '@/components/markdown-content';
 import { RosterModal } from '@/components/roster-modal';
@@ -11,6 +11,7 @@ import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, HERO_TYPE_BADGE, HERO_TYPE_ICON
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, Locale, SharedData } from '@/types';
 import type {
+    Artifact,
     ClassCode,
     Faction,
     FactionCode,
@@ -36,6 +37,7 @@ interface PageProps {
     };
     userHero: UserHero | null;
     synergies: SynergyEntry[];
+    availableArtifacts: Artifact[];
     factions: Faction[];
     heroClasses: HeroClass[];
     tiers: Tier[];
@@ -50,7 +52,7 @@ const ABILITY_TYPE_LABEL: Record<string, string> = {
     awakened: 'Despertar',
 };
 
-export default function HeroShow({ hero, userHero, synergies, factions, heroClasses, tiers }: PageProps) {
+export default function HeroShow({ hero, userHero, synergies, availableArtifacts, factions, heroClasses, tiers }: PageProps) {
     const [modalOpen, setModalOpen] = useState(false);
     const { confirm, dialog: confirmDialog } = useConfirm();
     const { auth } = usePage<SharedData>().props;
@@ -381,6 +383,39 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                     );
                 })()}
 
+                {/* Artefato equipado */}
+                {userHero?.artifact && (
+                    <section className="flex flex-col gap-2">
+                        <h2 className="flex items-center gap-2 text-lg font-semibold">
+                            <Gem className="size-5 text-primary" />
+                            Artefato Equipado
+                            <Badge variant="secondary" className="text-xs uppercase">
+                                {userHero.artifact.kind === 'dura' ? "Dura's" : 'Classe'}
+                            </Badge>
+                            {userHero.artifact_star_level !== null && (
+                                <Badge className="text-xs">
+                                    {'★'.repeat(userHero.artifact_star_level)}{'☆'.repeat(userHero.artifact.max_stars - userHero.artifact_star_level)}
+                                </Badge>
+                            )}
+                        </h2>
+                        <div className="flex gap-3 rounded-xl border bg-card p-3">
+                            {userHero.artifact.portrait_url && (
+                                <img
+                                    src={userHero.artifact.portrait_url}
+                                    alt={userHero.artifact.name}
+                                    className="size-20 shrink-0 rounded-lg object-contain"
+                                />
+                            )}
+                            <div className="min-w-0 flex-1">
+                                <div className="font-semibold">{userHero.artifact.name}</div>
+                                {userHero.artifact.description && (
+                                    <p className="mt-1 text-xs text-muted-foreground">{userHero.artifact.description}</p>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+                )}
+
                 {/* Synergies */}
                 {synergies.length > 0 && (
                     <section className="flex flex-col gap-2">
@@ -441,6 +476,7 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                 factionCode={hero.faction.code as FactionCode}
                 tierCode={hero.tier.code as TierCode}
                 userHero={userHero ?? undefined}
+                availableArtifacts={availableArtifacts}
             />
             {confirmDialog}
         </AppLayout>

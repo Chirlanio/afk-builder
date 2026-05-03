@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Artifact;
 use App\Models\Hero;
 use App\Models\UserHero;
 use Illuminate\Http\RedirectResponse;
@@ -28,10 +29,13 @@ class UserHeroController extends Controller
             'signature_item' => ['nullable', 'integer', 'min:0', 'max:40'],
             'furniture' => ['nullable', 'integer', 'min:0', 'max:9'],
             'engraving' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'artifact_id' => ['nullable', 'integer', Rule::exists('artifacts', 'id')->where('is_active', true)],
+            'artifact_star_level' => ['nullable', 'integer', 'min:1', 'max:5'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $hero = Hero::with('tier')->findOrFail($data['hero_id']);
+        $artifactFields = $this->resolveArtifactFields($data, $hero);
 
         if ($data['level'] > $hero->tier->max_level) {
             $data['level'] = $hero->tier->max_level;
@@ -46,6 +50,7 @@ class UserHeroController extends Controller
                 'signature_item' => $data['signature_item'] ?? 0,
                 'furniture' => $data['furniture'] ?? 0,
                 'engraving' => $data['engraving'] ?? 0,
+                ...$artifactFields,
                 'notes' => $data['notes'] ?? null,
             ]
         );
@@ -63,10 +68,13 @@ class UserHeroController extends Controller
             'signature_item' => ['nullable', 'integer', 'min:0', 'max:40'],
             'furniture' => ['nullable', 'integer', 'min:0', 'max:9'],
             'engraving' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'artifact_id' => ['nullable', 'integer', Rule::exists('artifacts', 'id')->where('is_active', true)],
+            'artifact_star_level' => ['nullable', 'integer', 'min:1', 'max:5'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $hero = $userHero->hero()->with('tier')->first();
+        $artifactFields = $this->resolveArtifactFields($data, $hero);
 
         if ($hero && $data['level'] > $hero->tier->max_level) {
             $data['level'] = $hero->tier->max_level;
@@ -79,10 +87,41 @@ class UserHeroController extends Controller
             'signature_item' => $data['signature_item'] ?? 0,
             'furniture' => $data['furniture'] ?? 0,
             'engraving' => $data['engraving'] ?? 0,
+            ...$artifactFields,
             'notes' => $data['notes'] ?? null,
         ]);
 
         return back();
+    }
+
+    /**
+     * @return array{artifact_id: int|null, artifact_star_level: int|null}
+     */
+    private function resolveArtifactFields(array $data, ?Hero $hero): array
+    {
+        $artifactId = $data['artifact_id'] ?? null;
+
+        if ($artifactId === null) {
+            return ['artifact_id' => null, 'artifact_star_level' => null];
+        }
+
+        $artifact = Artifact::find($artifactId);
+        if (! $artifact) {
+            return ['artifact_id' => null, 'artifact_star_level' => null];
+        }
+
+        // Class artifacts só podem ser equipados pela classe correspondente
+        if ($artifact->kind === Artifact::KIND_CLASS && $hero && $artifact->hero_class_id !== $hero->hero_class_id) {
+            return ['artifact_id' => null, 'artifact_star_level' => null];
+        }
+
+        $starLevel = $data['artifact_star_level'] ?? 1;
+        $starLevel = max(1, min((int) $starLevel, $artifact->max_stars));
+
+        return [
+            'artifact_id' => $artifact->id,
+            'artifact_star_level' => $starLevel,
+        ];
     }
 
     public function destroy(Request $request, UserHero $userHero): RedirectResponse
