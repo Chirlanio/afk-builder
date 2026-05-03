@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Flame, Gem, Hotel, Loader2, Package, PenLine, Save, Star } from 'lucide-react';
+import { Crown, Footprints, Loader2, Save, ScrollText, Shield, Shirt, Sword } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -127,7 +127,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                     <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 md:grid-cols-[140px_minmax(220px,1fr)_140px]">
                         {/* Esquerda: Artefato, Coleção, Assinatura */}
                         <div className="flex flex-col gap-2">
-                            <SlotEdit icon={<Gem className="size-3" />} label="Artefato">
+                            <SlotEdit icon={<Sword className="size-3" />} label="Artefato (Arma)">
                                 <Select
                                     value={artifactId ? String(artifactId) : 'none'}
                                     onValueChange={(v) => {
@@ -168,7 +168,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                                 )}
                             </SlotEdit>
 
-                            <SlotEdit icon={<Package className="size-3" />} label="Coleção">
+                            <SlotEdit icon={<Shield className="size-3" />} label="Coleção (Capacete)">
                                 <Select
                                     value={collectionId ? String(collectionId) : 'none'}
                                     onValueChange={(v) => {
@@ -197,7 +197,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                                 )}
                             </SlotEdit>
 
-                            <SlotEdit icon={<Star className="size-3" />} label="Assinatura (0-40)">
+                            <SlotEdit icon={<Crown className="size-3" />} label="Assinatura SI (0-40)">
                                 <Input
                                     type="number"
                                     min={0}
@@ -245,7 +245,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
 
                         {/* Direita: Móveis, Inscrições, Notas (curtas) */}
                         <div className="flex flex-col gap-2">
-                            <SlotEdit icon={<Hotel className="size-3" />} label="Móveis (0-9)">
+                            <SlotEdit icon={<Shirt className="size-3" />} label="Móveis Peitoral (0-9)">
                                 <Input
                                     type="number"
                                     min={0}
@@ -260,7 +260,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                                 </div>
                             </SlotEdit>
 
-                            <SlotEdit icon={<PenLine className="size-3" />} label="Inscrições (0-100)">
+                            <SlotEdit icon={<Footprints className="size-3" />} label="Inscrições Bota (0-100)">
                                 <Input
                                     type="number"
                                     min={0}
@@ -271,7 +271,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                                 />
                             </SlotEdit>
 
-                            <SlotEdit icon={<Flame className="size-3" />} label="Notas" expand>
+                            <SlotEdit icon={<ScrollText className="size-3" />} label="Notas" expand>
                                 <textarea
                                     className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
                                     value={notes}

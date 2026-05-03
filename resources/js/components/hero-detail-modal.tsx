@@ -3,22 +3,24 @@ import axios from 'axios';
 import {
     BarChart3,
     BookText,
+    Crown,
     ExternalLink,
     Flame,
-    Gem,
+    Footprints,
     Hotel,
     Loader2,
     Lock,
-    Package,
     Pencil,
-    PenLine,
     Plus,
+    ScrollText,
+    Shield,
+    Shirt,
     Sparkles,
     Star,
+    Sword,
     Trash2,
     Unlock,
     Users,
-    X,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -147,6 +149,11 @@ export function HeroDetailModal({ slug, open, onOpenChange, onNavigate }: HeroDe
         <>
             <Dialog open={open} onOpenChange={handleClose}>
                 <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto p-0">
+                    {/* Sempre presente para acessibilidade (radix exige). Visualmente o nome aparece dentro do header. */}
+                    <DialogTitle className="sr-only">
+                        {data?.hero.name ?? 'Detalhes do herói'}
+                    </DialogTitle>
+
                     {loading && (
                         <div className="flex h-64 items-center justify-center">
                             <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -160,7 +167,6 @@ export function HeroDetailModal({ slug, open, onOpenChange, onNavigate }: HeroDe
                             onEditRoster={() => setRosterOpen(true)}
                             onEditStats={() => setStatsOpen(true)}
                             onMutation={onMutation}
-                            onClose={() => handleClose(false)}
                             onNavigate={onNavigate}
                         />
                     )}
@@ -198,11 +204,10 @@ interface ContentProps {
     onEditRoster: () => void;
     onEditStats: () => void;
     onMutation: () => Promise<void> | void;
-    onClose: () => void;
     onNavigate?: (slug: string) => void;
 }
 
-function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, onMutation, onClose, onNavigate }: ContentProps) {
+function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, onMutation, onNavigate }: ContentProps) {
     const { hero, userHero, synergies, availableArtifacts, availableCollections: _ } = data;
     const { confirm, dialog: confirmDialog } = useConfirm();
 
@@ -242,71 +247,66 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
         <>
             {confirmDialog}
 
-            {/* Header centralizado: tier+stars > title > name > badges */}
-            <header className={cn('relative border-b p-4', factionTheme.cardGradient)}>
-                <Button size="icon" variant="ghost" onClick={onClose} className="absolute right-2 top-2 size-7">
-                    <X className="size-4" />
-                </Button>
-
-                <DialogTitle asChild>
-                    <div className="flex flex-col items-center gap-1.5 text-center">
-                        {/* Tier + Stars */}
-                        <div className="flex items-center gap-2">
-                            <Badge className={cn('px-3 py-0.5 text-xs uppercase tracking-wide', tierTheme.badge)}>
-                                {tierTheme.label}
-                            </Badge>
-                            {stars.total > 0 && (
-                                <div className="flex gap-0.5">
-                                    {Array.from({ length: stars.total }).map((_, i) => (
-                                        <Star
-                                            key={i}
-                                            className={cn('size-3.5', i < stars.filled ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/40')}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Title (subtitle) */}
-                        {hero.title && (
-                            <p className="text-xs uppercase tracking-wider text-muted-foreground">{hero.title}</p>
+            {/* Header centralizado: tier+stars > title > name > badges
+                Obs: DialogTitle (sr-only) está no DialogContent. Aqui é só a apresentação visual. */}
+            <header className={cn('border-b p-4 pr-12', factionTheme.cardGradient)}>
+                <div className="flex flex-col items-center gap-1.5 text-center">
+                    {/* Tier + Stars */}
+                    <div className="flex items-center gap-2">
+                        <Badge className={cn('px-3 py-0.5 text-xs uppercase tracking-wide', tierTheme.badge)}>
+                            {tierTheme.label}
+                        </Badge>
+                        {stars.total > 0 && (
+                            <div className="flex gap-0.5">
+                                {Array.from({ length: stars.total }).map((_, i) => (
+                                    <Star
+                                        key={i}
+                                        className={cn('size-3.5', i < stars.filled ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/40')}
+                                    />
+                                ))}
+                            </div>
                         )}
-
-                        {/* Hero Name */}
-                        <h1 className={cn(
-                            'text-2xl font-bold leading-tight sm:text-3xl',
-                            awakened && 'bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 bg-clip-text text-transparent',
-                            !awakened && factionTheme.headerText,
-                        )}>
-                            {hero.name}
-                        </h1>
-
-                        {/* Badges */}
-                        <div className="flex flex-wrap items-center justify-center gap-1.5">
-                            <Badge className={cn('gap-1', factionTheme.headerBg, factionTheme.headerText)}>{hero.faction.name_pt}</Badge>
-                            <Badge variant="outline" className="gap-1">
-                                <ClassIcon className="size-3" />
-                                {CLASS_LABEL[hero.hero_class.code as ClassCode]}
-                            </Badge>
-                            {hero.type && (() => {
-                                const TypeIcon = HERO_TYPE_ICON[hero.type];
-                                return (
-                                    <Badge variant="outline" className={cn('gap-1', HERO_TYPE_BADGE[hero.type])}>
-                                        <TypeIcon className="size-3" />
-                                        {HERO_TYPE_LABEL[hero.type]}
-                                    </Badge>
-                                );
-                            })()}
-                            {awakened && (
-                                <Badge className="gap-1 bg-gradient-to-r from-rose-500 via-amber-400 to-rose-500 text-white">
-                                    <Flame className="size-3" />
-                                    Desperto
-                                </Badge>
-                            )}
-                            {hero.role_label && <Badge variant="secondary">{hero.role_label}</Badge>}
-                        </div>
                     </div>
-                </DialogTitle>
+
+                    {/* Title (subtitle) */}
+                    {hero.title && (
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground">{hero.title}</p>
+                    )}
+
+                    {/* Hero Name */}
+                    <h1 className={cn(
+                        'text-2xl font-bold leading-tight sm:text-3xl',
+                        awakened && 'bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 bg-clip-text text-transparent',
+                        !awakened && factionTheme.headerText,
+                    )}>
+                        {hero.name}
+                    </h1>
+
+                    {/* Badges */}
+                    <div className="flex flex-wrap items-center justify-center gap-1.5">
+                        <Badge className={cn('gap-1', factionTheme.headerBg, factionTheme.headerText)}>{hero.faction.name_pt}</Badge>
+                        <Badge variant="outline" className="gap-1">
+                            <ClassIcon className="size-3" />
+                            {CLASS_LABEL[hero.hero_class.code as ClassCode]}
+                        </Badge>
+                        {hero.type && (() => {
+                            const TypeIcon = HERO_TYPE_ICON[hero.type];
+                            return (
+                                <Badge variant="outline" className={cn('gap-1', HERO_TYPE_BADGE[hero.type])}>
+                                    <TypeIcon className="size-3" />
+                                    {HERO_TYPE_LABEL[hero.type]}
+                                </Badge>
+                            );
+                        })()}
+                        {awakened && (
+                            <Badge className="gap-1 bg-gradient-to-r from-rose-500 via-amber-400 to-rose-500 text-white">
+                                <Flame className="size-3" />
+                                Desperto
+                            </Badge>
+                        )}
+                        {hero.role_label && <Badge variant="secondary">{hero.role_label}</Badge>}
+                    </div>
+                </div>
             </header>
 
             {/* Upper: 3-col paperdoll com slots quadrados */}
@@ -314,8 +314,8 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                 {/* Esquerda: Artefato (Arma) → Coleção (Capacete) → Assinatura (SI) */}
                 <div className="grid grid-cols-1 gap-1.5">
                     <HeroSlotCard
-                        icon={Gem}
-                        label="Artefato"
+                        icon={Sword}
+                        label="Artefato (Arma)"
                         empty={!userHero?.artifact}
                         imageUrl={userHero?.artifact?.portrait_url}
                         accentClass={userHero?.artifact ? 'border-violet-500/60' : undefined}
@@ -328,8 +328,8 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     />
 
                     <HeroSlotCard
-                        icon={Package}
-                        label="Coleção"
+                        icon={Shield}
+                        label="Coleção (Capacete)"
                         empty={!userHero?.collection}
                         imageUrl={userHero?.collection?.portrait_url}
                         accentClass={userHero?.collection ? 'border-fuchsia-500/60' : undefined}
@@ -343,8 +343,8 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     />
 
                     <HeroSlotCard
-                        icon={Star}
-                        label="Assinatura"
+                        icon={Crown}
+                        label="Assinatura (SI)"
                         empty={userSI === 0}
                         valueText={userSI > 0 ? `+${userSI}` : undefined}
                         detail={userSI > 0 && <span className="text-muted-foreground">/40</span>}
@@ -412,8 +412,8 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                 {/* Direita: Móveis (Peitoral) → Inscrições (Bota) → Notas */}
                 <div className="grid grid-cols-1 gap-1.5">
                     <HeroSlotCard
-                        icon={Hotel}
-                        label="Móveis"
+                        icon={Shirt}
+                        label="Móveis (Peitoral)"
                         empty={userFurniture === 0}
                         valueText={userFurniture > 0 ? `${userFurniture}/9` : undefined}
                         accentClass={f9Unlocked ? 'border-amber-400/60' : f3Unlocked ? 'border-emerald-500/60' : undefined}
@@ -432,8 +432,8 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     />
 
                     <HeroSlotCard
-                        icon={PenLine}
-                        label="Inscrições"
+                        icon={Footprints}
+                        label="Inscrições (Bota)"
                         empty={userEngraving === 0}
                         valueText={userEngraving > 0 ? `+${userEngraving}` : undefined}
                         detail={userEngraving > 0 && <span className="text-muted-foreground">/100</span>}
@@ -441,7 +441,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     />
 
                     <HeroSlotCard
-                        icon={Sparkles}
+                        icon={ScrollText}
                         label="Notas"
                         empty={!userHero?.notes}
                     >
