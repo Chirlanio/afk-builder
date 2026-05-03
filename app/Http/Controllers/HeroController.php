@@ -8,6 +8,8 @@ use App\Models\Hero;
 use App\Models\HeroClass;
 use App\Models\HeroSynergy;
 use App\Models\Tier;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -58,7 +60,19 @@ class HeroController extends Controller
         ]);
     }
 
-    public function show(Request $request, string $slug): Response
+    /**
+     * Permalink legacy: redireciona para /heroes?open={slug} que abre a modal unificada no índice.
+     */
+    public function show(string $slug): RedirectResponse
+    {
+        // Mantém URL antiga funcionando — o detalhe completo agora é exibido em modal no índice.
+        return redirect()->route('heroes.index', ['open' => $slug]);
+    }
+
+    /**
+     * Retorna JSON com os dados completos do herói para a HeroDetailModal carregar via axios.
+     */
+    public function details(Request $request, string $slug): JsonResponse
     {
         $hero = Hero::query()
             ->where('slug', $slug)
@@ -87,7 +101,6 @@ class HeroController extends Controller
                 'artifact_id', 'artifact_star_level', 'notes',
             ]);
 
-        // Artefatos disponíveis para esse herói: Dura's (qualquer um) + Class do mesmo class_id
         $availableArtifacts = Artifact::query()
             ->where('is_active', true)
             ->where(function ($q) use ($hero) {
@@ -137,17 +150,11 @@ class HeroController extends Controller
             ->sortByDesc('weight')
             ->values();
 
-        return Inertia::render('heroes/show', [
+        return response()->json([
             'hero' => $heroPayload,
             'userHero' => $userHero,
             'synergies' => $synergies,
             'availableArtifacts' => $availableArtifacts,
-            'factions' => Faction::orderBy('display_order')
-                ->get(['id', 'code', 'name', 'name_pt', 'color_hex', 'display_order']),
-            'heroClasses' => HeroClass::orderBy('display_order')
-                ->get(['id', 'code', 'name', 'name_pt', 'display_order']),
-            'tiers' => Tier::orderBy('display_order')
-                ->get(['id', 'code', 'name', 'name_pt', 'max_level', 'display_order']),
         ]);
     }
 }

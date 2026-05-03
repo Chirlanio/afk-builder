@@ -1,13 +1,14 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Check, ExternalLink, Plus, ShieldCheck, X } from 'lucide-react';
 import { useState } from 'react';
+import { CreateHeroModal } from '@/components/create-hero-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
-import type { ClassCode, FactionCode, TierCode } from '@/types/afk';
+import type { ClassCode, Faction, FactionCode, HeroClass, Tier, TierCode } from '@/types/afk';
 
 interface PendingHero {
     id: number;
@@ -27,12 +28,16 @@ interface PendingHero {
 
 interface PageProps {
     heroes: PendingHero[];
+    factions: Faction[];
+    heroClasses: HeroClass[];
+    tiers: Tier[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Aprovar heróis', href: '/admin/heroes/pending' }];
 
-export default function HeroesPendingReview({ heroes }: PageProps) {
+export default function HeroesPendingReview({ heroes, factions, heroClasses, tiers }: PageProps) {
     const [busyId, setBusyId] = useState<number | null>(null);
+    const [createOpen, setCreateOpen] = useState(false);
 
     const handleAction = (heroId: number, action: 'approve' | 'reject') => {
         setBusyId(heroId);
@@ -61,12 +66,10 @@ export default function HeroesPendingReview({ heroes }: PageProps) {
                             Heróis novos sincronizados da wiki entram aqui antes de aparecer no catálogo. Aprove pra ativar, rejeite pra ocultar.
                         </p>
                     </div>
-                    <Link href="/admin/heroes/create">
-                        <Button variant="outline" size="sm">
-                            <Plus className="size-4" />
-                            Adicionar manualmente
-                        </Button>
-                    </Link>
+                    <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+                        <Plus className="size-4" />
+                        Adicionar manualmente
+                    </Button>
                 </div>
 
                 {heroes.length === 0 ? (
@@ -160,6 +163,14 @@ export default function HeroesPendingReview({ heroes }: PageProps) {
                     </div>
                 )}
             </div>
+
+            <CreateHeroModal
+                open={createOpen}
+                onOpenChange={setCreateOpen}
+                factions={factions}
+                heroClasses={heroClasses}
+                tiers={tiers}
+            />
         </AppLayout>
     );
 }

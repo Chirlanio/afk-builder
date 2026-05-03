@@ -29,12 +29,6 @@ class HeroAdminController extends Controller
 
         return Inertia::render('admin/heroes/pending', [
             'heroes' => $heroes,
-        ]);
-    }
-
-    public function create(): Response
-    {
-        return Inertia::render('admin/heroes/create', [
             'factions' => Faction::orderBy('display_order')
                 ->get(['id', 'code', 'name_pt', 'color_hex', 'display_order']),
             'heroClasses' => HeroClass::orderBy('display_order')

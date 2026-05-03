@@ -172,24 +172,22 @@ class UserHeroArtifactTest extends TestCase
         $this->assertNull($userHero->artifact_star_level);
     }
 
-    public function test_show_carrega_artefatos_disponiveis(): void
+    public function test_details_carrega_artefatos_disponiveis(): void
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('lucius', 'tank');
-        $duraArt = $this->makeArtifact('duras-grace', Artifact::KIND_DURA);
-        $tankArt = $this->makeArtifact('the-barricade', Artifact::KIND_CLASS, 'tank', 3);
-        $mageArt = $this->makeArtifact('windbinder', Artifact::KIND_CLASS, 'mage', 3);
+        $this->makeArtifact('duras-grace', Artifact::KIND_DURA);
+        $this->makeArtifact('the-barricade', Artifact::KIND_CLASS, 'tank', 3);
+        $this->makeArtifact('windbinder', Artifact::KIND_CLASS, 'mage', 3);
 
         $this->actingAs($user)
-            ->get("/heroes/{$hero->slug}")
+            ->getJson("/heroes/{$hero->slug}/details")
             ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->has('availableArtifacts', 2) // Dura's + tank class, NÃO mage
-                ->where('availableArtifacts.0.kind', 'dura')
-            );
+            ->assertJsonCount(2, 'availableArtifacts') // Dura's + tank class, NÃO mage
+            ->assertJsonPath('availableArtifacts.0.kind', 'dura');
     }
 
-    public function test_show_inclui_artifact_relation_quando_equipado(): void
+    public function test_details_inclui_artifact_relation_quando_equipado(): void
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('lucius');
@@ -203,12 +201,10 @@ class UserHeroArtifactTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get("/heroes/{$hero->slug}")
+            ->getJson("/heroes/{$hero->slug}/details")
             ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('userHero.artifact_id', $artifact->id)
-                ->where('userHero.artifact_star_level', 4)
-                ->where('userHero.artifact.name', 'Duras-grace')
-            );
+            ->assertJsonPath('userHero.artifact_id', $artifact->id)
+            ->assertJsonPath('userHero.artifact_star_level', 4)
+            ->assertJsonPath('userHero.artifact.name', 'Duras-grace');
     }
 }

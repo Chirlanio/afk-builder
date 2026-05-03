@@ -26,6 +26,9 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard');
 
     Route::get('heroes', [HeroController::class, 'index'])->name('heroes.index');
+    Route::get('heroes/{slug}/details', [HeroController::class, 'details'])
+        ->where('slug', '[a-z0-9-]+')
+        ->name('heroes.details');
     Route::get('heroes/{slug}', [HeroController::class, 'show'])
         ->where('slug', '[a-z0-9-]+')
         ->name('heroes.show');
@@ -63,13 +66,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::middleware('can:manage-heroes')->prefix('admin')->name('admin.')->group(function () {
         Route::get('heroes/pending', [HeroAdminController::class, 'pendingIndex'])->name('heroes.pending');
-        Route::get('heroes/create', [HeroAdminController::class, 'create'])->name('heroes.create');
         Route::post('heroes', [HeroAdminController::class, 'storeManual'])->name('heroes.store');
         Route::patch('heroes/{hero}/approve', [HeroAdminController::class, 'approve'])->name('heroes.approve');
         Route::patch('heroes/{hero}/reject', [HeroAdminController::class, 'reject'])->name('heroes.reject');
-        Route::get('heroes/{slug}/stats', [HeroStatsAdminController::class, 'edit'])
-            ->where('slug', '[a-z0-9-]+')
-            ->name('heroes.stats.edit');
         Route::patch('heroes/{slug}/stats', [HeroStatsAdminController::class, 'update'])
             ->where('slug', '[a-z0-9-]+')
             ->name('heroes.stats.update');

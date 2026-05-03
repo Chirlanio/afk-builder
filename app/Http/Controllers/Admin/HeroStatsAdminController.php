@@ -5,29 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Hero;
 use App\Models\HeroStat;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class HeroStatsAdminController extends Controller
 {
     private const FIELDS = ['hp', 'attack', 'defense', 'crit_rate', 'crit_amp', 'accuracy', 'dodge', 'haste'];
 
-    public function edit(string $slug): Response
-    {
-        $hero = Hero::query()
-            ->where('slug', $slug)
-            ->with(['faction:id,code,name_pt', 'heroClass:id,code,name_pt', 'tier:id,code,name_pt', 'stats'])
-            ->firstOrFail();
-
-        return Inertia::render('admin/heroes/stats', [
-            'hero' => $hero,
-            'stats' => $hero->stats,
-        ]);
-    }
-
-    public function update(Request $request, string $slug): RedirectResponse
+    public function update(Request $request, string $slug): JsonResponse
     {
         $hero = Hero::query()->where('slug', $slug)->firstOrFail();
 
@@ -50,12 +35,11 @@ class HeroStatsAdminController extends Controller
 
         if ($allNull) {
             HeroStat::where('hero_id', $hero->id)->delete();
-        } else {
-            HeroStat::updateOrCreate(['hero_id' => $hero->id], $data);
+            return response()->json(['ok' => true, 'cleared' => true]);
         }
 
-        return redirect()
-            ->route('heroes.show', ['slug' => $hero->slug])
-            ->with('flash', "Stats de '{$hero->name}' atualizadas.");
+        $stats = HeroStat::updateOrCreate(['hero_id' => $hero->id], $data);
+
+        return response()->json(['ok' => true, 'stats' => $stats]);
     }
 }

@@ -1,26 +1,22 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Plus } from 'lucide-react';
-import { type FormEvent } from 'react';
+import { useForm } from '@inertiajs/react';
+import { Loader2, Plus } from 'lucide-react';
+import { type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem } from '@/types';
 import type { Faction, HeroClass, Tier } from '@/types/afk';
 
-interface PageProps {
+interface Props {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
     factions: Faction[];
     heroClasses: HeroClass[];
     tiers: Tier[];
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Aprovar heróis', href: '/admin/heroes/pending' },
-    { title: 'Adicionar manualmente', href: '/admin/heroes/create' },
-];
-
-interface ManualHeroForm {
+interface FormShape {
     slug: string;
     name: string;
     title: string;
@@ -34,41 +30,49 @@ interface ManualHeroForm {
     [key: string]: string;
 }
 
-export default function HeroCreateManual({ factions, heroClasses, tiers }: PageProps) {
-    const { data, setData, post, processing, errors } = useForm<ManualHeroForm>({
-        slug: '',
-        name: '',
-        title: '',
-        faction_id: '',
-        hero_class_id: '',
-        tier_id: '',
-        gender: '',
-        role_label: '',
-        portrait_url: '',
-        source_url: '',
-    });
+const EMPTY: FormShape = {
+    slug: '',
+    name: '',
+    title: '',
+    faction_id: '',
+    hero_class_id: '',
+    tier_id: '',
+    gender: '',
+    role_label: '',
+    portrait_url: '',
+    source_url: '',
+};
+
+export function CreateHeroModal({ open, onOpenChange, factions, heroClasses, tiers }: Props) {
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormShape>(EMPTY);
+
+    useEffect(() => {
+        if (!open) {
+            reset();
+            clearErrors();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        post('/admin/heroes');
+        post('/admin/heroes', {
+            preserveScroll: true,
+            onSuccess: () => onOpenChange(false),
+        });
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Adicionar herói" />
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Adicionar herói manualmente</DialogTitle>
+                    <DialogDescription>
+                        Para heróis que o sync automático não conseguiu capturar (Saveas, Daimon, etc.). Fica ativo e visível no catálogo imediatamente.
+                    </DialogDescription>
+                </DialogHeader>
 
-            <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
-                <div className="flex items-center gap-2">
-                    <Link href="/admin/heroes/pending" className="text-muted-foreground hover:text-foreground">
-                        <ArrowLeft className="size-4" />
-                    </Link>
-                    <h1 className="text-2xl font-semibold">Adicionar herói manualmente</h1>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                    Use este formulário para heróis que o sync automático não conseguiu capturar (Saveas, Daimon, Arden, etc.). O herói criado fica ativo e visível no catálogo imediatamente.
-                </p>
-
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-xl border bg-card p-4">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="slug">Slug *</Label>
@@ -79,7 +83,7 @@ export default function HeroCreateManual({ factions, heroClasses, tiers }: PageP
                                 placeholder="saveas"
                                 pattern="[a-z0-9-]+"
                             />
-                            <p className="text-xs text-muted-foreground">Apenas letras minúsculas, números e hífens.</p>
+                            <p className="text-xs text-muted-foreground">Apenas minúsculas, números e hífens.</p>
                             {errors.slug && <p className="text-xs text-destructive">{errors.slug}</p>}
                         </div>
 
@@ -103,7 +107,6 @@ export default function HeroCreateManual({ factions, heroClasses, tiers }: PageP
                             onChange={(e) => setData('title', e.target.value)}
                             placeholder="Slayer of Souls"
                         />
-                        {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -115,9 +118,7 @@ export default function HeroCreateManual({ factions, heroClasses, tiers }: PageP
                                 </SelectTrigger>
                                 <SelectContent>
                                     {factions.map((f) => (
-                                        <SelectItem key={f.id} value={String(f.id)}>
-                                            {f.name_pt}
-                                        </SelectItem>
+                                        <SelectItem key={f.id} value={String(f.id)}>{f.name_pt}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -132,9 +133,7 @@ export default function HeroCreateManual({ factions, heroClasses, tiers }: PageP
                                 </SelectTrigger>
                                 <SelectContent>
                                     {heroClasses.map((c) => (
-                                        <SelectItem key={c.id} value={String(c.id)}>
-                                            {c.name_pt}
-                                        </SelectItem>
+                                        <SelectItem key={c.id} value={String(c.id)}>{c.name_pt}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -149,9 +148,7 @@ export default function HeroCreateManual({ factions, heroClasses, tiers }: PageP
                                 </SelectTrigger>
                                 <SelectContent>
                                     {tiers.map((t) => (
-                                        <SelectItem key={t.id} value={String(t.id)}>
-                                            {t.name_pt}
-                                        </SelectItem>
+                                        <SelectItem key={t.id} value={String(t.id)}>{t.name_pt}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -162,7 +159,7 @@ export default function HeroCreateManual({ factions, heroClasses, tiers }: PageP
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="flex flex-col gap-1.5">
                             <Label>Gênero</Label>
-                            <Select value={data.gender || 'unset'} onValueChange={(v) => setData('gender', v === 'unset' ? '' : (v as ManualHeroForm['gender']))}>
+                            <Select value={data.gender || 'unset'} onValueChange={(v) => setData('gender', v === 'unset' ? '' : (v as FormShape['gender']))}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="—" />
                                 </SelectTrigger>
@@ -176,7 +173,7 @@ export default function HeroCreateManual({ factions, heroClasses, tiers }: PageP
                         </div>
 
                         <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="role_label">Papel (texto livre)</Label>
+                            <Label htmlFor="role_label">Papel</Label>
                             <Input
                                 id="role_label"
                                 value={data.role_label}
@@ -186,43 +183,43 @@ export default function HeroCreateManual({ factions, heroClasses, tiers }: PageP
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="portrait_url">URL do portrait</Label>
-                        <Input
-                            id="portrait_url"
-                            type="url"
-                            value={data.portrait_url}
-                            onChange={(e) => setData('portrait_url', e.target.value)}
-                            placeholder="https://static.wikia.nocookie.net/..."
-                        />
-                        {errors.portrait_url && <p className="text-xs text-destructive">{errors.portrait_url}</p>}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="portrait_url">URL do portrait</Label>
+                            <Input
+                                id="portrait_url"
+                                type="url"
+                                value={data.portrait_url}
+                                onChange={(e) => setData('portrait_url', e.target.value)}
+                                placeholder="https://static.wikia.nocookie.net/..."
+                            />
+                            {errors.portrait_url && <p className="text-xs text-destructive">{errors.portrait_url}</p>}
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="source_url">URL Fandom</Label>
+                            <Input
+                                id="source_url"
+                                type="url"
+                                value={data.source_url}
+                                onChange={(e) => setData('source_url', e.target.value)}
+                                placeholder="https://afk-arena.fandom.com/wiki/Saveas"
+                            />
+                            {errors.source_url && <p className="text-xs text-destructive">{errors.source_url}</p>}
+                        </div>
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="source_url">URL da fonte (Fandom Wiki)</Label>
-                        <Input
-                            id="source_url"
-                            type="url"
-                            value={data.source_url}
-                            onChange={(e) => setData('source_url', e.target.value)}
-                            placeholder="https://afk-arena.fandom.com/wiki/Saveas"
-                        />
-                        {errors.source_url && <p className="text-xs text-destructive">{errors.source_url}</p>}
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-2">
-                        <Link href="/admin/heroes/pending">
-                            <Button type="button" variant="outline">
-                                Cancelar
-                            </Button>
-                        </Link>
+                    <DialogFooter className="gap-2 sm:gap-2">
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
+                            Cancelar
+                        </Button>
                         <Button type="submit" disabled={processing}>
-                            <Plus className="size-4" />
+                            {processing ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
                             {processing ? 'Salvando...' : 'Criar herói'}
                         </Button>
-                    </div>
+                    </DialogFooter>
                 </form>
-            </div>
-        </AppLayout>
+            </DialogContent>
+        </Dialog>
     );
 }

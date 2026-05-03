@@ -60,6 +60,9 @@ class HeroAdminTest extends TestCase
                 ->component('admin/heroes/pending')
                 ->has('heroes', 1)
                 ->where('heroes.0.id', $hero->id)
+                ->has('factions')
+                ->has('heroClasses')
+                ->has('tiers')
             );
     }
 
@@ -102,30 +105,6 @@ class HeroAdminTest extends TestCase
 
         $hero->refresh();
         $this->assertTrue($hero->pending_review);
-    }
-
-    public function test_admin_acessa_pagina_de_criacao_manual(): void
-    {
-        $admin = User::factory()->create(['is_admin' => true]);
-
-        $this->actingAs($admin)
-            ->get('/admin/heroes/create')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('admin/heroes/create')
-                ->has('factions')
-                ->has('heroClasses')
-                ->has('tiers')
-            );
-    }
-
-    public function test_nao_admin_recebe_403_na_criacao_manual(): void
-    {
-        $user = User::factory()->create(['is_admin' => false]);
-
-        $this->actingAs($user)
-            ->get('/admin/heroes/create')
-            ->assertForbidden();
     }
 
     public function test_admin_cria_heroi_manualmente(): void

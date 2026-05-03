@@ -1,7 +1,8 @@
-import { Head, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { Search, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { HeroCard } from '@/components/hero-card';
+import { HeroDetailModal } from '@/components/hero-detail-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,21 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
     const [factionFilter, setFactionFilter] = useState<Set<number>>(new Set());
     const [classFilter, setClassFilter] = useState<Set<number>>(new Set());
     const [onlyOwned, setOnlyOwned] = useState(false);
+    const [openSlug, setOpenSlug] = useState<string | null>(null);
+
+    // Abre modal automaticamente quando o índice é carregado com ?open=slug
+    // (deep link a partir de /heroes/{slug} legacy ou compartilhamento).
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const slug = params.get('open');
+        if (slug) {
+            setOpenSlug(slug);
+            // Limpa o query param da URL sem reload
+            const url = new URL(window.location.href);
+            url.searchParams.delete('open');
+            window.history.replaceState({}, '', url.toString());
+        }
+    }, []);
 
     const factionById = useMemo(() => Object.fromEntries(factions.map((f) => [f.id, f])) as Record<number, Faction>, [factions]);
     const classById = useMemo(() => Object.fromEntries(heroClasses.map((c) => [c.id, c])) as Record<number, HeroClass>, [heroClasses]);
@@ -86,7 +102,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
     };
 
     const openHero = (hero: Hero) => {
-        router.visit(`/heroes/${hero.slug}`);
+        setOpenSlug(hero.slug);
     };
 
     const filtersActive = search.length > 0 || factionFilter.size > 0 || classFilter.size > 0 || onlyOwned;
@@ -232,6 +248,12 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                 </div>
             </div>
 
+            <HeroDetailModal
+                slug={openSlug}
+                open={openSlug !== null}
+                onOpenChange={(o) => !o && setOpenSlug(null)}
+                onNavigate={(slug) => setOpenSlug(slug)}
+            />
         </AppLayout>
     );
 }

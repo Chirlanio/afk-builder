@@ -39,28 +39,36 @@ class HeroShowTest extends TestCase
         ]);
     }
 
-    public function test_pagina_de_detalhe_renderiza_com_hero_props(): void
+    public function test_permalink_legacy_redireciona_para_index_com_query(): void
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('lucius');
 
         $this->actingAs($user)
             ->get("/heroes/{$hero->slug}")
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('heroes/show')
-                ->where('hero.id', $hero->id)
-                ->where('hero.slug', 'lucius')
-                ->where('hero.name', 'Lucius')
-                ->has('hero.faction')
-                ->has('hero.hero_class')
-                ->has('hero.tier')
-                ->where('userHero', null)
-                ->has('synergies')
-            );
+            ->assertRedirect('/heroes?open=lucius');
     }
 
-    public function test_inclui_user_hero_quando_no_roster(): void
+    public function test_endpoint_details_retorna_dados_completos(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero('lucius');
+
+        $this->actingAs($user)
+            ->getJson("/heroes/{$hero->slug}/details")
+            ->assertOk()
+            ->assertJsonPath('hero.id', $hero->id)
+            ->assertJsonPath('hero.slug', 'lucius')
+            ->assertJsonPath('hero.name', 'Lucius')
+            ->assertJsonStructure([
+                'hero' => ['id', 'slug', 'name', 'faction', 'hero_class', 'tier'],
+                'userHero',
+                'synergies',
+                'availableArtifacts',
+            ]);
+    }
+
+    public function test_details_inclui_user_hero_quando_no_roster(): void
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('lucius');
@@ -72,16 +80,14 @@ class HeroShowTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get("/heroes/{$hero->slug}")
+            ->getJson("/heroes/{$hero->slug}/details")
             ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('userHero.id', $userHero->id)
-                ->where('userHero.level', 240)
-                ->where('userHero.ascension_value', 12)
-            );
+            ->assertJsonPath('userHero.id', $userHero->id)
+            ->assertJsonPath('userHero.level', 240)
+            ->assertJsonPath('userHero.ascension_value', 12);
     }
 
-    public function test_lista_synergias_do_heroi(): void
+    public function test_details_lista_synergias_do_heroi(): void
     {
         $user = User::factory()->create();
         $a = $this->makeHero('lucius');
@@ -89,25 +95,22 @@ class HeroShowTest extends TestCase
         HeroSynergy::create(['hero_a_id' => $a->id, 'hero_b_id' => $b->id, 'weight' => 15, 'note' => 'Dupla canônica']);
 
         $this->actingAs($user)
-            ->get("/heroes/{$a->slug}")
+            ->getJson("/heroes/{$a->slug}/details")
             ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->has('synergies', 1)
-                ->where('synergies.0.partner.slug', 'rosaline')
-                ->where('synergies.0.weight', 15)
-            );
+            ->assertJsonPath('synergies.0.partner.slug', 'rosaline')
+            ->assertJsonPath('synergies.0.weight', 15);
     }
 
-    public function test_404_quando_slug_nao_existe(): void
+    public function test_details_404_quando_slug_nao_existe(): void
     {
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->get('/heroes/inexistente')
+            ->getJson('/heroes/inexistente/details')
             ->assertNotFound();
     }
 
-    public function test_inclui_furniture_ability_quando_existe(): void
+    public function test_details_inclui_furniture_ability_quando_existe(): void
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('lucius');
@@ -119,36 +122,31 @@ class HeroShowTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get("/heroes/{$hero->slug}")
+            ->getJson("/heroes/{$hero->slug}/details")
             ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('hero.furniture_ability.name', "Heaven's Protection")
-                ->where('hero.furniture_ability.f3_description', 'F3 desc...')
-                ->where('hero.furniture_ability.f9_description', 'F9 desc...')
-            );
+            ->assertJsonPath('hero.furniture_ability.name', "Heaven's Protection")
+            ->assertJsonPath('hero.furniture_ability.f3_description', 'F3 desc...');
     }
 
-    public function test_furniture_ability_null_quando_nao_existe(): void
+    public function test_details_furniture_ability_null_quando_nao_existe(): void
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('rosaline');
 
         $this->actingAs($user)
-            ->get("/heroes/{$hero->slug}")
+            ->getJson("/heroes/{$hero->slug}/details")
             ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('hero.furniture_ability', null)
-            );
+            ->assertJsonPath('hero.furniture_ability', null);
     }
 
-    public function test_404_quando_heroi_inativo(): void
+    public function test_details_404_quando_heroi_inativo(): void
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('lucius');
         $hero->update(['is_active' => false]);
 
         $this->actingAs($user)
-            ->get("/heroes/{$hero->slug}")
+            ->getJson("/heroes/{$hero->slug}/details")
             ->assertNotFound();
     }
 }

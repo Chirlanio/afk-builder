@@ -40,7 +40,7 @@ class HeroStatsAdminTest extends TestCase
     public function test_guest_redireciona_para_login(): void
     {
         $hero = $this->makeHero();
-        $this->get("/admin/heroes/{$hero->slug}/stats")->assertRedirect('/login');
+        $this->patch("/admin/heroes/{$hero->slug}/stats", ['hp' => 100])->assertRedirect('/login');
     }
 
     public function test_nao_admin_recebe_403(): void
@@ -48,23 +48,7 @@ class HeroStatsAdminTest extends TestCase
         $user = User::factory()->create(['is_admin' => false]);
         $hero = $this->makeHero();
 
-        $this->actingAs($user)->get("/admin/heroes/{$hero->slug}/stats")->assertForbidden();
         $this->actingAs($user)->patch("/admin/heroes/{$hero->slug}/stats", ['hp' => 100])->assertForbidden();
-    }
-
-    public function test_admin_acessa_form_de_edicao(): void
-    {
-        $admin = User::factory()->create(['is_admin' => true]);
-        $hero = $this->makeHero();
-
-        $this->actingAs($admin)
-            ->get("/admin/heroes/{$hero->slug}/stats")
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('admin/heroes/stats')
-                ->where('hero.slug', $hero->slug)
-                ->where('stats', null)
-            );
     }
 
     public function test_admin_cria_stats_com_sucesso(): void
@@ -73,13 +57,14 @@ class HeroStatsAdminTest extends TestCase
         $hero = $this->makeHero();
 
         $this->actingAs($admin)
-            ->patch("/admin/heroes/{$hero->slug}/stats", [
+            ->patchJson("/admin/heroes/{$hero->slug}/stats", [
                 'hp' => 1500,
                 'attack' => 320,
                 'defense' => 280,
                 'crit_rate' => 50,
             ])
-            ->assertRedirect("/heroes/{$hero->slug}");
+            ->assertOk()
+            ->assertJson(['ok' => true]);
 
         $this->assertDatabaseHas('hero_stats', [
             'hero_id' => $hero->id,
@@ -98,8 +83,8 @@ class HeroStatsAdminTest extends TestCase
         HeroStat::create(['hero_id' => $hero->id, 'hp' => 1000, 'attack' => 200]);
 
         $this->actingAs($admin)
-            ->patch("/admin/heroes/{$hero->slug}/stats", ['hp' => 2000, 'attack' => 400, 'defense' => 350])
-            ->assertRedirect("/heroes/{$hero->slug}");
+            ->patchJson("/admin/heroes/{$hero->slug}/stats", ['hp' => 2000, 'attack' => 400, 'defense' => 350])
+            ->assertOk();
 
         $stats = HeroStat::where('hero_id', $hero->id)->first();
         $this->assertSame(2000, $stats->hp);
@@ -114,8 +99,9 @@ class HeroStatsAdminTest extends TestCase
         HeroStat::create(['hero_id' => $hero->id, 'hp' => 1000]);
 
         $this->actingAs($admin)
-            ->patch("/admin/heroes/{$hero->slug}/stats", [])
-            ->assertRedirect("/heroes/{$hero->slug}");
+            ->patchJson("/admin/heroes/{$hero->slug}/stats", [])
+            ->assertOk()
+            ->assertJson(['ok' => true, 'cleared' => true]);
 
         $this->assertDatabaseMissing('hero_stats', ['hero_id' => $hero->id]);
     }
@@ -126,12 +112,14 @@ class HeroStatsAdminTest extends TestCase
         $hero = $this->makeHero();
 
         $this->actingAs($admin)
-            ->patch("/admin/heroes/{$hero->slug}/stats", ['hp' => -10])
-            ->assertSessionHasErrors('hp');
+            ->patchJson("/admin/heroes/{$hero->slug}/stats", ['hp' => -10])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('hp');
 
         $this->actingAs($admin)
-            ->patch("/admin/heroes/{$hero->slug}/stats", ['attack' => 'abc'])
-            ->assertSessionHasErrors('attack');
+            ->patchJson("/admin/heroes/{$hero->slug}/stats", ['attack' => 'abc'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('attack');
     }
 
     public function test_validacao_aceita_max_de_hp_e_rejeita_acima(): void
@@ -140,17 +128,18 @@ class HeroStatsAdminTest extends TestCase
         $hero = $this->makeHero();
 
         $this->actingAs($admin)
-            ->patch("/admin/heroes/{$hero->slug}/stats", ['hp' => 1_000_000])
-            ->assertSessionHasErrors('hp');
+            ->patchJson("/admin/heroes/{$hero->slug}/stats", ['hp' => 1_000_000])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('hp');
     }
 
     public function test_404_quando_slug_nao_existe(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
-        $this->actingAs($admin)->get('/admin/heroes/inexistente/stats')->assertNotFound();
+        $this->actingAs($admin)->patchJson('/admin/heroes/inexistente/stats', ['hp' => 100])->assertNotFound();
     }
 
-    public function test_show_inclui_stats_no_payload(): void
+    public function test_endpoint_details_inclui_stats(): void
     {
         $user = User::factory()->create();
         $hero = $this->makeHero();
@@ -163,14 +152,12 @@ class HeroStatsAdminTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get("/heroes/{$hero->slug}")
+            ->getJson("/heroes/{$hero->slug}/details")
             ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('hero.stats.hp', 1500)
-                ->where('hero.stats.attack', 320)
-                ->where('hero.stats.defense', 280)
-                ->where('hero.stats.crit_rate', 50)
-                ->where('hero.stats.crit_amp', null)
-            );
+            ->assertJsonPath('hero.stats.hp', 1500)
+            ->assertJsonPath('hero.stats.attack', 320)
+            ->assertJsonPath('hero.stats.defense', 280)
+            ->assertJsonPath('hero.stats.crit_rate', 50)
+            ->assertJsonPath('hero.stats.crit_amp', null);
     }
 }

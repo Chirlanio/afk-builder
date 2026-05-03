@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-03 (Fase 14a — catálogo de artefatos via wiki)
+> **Última atualização:** 2026-05-03 (Refactor UI — modal unificada de herói)
 
 ---
 
@@ -480,6 +480,29 @@ Catálogo de Artefatos da Fandom (Dura's + Class) sincronizado, atribuível a he
   - 2 novos no `WikitextHeroParserTest` (parse_artifacts_index_extrai_duras_e_class, retorna_vazio_sem_secoes).
   - 8 novos em `UserHeroArtifactTest` (equipa Dura's, equipa class da mesma classe, ignora class de classe diferente, stars clamped no max, validação de FK, remove setando null, show carrega availableArtifacts filtrado por classe, show inclui artifact relation quando equipado).
   - **146 testes verdes** no projeto.
+
+---
+
+### ✅ Refactor de UI — Modal unificada de herói
+
+Migração de fluxos de página dedicada para modal. Visualização, criação e atualização de heróis e stats agora acontecem em modais unificados.
+
+- **Endpoint JSON novo**: `GET /heroes/{slug}/details` retorna todo o payload (hero + userHero + synergies + availableArtifacts) consumido por `axios` quando o modal abre.
+- **`HeroDetailModal`** — componente único em `components/hero-detail-modal.tsx`:
+  - Header com portrait + badges (facção/classe/tipo/tier/role/desperto).
+  - Tabs: **Detalhes** (default, scroll) e **História** (tab separada).
+  - Aba Detalhes contém: roster (info + form inline), stats base (com edição inline pra admin), habilidades, móveis F3/F9, artefato equipado, sinergias.
+  - Sinergias funcionam como navegação interna — clicar em parceiro troca o `slug` do modal sem fechar.
+  - Forms inline (`RosterFormInline`, `StatsFormInline`) usam `axios` direto. Após salvar: `refetch` + `router.reload({only: ['roster']})` pra sincronizar o índice.
+- **Página `/heroes`** — `pages/heroes/index.tsx`:
+  - Card click abre o modal (não navega mais).
+  - Detecta `?open=slug` na URL e abre modal automaticamente; limpa o param via `replaceState`.
+- **Permalink legacy** — `GET /heroes/{slug}` redireciona pra `/heroes?open={slug}`. Bookmarks e links externos continuam funcionando.
+- **Admin: criar herói via modal** — `CreateHeroModal` em `components/create-hero-modal.tsx`. Removida rota GET `/admin/heroes/create` e página correspondente. Botão "Adicionar manualmente" em `/admin/heroes/pending` agora abre o modal. `pendingIndex` passa `factions/heroClasses/tiers` no payload.
+- **Admin: editar stats via modal** — Removida página `/admin/heroes/{slug}/stats`. Endpoint PATCH agora retorna **JSON** (`{ ok: true, stats }`) consumido pelo `StatsFormInline` dentro do `HeroDetailModal`. Botão "Editar stats" só aparece pra admin (`auth.user.is_admin === true`).
+- **Componentes novos**: `components/ui/tabs.tsx` (radix wrapper), `components/hero-detail-modal.tsx`, `components/create-hero-modal.tsx`.
+- **Componentes/páginas removidos**: `pages/heroes/show.tsx`, `pages/admin/heroes/create.tsx`, `pages/admin/heroes/stats.tsx`.
+- **Testes**: `HeroShowTest` reescrito pra cobrir endpoint `/details` (JSON) + redirect do permalink. `HeroStatsAdminTest` adaptado pra patchJson (sem rota GET). `HeroAdminTest` removido `test_admin_acessa_pagina_de_criacao_manual` (página não existe mais). **144 testes verdes** no projeto.
 
 ---
 
