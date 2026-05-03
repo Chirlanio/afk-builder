@@ -96,7 +96,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 3. Catálogo + roster do usuário (cards por facção, tema in-game, modal CRUD) | ✅ |
 | 4. Editor de formações com drag-and-drop | ✅ |
 | 5. Algoritmo de otimização (sugerir formação automaticamente) | ✅ |
-| 6. Polimento (histórico, comparação, share) | 🚧 6.1 ✅ aprovação · 6.2-6.7 pendentes |
+| 6. Polimento (histórico, comparação, share) | 🚧 6.1 ✅ aprovação · 6.3 ✅ share público · 6.2/6.4-6.7 pendentes |
 
 ## Quirks do ambiente Windows/WAMP
 

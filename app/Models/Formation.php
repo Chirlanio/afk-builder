@@ -16,6 +16,7 @@ class Formation extends Model
         'teams_count',
         'notes',
         'total_score',
+        'share_token',
     ];
 
     protected $casts = [

@@ -109,6 +109,7 @@ export interface Formation {
     teams_count: number;
     notes: string | null;
     total_score: number | null;
+    share_token: string | null;
     created_at: string;
     updated_at: string;
     challenge_type?: ChallengeType;

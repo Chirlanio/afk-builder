@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\HeroAdminController;
 use App\Http\Controllers\FormationController;
+use App\Http\Controllers\FormationShareController;
 use App\Http\Controllers\HeroController;
 use App\Http\Controllers\UserHeroController;
 use Illuminate\Support\Facades\Route;
@@ -10,6 +11,10 @@ use Inertia\Inertia;
 Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
+
+Route::get('/f/{token}', [FormationShareController::class, 'publicShow'])
+    ->where('token', '[A-Za-z0-9]{32}')
+    ->name('formations.public');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', function () {
@@ -32,6 +37,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('formations.teams.suggest');
     Route::post('formations/{formation}/suggest-all', [FormationController::class, 'suggestAll'])
         ->name('formations.suggest-all');
+    Route::post('formations/{formation}/share', [FormationShareController::class, 'share'])
+        ->name('formations.share');
+    Route::delete('formations/{formation}/share', [FormationShareController::class, 'revoke'])
+        ->name('formations.share.revoke');
     Route::delete('formations/{formation}', [FormationController::class, 'destroy'])->name('formations.destroy');
 
     Route::middleware('can:manage-heroes')->prefix('admin')->name('admin.')->group(function () {

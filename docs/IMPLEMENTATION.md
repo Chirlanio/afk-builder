@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 5 completa + Fase 6.1 — UI de aprovação de heróis pendentes)
+> **Última atualização:** 2026-05-02 (Fase 5 completa + Fases 6.1 e 6.3 — aprovação de heróis + share público)
 
 ---
 
@@ -200,7 +200,17 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
 - **Testes:** 6 cenários — guest redireciona, não-admin recebe 403 (index e action), admin lista, admin aprova, admin rejeita.
 
 #### ⏭️ 6.2 — Importação manual de heróis (pendente)
-#### ⏭️ 6.3 — Share via link público read-only (pendente)
+#### ✅ 6.3 — Share via link público read-only (concluído)
+
+- **Schema:** migration `add_share_token_to_formations_table` (string 40, nullable, unique).
+- **`FormationShareController`** com:
+  - `share` (POST `/formations/{formation}/share`) — gera `Str::random(32)` se token null; idempotente (mesma chamada retorna mesmo token). Retorna `{share_token, public_url}`.
+  - `revoke` (DELETE `/formations/{formation}/share`) — zera o token.
+  - `publicShow` (GET `/f/{token}`) — rota pública sem `auth`, valida regex `[A-Za-z0-9]{32}`, 404 se token não existe. Renderiza `pages/formations/public.tsx`.
+- **UI:**
+  - Botão **Compartilhar** no header do editor abre `Dialog`. Estados: sem token → "Gerar link público"; com token → input read-only do URL + botão **Copiar** (com feedback "Copiado!") + botão **Revogar link**.
+  - Página pública `pages/formations/public.tsx`: layout sem sidebar, sem DnD, sem botões de edição. Mostra equipes com bonus de facção computado client-side, atribuição ao usuário criador, link "faça login" pra criar próprias formações.
+- **Testes:** 6 cenários — dono gera; outro user 403; revoga; rota pública abre sem auth; 404 com token inválido; idempotência (segunda chamada retorna mesmo token). 58 testes verdes no projeto.
 #### ⏭️ 6.4 — Comparação lado a lado de 2 formações (pendente)
 #### ⏭️ 6.5 — Histórico/versionamento de formações (pendente)
 #### ⏭️ 6.6 — Refinamentos visuais (pendente)

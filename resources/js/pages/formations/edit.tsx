@@ -1,13 +1,14 @@
 import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { Loader2, Save, Sparkles, Target } from 'lucide-react';
+import { Copy, Link2, Loader2, Save, Share2, Sparkles, Target, Trash2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
 import { HeroPool } from '@/components/formation-editor/hero-pool';
 import { TeamRow, type TeamSlotsState } from '@/components/formation-editor/team-row';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { FACTION_THEME } from '@/lib/afk';
@@ -73,6 +74,10 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
     const [isSaving, setIsSaving] = useState(false);
     const [suggestingTeamPos, setSuggestingTeamPos] = useState<number | null>(null);
     const [isSuggestingAll, setIsSuggestingAll] = useState(false);
+    const [shareToken, setShareToken] = useState<string | null>(formation.share_token);
+    const [shareDialogOpen, setShareDialogOpen] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
+    const [copySuccess, setCopySuccess] = useState(false);
     const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
 
     const enforceUnique = formation.challenge_type.teams_must_be_unique;
@@ -250,6 +255,44 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
         }
     };
 
+    const generateShareLink = async () => {
+        setIsSharing(true);
+        try {
+            const response = await axios.post<{ share_token: string; public_url: string }>(
+                `/formations/${formation.id}/share`,
+            );
+            setShareToken(response.data.share_token);
+        } catch (error) {
+            console.error('Falha ao gerar link de compartilhamento:', error);
+        } finally {
+            setIsSharing(false);
+        }
+    };
+
+    const revokeShareLink = async () => {
+        setIsSharing(true);
+        try {
+            await axios.delete(`/formations/${formation.id}/share`);
+            setShareToken(null);
+        } catch (error) {
+            console.error('Falha ao revogar link:', error);
+        } finally {
+            setIsSharing(false);
+        }
+    };
+
+    const copyShareLink = async () => {
+        if (!shareToken) return;
+        const url = `${window.location.origin}/f/${shareToken}`;
+        try {
+            await navigator.clipboard.writeText(url);
+            setCopySuccess(true);
+            setTimeout(() => setCopySuccess(false), 1500);
+        } catch (error) {
+            console.error('Falha ao copiar:', error);
+        }
+    };
+
     const save = () => {
         setIsSaving(true);
 
@@ -323,6 +366,14 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
                             {isDirty && <span className="text-xs text-amber-600 dark:text-amber-400">Alterações não salvas</span>}
                             <Button
                                 variant="outline"
+                                onClick={() => setShareDialogOpen(true)}
+                                disabled={isSaving}
+                            >
+                                <Share2 className="size-4" />
+                                {shareToken ? 'Compartilhada' : 'Compartilhar'}
+                            </Button>
+                            <Button
+                                variant="outline"
                                 onClick={suggestAll}
                                 disabled={isSuggestingAll || isSaving}
                             >
@@ -367,6 +418,51 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
                         </div>
                     </div>
                 </div>
+
+                <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Share2 className="size-5" />
+                                Compartilhar formação
+                            </DialogTitle>
+                            <DialogDescription>
+                                Gere um link público read-only que qualquer pessoa pode abrir sem login. Você pode revogar a qualquer momento.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {shareToken ? (
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        readOnly
+                                        value={`${window.location.origin}/f/${shareToken}`}
+                                        className="font-mono text-xs"
+                                    />
+                                    <Button type="button" variant="outline" size="sm" onClick={copyShareLink}>
+                                        <Copy className="size-4" />
+                                        {copySuccess ? 'Copiado!' : 'Copiar'}
+                                    </Button>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={revokeShareLink}
+                                    disabled={isSharing}
+                                    className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                                >
+                                    {isSharing ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                                    Revogar link
+                                </Button>
+                            </div>
+                        ) : (
+                            <Button type="button" onClick={generateShareLink} disabled={isSharing}>
+                                {isSharing ? <Loader2 className="size-4 animate-spin" /> : <Link2 className="size-4" />}
+                                Gerar link público
+                            </Button>
+                        )}
+                    </DialogContent>
+                </Dialog>
 
                 <DragOverlay dropAnimation={null}>
                     {activeDragHero && activeDragFaction && activeDragClass && activeDragTier ? (
