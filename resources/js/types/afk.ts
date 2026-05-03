@@ -55,9 +55,18 @@ export interface Hero {
     is_awakened: boolean;
     lore?: string | null;
     abilities?: HeroAbility[];
+    furniture_ability?: HeroFurnitureAbility | null;
     faction?: Faction;
     hero_class?: HeroClass;
     tier?: Tier;
+}
+
+export interface HeroFurnitureAbility {
+    id: number;
+    hero_id: number;
+    name: string;
+    f3_description: string | null;
+    f9_description: string | null;
 }
 
 export type HeroAbilityType = 'basic' | 'active' | 'passive' | 'ultimate' | 'signature' | 'awakened';

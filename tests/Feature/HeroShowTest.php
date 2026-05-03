@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroClass;
+use App\Models\HeroFurnitureAbility;
 use App\Models\HeroSynergy;
 use App\Models\Tier;
 use App\Models\User;
@@ -104,6 +105,40 @@ class HeroShowTest extends TestCase
         $this->actingAs($user)
             ->get('/heroes/inexistente')
             ->assertNotFound();
+    }
+
+    public function test_inclui_furniture_ability_quando_existe(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero('lucius');
+        HeroFurnitureAbility::create([
+            'hero_id' => $hero->id,
+            'name' => "Heaven's Protection",
+            'f3_description' => 'F3 desc...',
+            'f9_description' => 'F9 desc...',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/heroes/{$hero->slug}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('hero.furniture_ability.name', "Heaven's Protection")
+                ->where('hero.furniture_ability.f3_description', 'F3 desc...')
+                ->where('hero.furniture_ability.f9_description', 'F9 desc...')
+            );
+    }
+
+    public function test_furniture_ability_null_quando_nao_existe(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero('rosaline');
+
+        $this->actingAs($user)
+            ->get("/heroes/{$hero->slug}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('hero.furniture_ability', null)
+            );
     }
 
     public function test_404_quando_heroi_inativo(): void

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Hero extends Model
 {
@@ -52,6 +53,11 @@ class Hero extends Model
     public function abilities(): HasMany
     {
         return $this->hasMany(HeroAbility::class)->orderBy('display_order');
+    }
+
+    public function furnitureAbility(): HasOne
+    {
+        return $this->hasOne(HeroFurnitureAbility::class);
     }
 
     public function userHeroes(): HasMany

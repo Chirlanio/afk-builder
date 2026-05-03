@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, BookText, ExternalLink, Flame, ListChecks, Pencil, Plus, Sparkles, Users } from 'lucide-react';
+import { ArrowLeft, BookText, ExternalLink, Flame, Hotel, ListChecks, Lock, Pencil, Plus, Sparkles, Unlock, Users } from 'lucide-react';
 import { useState } from 'react';
 import { MarkdownContent } from '@/components/markdown-content';
 import { RosterModal } from '@/components/roster-modal';
@@ -81,6 +81,10 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
 
     const abilities = hero.abilities ?? [];
     const hasLore = Boolean(hero.lore && hero.lore.trim().length > 0);
+    const furnitureAbility = hero.furniture_ability;
+    const userFurniture = userHero?.furniture ?? 0;
+    const f3Unlocked = userFurniture >= 3;
+    const f9Unlocked = userFurniture >= 9;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -248,6 +252,79 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                         </div>
                     )}
                 </section>
+
+                {/* Furniture ability */}
+                {furnitureAbility && (
+                    <section className="flex flex-col gap-2">
+                        <h2 className="flex items-center gap-2 text-lg font-semibold">
+                            <Hotel className="size-5 text-primary" />
+                            Habilidade de Móvel
+                            <Badge variant="secondary" className="text-xs">
+                                {furnitureAbility.name}
+                            </Badge>
+                            {owned && (
+                                <Badge variant="outline" className="text-[10px]">
+                                    {userFurniture}/9 móveis
+                                </Badge>
+                            )}
+                        </h2>
+
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                            {/* F3 card */}
+                            <div className={cn(
+                                'rounded-lg border bg-card p-3',
+                                owned && f3Unlocked && 'border-emerald-500/40 bg-emerald-500/5',
+                            )}>
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                    <Badge variant={owned && f3Unlocked ? 'default' : 'secondary'} className="gap-1">
+                                        {owned && f3Unlocked ? <Unlock className="size-3" /> : <Lock className="size-3" />}
+                                        F3 — 3/9 Móveis
+                                    </Badge>
+                                    {owned && f3Unlocked && (
+                                        <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                                            Desbloqueada
+                                        </span>
+                                    )}
+                                </div>
+                                {furnitureAbility.f3_description ? (
+                                    <div className="text-muted-foreground">
+                                        <MarkdownContent>{furnitureAbility.f3_description}</MarkdownContent>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">Sem descrição.</p>
+                                )}
+                            </div>
+
+                            {/* F9 card */}
+                            <div className={cn(
+                                'rounded-lg border bg-card p-3',
+                                owned && f9Unlocked && 'border-amber-400/60 bg-amber-400/5',
+                            )}>
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                    <Badge
+                                        variant={owned && f9Unlocked ? 'default' : 'secondary'}
+                                        className={cn('gap-1', owned && f9Unlocked && 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900')}
+                                    >
+                                        {owned && f9Unlocked ? <Unlock className="size-3" /> : <Lock className="size-3" />}
+                                        F9 — 9/9 Móveis
+                                    </Badge>
+                                    {owned && f9Unlocked && (
+                                        <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                                            Desbloqueada
+                                        </span>
+                                    )}
+                                </div>
+                                {furnitureAbility.f9_description ? (
+                                    <div className="text-muted-foreground">
+                                        <MarkdownContent>{furnitureAbility.f9_description}</MarkdownContent>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">Sem descrição.</p>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+                )}
 
                 {/* Synergies */}
                 {synergies.length > 0 && (

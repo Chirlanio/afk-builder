@@ -386,6 +386,49 @@ TEXT;
         $this->assertStringContainsString('More content.', $md);
     }
 
+    public function test_parse_furniture_abilities_extrai_3_entradas(): void
+    {
+        $wikitext = <<<'TEXT'
+== List of Furniture Abilities ==
+
+=== Lightbearer Furniture Abilities ===
+{| class="wikitable" border="1"
+|-
+! Hero
+! Ability
+! Description
+|-
+| [[File:Adrian Icon.jpg|100px]]<br>[[Adrian & Elyse]]
+| [[File:icon.png|100px]]<br> Spirited Steps
+| <div style='border:1px'>'''[3/9 Mythic Pieces]''' Adrian gains 50 Energy every second.</div><div style='border:1px'>'''[9/9 Mythic Pieces]''' Adrian gains 100 Energy every second.</div>
+|-
+| [[File:Belinda Icon.jpg|100px]]<br>[[Belinda]]
+| [[File:fl.png|100px]]<br> Focused Light
+| <div>'''[3/9 Mythic Pieces]''' Damage to single target +30%.</div><div>'''[9/9 Mythic Pieces]''' Crit Resistance reduced by 35.</div>
+|-
+| [[File:Lucius Icon.jpg|100px]]<br>[[Lucius]]
+| [[File:hp.png|100px]]<br> Heaven's Protection
+| <div>'''[3/9 Mythic Pieces]''' Shield strength +20%.</div>
+|}
+TEXT;
+
+        $result = $this->parser->parseFurnitureAbilitiesIndex($wikitext);
+
+        $this->assertCount(3, $result);
+
+        $this->assertSame('Adrian & Elyse', $result[0]['hero_name']);
+        $this->assertSame('Spirited Steps', $result[0]['ability_name']);
+        $this->assertStringContainsString('50 Energy every second', $result[0]['f3_description']);
+        $this->assertStringContainsString('100 Energy every second', $result[0]['f9_description']);
+        $this->assertStringNotContainsString('[3/9 Mythic Pieces]', $result[0]['f3_description'], 'Prefixo deve ser removido');
+
+        $this->assertSame('Belinda', $result[1]['hero_name']);
+        $this->assertSame('Focused Light', $result[1]['ability_name']);
+
+        $this->assertSame('Lucius', $result[2]['hero_name']);
+        $this->assertNull($result[2]['f9_description'], 'F9 ausente quando há só 1 div');
+    }
+
     public function test_parse_abilities_aceita_formato_desperto_3_colunas(): void
     {
         // Despertos (Awakened) usam tabela sem coluna de Unlock Level.

@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 8 + Fase 9 — guias adicionais + Dragon Trial challenge type)
+> **Última atualização:** 2026-05-02 (Fase 10 — Hotel Furniture per-hero F3/F9 abilities)
 
 ---
 
@@ -308,6 +308,33 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
 - **Hotel Furniture per-user (rastreamento, bônus aplicados ao optimizer):** NÃO implementado — escopo grande (schema com 144 peças possíveis, UI de cadastro, integração com TeamScorer). Reservado para fase futura caso seja prioridade.
 
 8 guias totais publicados em `/guias`. 11 challenge types disponíveis ao criar formação. **106 testes verdes** mantidos.
+
+---
+
+### ✅ Fase 10 — Hotel Furniture (habilidades F3/F9 por herói)
+
+- **Schema:** tabela `hero_furniture_abilities` (id, hero_id FK unique cascade, name, f3_description text nullable, f9_description text nullable). Model `HeroFurnitureAbility` com relação `belongsTo Hero`. Hero ganha `hasOne furnitureAbility`.
+- **Parser** — novo método `WikitextHeroParser::parseFurnitureAbilitiesIndex($wikitext)`:
+  - Recebe wikitext da página master `Hero Furniture Abilities` (~78k chars).
+  - Regex multiline captura cada linha de wikitable: `[[File:...]]<br>[[Hero Name]]` na coluna 1, `[[icon]]<br> Ability Name` na coluna 2, dois `<div>...</div>` blocks na coluna 3 com prefixos `'''[3/9 Mythic Pieces]'''` e `'''[9/9 Mythic Pieces]'''`.
+  - Retorna array de `{hero_name, ability_name, f3_description, f9_description}`. F9 é nullable quando só existe F3 na wiki.
+  - Descrições passam por `wikitextToMarkdown` (depois de remover prefixo F3/F9) — ficam formatadas como markdown.
+- **Comando `heroes:sync-furniture`** (com `--dry-run`):
+  - Fetch único da página master.
+  - Parseia 121 entradas.
+  - Match em duas etapas: por nome exato (case-insensitive) e fallback por slug (kebab-case do nome wiki).
+  - `updateOrCreate` por `hero_id` (idempotente).
+  - Reporta criados/atualizados/sem-match com lista dos missing.
+- **Resultado da execução real:** 117 abilities sincronizadas (114 base + 3 awakened). 1 sem match: Daimon (precisa rodar `heroes:sync` primeiro pra importá-lo no DB).
+- **UI no perfil do herói** (`pages/heroes/show.tsx`):
+  - Nova seção **Habilidade de Móvel** entre Habilidades e Sinergias.
+  - Header com nome da ability + badge de progresso `{userFurniture}/9` quando user possui o herói.
+  - Dois cards lado-a-lado (F3 e F9) com badges Lock/Unlock (verde quando user.furniture >= 3, dourado/gradient quando >= 9).
+  - Descrições renderizadas via `MarkdownContent`.
+- **Testes:**
+  - Parser: novo cenário com 3 entradas exemplo (2 com F9, 1 só com F3); verifica nome, ability, descrições limpas (sem prefixo `[N/9 Mythic Pieces]`), F9 null quando ausente.
+  - HeroShow: payload inclui `furniture_ability` quando existe; `null` quando não. **109 testes verdes** no projeto.
+- **Não implementado** (escopo futuro): bônus do Furniture aplicado ao optimizer (`TeamScorer`) — atualmente o `power_rating` do `user_heroes.furniture` (0-9) já entra na `PowerCalculator` como `furniture * 30`, mas as abilities específicas F3/F9 não influenciam o score (seria preciso modelar effects estruturados).
 - **Testes:** 4 cenários (`GuideTest`) — guest redireciona, index agrupa por categoria com counts, show renderiza com categoryLabel, 404 em slug inexistente. **98 testes verdes** no projeto.
 - Helper `tierFromAscension(ascensionValue)` em `lib/afk.ts`: 0-3 → `common`, 4-9 → `legendary`, 10+ → `ascended`.
 - `hero-card.tsx`: quando `userHero` está presente, badge mostra o tier ATINGIDO (estado real do user). Sem roster, mostra o max potencial do herói.

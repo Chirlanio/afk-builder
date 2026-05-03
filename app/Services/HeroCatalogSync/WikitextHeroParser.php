@@ -587,6 +587,59 @@ class WikitextHeroParser
     }
 
     /**
+     * Parseia a página master "Hero Furniture Abilities" extraindo as habilidades
+     * F3/F9 de cada herói (móvel exclusivo do Oak Inn).
+     *
+     * Cada linha da wikitable tem o formato:
+     *   | [[File:Hero Icon.jpg|Xpx]]<br>[[Hero Name]]
+     *   | [[File:icon.png|Xpx]]<br> Ability Name
+     *   | <div>'''[3/9 ...]''' descrição f3</div><div>'''[9/9 ...]''' descrição f9</div>
+     *
+     * @return array<int, array{hero_name: string, ability_name: string, f3_description: string, f9_description: ?string}>
+     */
+    public function parseFurnitureAbilitiesIndex(string $wikitext): array
+    {
+        $pattern = '/^\| \[\[File:[^\]]+\]\]<br>\[\[([^\]|]+?)\]\]\s*\n\| .*?<br>\s*([^\n]+?)\s*\n\| <div[^>]*>(.*?)<\/div>(?:\s*<div[^>]*>(.*?)<\/div>)?/sm';
+
+        if (! preg_match_all($pattern, $wikitext, $matches, PREG_SET_ORDER)) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($matches as $m) {
+            $heroName = trim($m[1]);
+            $abilityName = trim($this->stripWikitextLight($m[2]));
+            $f3 = $this->cleanFurnitureDescription($m[3]);
+            $f9 = isset($m[4]) ? $this->cleanFurnitureDescription($m[4]) : null;
+
+            if ($heroName === '' || $abilityName === '' || $f3 === '') {
+                continue;
+            }
+
+            $result[] = [
+                'hero_name' => $heroName,
+                'ability_name' => $abilityName,
+                'f3_description' => $f3,
+                'f9_description' => $f9 !== '' ? $f9 : null,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Limpa uma descrição de habilidade de móvel: remove `'''[N/9 Mythic Pieces]'''`
+     * inicial (já implícito pelo campo) e converte wikitext → markdown.
+     */
+    private function cleanFurnitureDescription(string $value): string
+    {
+        // Remove o prefixo "[N/9 Mythic Pieces]"
+        $value = preg_replace("/^'''\s*\[\s*\d+\/9\s*Mythic\s*Pieces\s*\]\s*'''\s*/i", '', $value) ?? $value;
+
+        return trim($this->wikitextToMarkdown($value));
+    }
+
+    /**
      * Variante simplificada de strip — usada DENTRO do conversor de tabelas
      * (não chama wikitextToMarkdown recursivamente).
      */
