@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, BookText, ExternalLink, Flame, ListChecks, Pencil, Plus, Sparkles, Users } from 'lucide-react';
 import { useState } from 'react';
+import { MarkdownContent } from '@/components/markdown-content';
 import { RosterModal } from '@/components/roster-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -221,9 +222,9 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                                         )}
                                     </div>
                                     {ability.description && (
-                                        <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
-                                            {ability.description}
-                                        </p>
+                                        <div className="mt-2 text-muted-foreground">
+                                            <MarkdownContent>{ability.description}</MarkdownContent>
+                                        </div>
                                     )}
                                 </div>
                             ))}
@@ -237,9 +238,9 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                         <BookText className="size-5 text-primary" />
                         História
                     </h2>
-                    {hasLore ? (
-                        <div className="rounded-xl border bg-card p-4 text-sm leading-relaxed whitespace-pre-wrap">
-                            {hero.lore}
+                    {hasLore && hero.lore ? (
+                        <div className="rounded-xl border bg-card p-4">
+                            <MarkdownContent>{hero.lore}</MarkdownContent>
                         </div>
                     ) : (
                         <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">

@@ -305,6 +305,87 @@ TEXT;
         $this->assertSame([], $this->parser->parseAbilities($wikitext));
     }
 
+    public function test_wikitext_to_markdown_converte_headers(): void
+    {
+        $wt = "Some intro.\n\n== Section A ==\n\nContent here.\n\n=== Sub Section ===\n\nMore content.\n\n==== Sub-sub ====\n\nDeep.";
+        $md = $this->parser->wikitextToMarkdown($wt);
+
+        $this->assertStringContainsString('## Section A', $md);
+        $this->assertStringContainsString('### Sub Section', $md);
+        $this->assertStringContainsString('#### Sub-sub', $md);
+    }
+
+    public function test_wikitext_to_markdown_converte_formatacao_inline(): void
+    {
+        $wt = "This is '''bold''' and this is ''italic'' and this is '''''both'''''.";
+        $md = $this->parser->wikitextToMarkdown($wt);
+
+        $this->assertStringContainsString('**bold**', $md);
+        $this->assertStringContainsString('*italic*', $md);
+        $this->assertStringContainsString('***both***', $md);
+    }
+
+    public function test_wikitext_to_markdown_converte_links(): void
+    {
+        $wt = 'Visit [[Ranhorn]] or [[The_Forbidden_Library|the library]].';
+        $md = $this->parser->wikitextToMarkdown($wt);
+
+        $this->assertSame('Visit Ranhorn or the library.', $md);
+    }
+
+    public function test_wikitext_to_markdown_remove_files_e_refs(): void
+    {
+        $wt = "Hero shown [[File:hero.png|thumb|caption]] in battle.<ref>citation</ref><ref name=\"x\">other</ref>";
+        $md = $this->parser->wikitextToMarkdown($wt);
+
+        $this->assertStringNotContainsString('File:', $md);
+        $this->assertStringNotContainsString('<ref', $md);
+        $this->assertStringNotContainsString('citation', $md);
+        $this->assertStringContainsString('Hero shown', $md);
+    }
+
+    public function test_wikitext_to_markdown_converte_listas_aninhadas(): void
+    {
+        $wt = "Items:\n* primeiro item\n* segundo item\n** sub item\n** outro sub\n* terceiro";
+        $md = $this->parser->wikitextToMarkdown($wt);
+
+        $this->assertStringContainsString('- primeiro item', $md);
+        $this->assertStringContainsString('  - sub item', $md);
+        $this->assertStringContainsString('  - outro sub', $md);
+        $this->assertStringContainsString('- terceiro', $md);
+    }
+
+    public function test_wikitext_to_markdown_converte_wikitable_em_tabela_gfm(): void
+    {
+        $wt = <<<'TEXT'
+{| class="wikitable"
+! Question !! Answer
+|-
+| What is X? || X is a feature.
+|-
+| How to use? || Click here.
+|}
+TEXT;
+        $md = $this->parser->wikitextToMarkdown($wt);
+
+        $this->assertStringContainsString('| Question | Answer |', $md);
+        $this->assertStringContainsString('| --- | --- |', $md);
+        $this->assertStringContainsString('| What is X? | X is a feature. |', $md);
+        $this->assertStringContainsString('| How to use? | Click here. |', $md);
+    }
+
+    public function test_wikitext_to_markdown_remove_templates_e_galerias(): void
+    {
+        $wt = "Header.\n{{ClearSpace}}\n\n<gallery>\nimage.png|caption\n</gallery>\n\nMore content.";
+        $md = $this->parser->wikitextToMarkdown($wt);
+
+        $this->assertStringNotContainsString('{{', $md);
+        $this->assertStringNotContainsString('<gallery', $md);
+        $this->assertStringNotContainsString('image.png', $md);
+        $this->assertStringContainsString('Header.', $md);
+        $this->assertStringContainsString('More content.', $md);
+    }
+
     public function test_parse_abilities_aceita_formato_desperto_3_colunas(): void
     {
         // Despertos (Awakened) usam tabela sem coluna de Unlock Level.

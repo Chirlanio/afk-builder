@@ -71,9 +71,9 @@ class GuideSeeder extends Seeder
             try {
                 $wikitext = $client->fetchWikitext($entry['wiki_page']);
                 if ($wikitext) {
-                    $content = $parser->stripWikitext($wikitext);
+                    $content = $parser->wikitextToMarkdown($wikitext);
                     if (mb_strlen($content) > self::CONTENT_MAX_CHARS) {
-                        $content = mb_substr($content, 0, self::CONTENT_MAX_CHARS) . "\n\n[…] (Conteúdo truncado — veja a fonte para versão completa)";
+                        $content = mb_substr($content, 0, self::CONTENT_MAX_CHARS) . "\n\n*[…] (Conteúdo truncado — veja a fonte para versão completa)*";
                     }
                     $sourceUrl = 'https://afk-arena.fandom.com/wiki/' . rawurlencode(str_replace(' ', '_', $entry['wiki_page']));
                 }

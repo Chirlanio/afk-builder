@@ -278,7 +278,7 @@ class WikitextHeroParser
             return null;
         }
 
-        $cleaned = $this->stripWikitext($body);
+        $cleaned = $this->wikitextToMarkdown($body);
         $cleaned = trim($cleaned);
 
         return $cleaned !== '' ? $cleaned : null;
@@ -348,11 +348,11 @@ class WikitextHeroParser
             if ($cellCount >= 4) {
                 $unlockLevel = $cleanedFirst;
                 $nameRaw = trim($cells[1]);
-                $description = $this->stripWikitext($cells[3]);
+                $description = $this->wikitextToMarkdown($cells[3]);
             } else {
                 $unlockLevel = '';
                 $nameRaw = trim($cells[0]);
-                $description = $this->stripWikitext($cells[2]);
+                $description = $this->wikitextToMarkdown($cells[2]);
             }
 
             $name = trim(preg_replace("/^'+|'+$/", '', $nameRaw) ?? $nameRaw);
@@ -440,6 +440,167 @@ class WikitextHeroParser
         }
 
         return $cells;
+    }
+
+    /**
+     * Converte wikitext em Markdown (CommonMark + GFM tables).
+     *
+     * Cobre o subset de wikitext usado nas páginas do AFK Arena Fandom:
+     * - == Header == → ## Header (níveis 2-6)
+     * - '''bold''' → **bold**
+     * - ''italic'' → *italic*
+     * - [[Page]] e [[Page|Label]] → Label (sem hiperlink)
+     * - [[File:...]] → removido
+     * - * item → - item; ** sub → "  - sub"
+     * - {| wikitable |} → tabela GFM
+     * - <ref>, <gallery>, comments, {{templates}}, HTML → removidos
+     * - <br/> → quebra de linha
+     */
+    public function wikitextToMarkdown(string $wikitext): string
+    {
+        // Remove gallery/refs/comments primeiro (multiline)
+        $text = preg_replace('/<gallery\b.*?<\/gallery>/is', '', $wikitext) ?? $wikitext;
+        $text = preg_replace('/<ref\b[^>]*?\/>/i', '', $text) ?? $text;
+        $text = preg_replace('/<ref\b.*?<\/ref>/is', '', $text) ?? $text;
+        $text = preg_replace('/<!--.*?-->/s', '', $text) ?? $text;
+
+        // Converte tabelas wikitable → markdown ANTES de outras transformações
+        $text = preg_replace_callback(
+            '/\{\|[^\n]*\n(.*?)\n\|\}/s',
+            fn ($m) => "\n" . $this->wikitableToMarkdown($m[1]) . "\n",
+            $text,
+        ) ?? $text;
+
+        // Headers (mais específico antes de menos específico)
+        $text = preg_replace_callback(
+            '/^(={2,6})\s*(.+?)\s*\1\s*$/m',
+            function ($m) {
+                $level = strlen($m[1]);
+                return str_repeat('#', $level) . ' ' . trim($m[2]);
+            },
+            $text,
+        ) ?? $text;
+
+        // Templates {{X}} — remove (depois das tabelas)
+        $text = preg_replace('/\{\{[^{}]*\}\}/', '', $text) ?? $text;
+
+        // Imagens/Arquivos
+        $text = preg_replace('/\[\[(?:File|Image):[^\]]+\]\]/i', '', $text) ?? $text;
+
+        // Links: [[X|Y]] → Y; [[X]] → X
+        $text = preg_replace('/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/', '$1', $text) ?? $text;
+
+        // Bold + italic
+        $text = preg_replace("/'''''(.+?)'''''/s", '***$1***', $text) ?? $text;
+        $text = preg_replace("/'''(.+?)'''/s", '**$1**', $text) ?? $text;
+        $text = preg_replace("/''(.+?)''/s", '*$1*', $text) ?? $text;
+
+        // <br/> → newline
+        $text = preg_replace('/<br\s*\/?>/i', "\n", $text) ?? $text;
+
+        // Listas: ** ou * no início da linha
+        $text = preg_replace_callback(
+            '/^(\*+)\s*(.+)$/m',
+            fn ($m) => str_repeat('  ', strlen($m[1]) - 1) . '- ' . trim($m[2]),
+            $text,
+        ) ?? $text;
+
+        // Tags HTML restantes
+        $text = preg_replace('/<[^>]+>/', '', $text) ?? $text;
+
+        // Espaços múltiplos NO MEIO de uma linha (não toca em indentação)
+        $text = preg_replace('/(?<=\S)[ \t]{2,}(?=\S)/', ' ', $text) ?? $text;
+        $text = preg_replace('/[ \t]+\n/', "\n", $text) ?? $text;
+
+        // Colapsa 3+ newlines em 2
+        $text = preg_replace("/\n{3,}/", "\n\n", $text) ?? $text;
+
+        return trim($text);
+    }
+
+    /**
+     * Converte o corpo (sem `{|...` e sem `|}`) de uma wikitable em tabela GFM.
+     */
+    private function wikitableToMarkdown(string $body): string
+    {
+        // Quebra em linhas; pula a linha de atributos da tabela se existir
+        $rows = preg_split('/\n\|-\s*\n?/', $body);
+        if ($rows === false || count($rows) === 0) {
+            return '';
+        }
+
+        $parsedRows = [];
+        $maxCols = 0;
+
+        foreach ($rows as $rowText) {
+            $cells = $this->extractRowCells($rowText);
+            // Limpa scope="..." e style="..."
+            $cells = array_map(
+                fn ($c) => preg_replace('/^(?:scope=["\'][^"\']*["\']|style=["\'][^"\']*["\'])\s*\|?\s*/', '', $c) ?? $c,
+                $cells,
+            );
+
+            // Expande células com `||` ou `!!` (multi-célula em linha única)
+            $expanded = [];
+            foreach ($cells as $c) {
+                $parts = preg_split('/\s*(?:\|\||!!)\s*/', $c);
+                foreach ($parts as $p) {
+                    // Recursivo: deixa converter wikitext interno mas SEM rodar wikitableToMarkdown
+                    // (evita infinite loop). Strip-only.
+                    $clean = $this->stripWikitextLight(trim($p));
+                    // Escapa pipe no conteúdo
+                    $clean = str_replace('|', '\\|', $clean);
+                    $expanded[] = $clean;
+                }
+            }
+
+            if (empty($expanded)) {
+                continue;
+            }
+
+            $parsedRows[] = $expanded;
+            $maxCols = max($maxCols, count($expanded));
+        }
+
+        if (empty($parsedRows) || $maxCols === 0) {
+            return '';
+        }
+
+        // Pad e monta GFM
+        $headers = $parsedRows[0];
+        while (count($headers) < $maxCols) {
+            $headers[] = '';
+        }
+
+        $md = '| ' . implode(' | ', array_slice($headers, 0, $maxCols)) . ' |' . "\n";
+        $md .= '|' . str_repeat(' --- |', $maxCols) . "\n";
+
+        for ($i = 1; $i < count($parsedRows); $i++) {
+            $row = $parsedRows[$i];
+            while (count($row) < $maxCols) {
+                $row[] = '';
+            }
+            $md .= '| ' . implode(' | ', array_slice($row, 0, $maxCols)) . ' |' . "\n";
+        }
+
+        return $md;
+    }
+
+    /**
+     * Variante simplificada de strip — usada DENTRO do conversor de tabelas
+     * (não chama wikitextToMarkdown recursivamente).
+     */
+    private function stripWikitextLight(string $value): string
+    {
+        $value = preg_replace('/<ref\b[^>]*?\/>/i', '', $value) ?? $value;
+        $value = preg_replace('/<ref\b.*?<\/ref>/is', '', $value) ?? $value;
+        $value = preg_replace('/\[\[(?:File|Image):[^\]]+\]\]/i', '', $value) ?? $value;
+        $value = preg_replace('/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/', '$1', $value) ?? $value;
+        $value = preg_replace('/\{\{[^{}]*\}\}/', '', $value) ?? $value;
+        $value = preg_replace("/'''(.+?)'''/s", '**$1**', $value) ?? $value;
+        $value = preg_replace("/''(.+?)''/s", '*$1*', $value) ?? $value;
+        $value = preg_replace('/<[^>]+>/', '', $value) ?? $value;
+        return trim($value);
     }
 
     /**

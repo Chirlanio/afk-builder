@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, BookOpen, ExternalLink } from 'lucide-react';
+import { MarkdownContent } from '@/components/markdown-content';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
@@ -61,8 +62,8 @@ export default function GuideShow({ guide, categoryLabel }: PageProps) {
                 </header>
 
                 {guide.content ? (
-                    <article className="rounded-xl border bg-card p-5 text-sm leading-relaxed whitespace-pre-wrap">
-                        {guide.content}
+                    <article className="rounded-xl border bg-card p-5">
+                        <MarkdownContent>{guide.content}</MarkdownContent>
                     </article>
                 ) : (
                     <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
