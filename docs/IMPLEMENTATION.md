@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-03 (Fase 14d — integração ao optimizer)
+> **Última atualização:** 2026-05-03 (Fase 15 — equipamentos por herói)
 
 ---
 
@@ -573,6 +573,41 @@ Beasts são os "pets" do AFK Arena. Cada beast aplica buffs aos heróis do tipo 
   - `FormationCompareController` carrega `beast` em ambas formações e passa ao scorer no `buildFormationPayload`.
   - `loadUserHeroes` e o eager-load no Compare agora incluem `artifact:id,attributes` e `collection:id,hp_bonus,attack_bonus,defense_bonus` pra que `PowerCalculator` veja as relações como carregadas.
 - **Testes:** 8 novos cenários no `PowerCalculatorTest` (artifact/collection/beast contributions, integração com forUserHero). **177 testes verdes** no projeto.
+
+---
+
+### ✅ Fase 15 — Equipamentos por herói (4 slots: Arma/Capacete/Peitoral/Bota)
+
+Cada herói no roster pode ter 4 peças de equipamento equipadas. Cada peça tem **tier** (T1 Comum → T6 Ascendido) e **level** (1-20). Influenciam no power score.
+
+- **Schema:** 8 novas colunas em `user_heroes` (4 pares tier+level). Tiers: T1..T6 (varchar 8 nullable). Levels: tinyint nullable 1-20.
+- **Constantes** em `App\Models\UserHero`:
+  - `EQUIPMENT_TIERS = ['T1', ..., 'T6']`
+  - `EQUIPMENT_TIER_LABELS` mapping (Comum, Raro, Elite, Lendário, Mítico, Ascendido)
+  - `EQUIPMENT_LEVEL_MAX = 20`
+  - `EQUIPMENT_SLOTS = ['weapon', 'helmet', 'chest', 'boots']`
+- **Validação no `UserHeroController`:**
+  - Cada slot: `tier` em `Rule::in(EQUIPMENT_TIERS)`, `level` 1-20.
+  - `equipmentSlotFields()` normaliza: tier sem level (ou vice-versa) vira null pra evitar registros parciais.
+- **PowerCalculator:**
+  - Novo `equipmentContribution(?string $tier, ?int $level)`: fórmula `tier_value * 10 + level * 2`. Ex: T6 Lv20 = 100, T1 Lv1 = 12. Quatro peças max ≈ 400 (significativo mas não dominante vs ~1500-2500 de base).
+  - `totalEquipmentContribution(UserHero)` soma os 4 slots.
+  - `forUserHero` agora inclui `totalEquipmentContribution`.
+- **UI no `RosterEditModal`:**
+  - 4 slots laterais (Arma/Capacete/Peitoral/Bota) ganharam componente `EquipmentInputs` com Select de tier + Input de level.
+  - Trigger do Select recebe a cor temática do tier (T1 cinza → T6 dourado gradient) via `EQUIPMENT_TIER_BADGE`.
+  - Selecionar tier auto-define level=1; "vazio" zera ambos.
+- **UI no `HeroDetailModal`:**
+  - Componente `EquipmentSlot` mostra tier + Level quando equipado, vazio caso contrário.
+  - Borda do slot adota a cor do tier.
+- **Tipo TS:**
+  - `EquipmentTier` em `types/afk.ts`.
+  - 8 campos de equipamento adicionados ao `UserHero` interface.
+  - `EQUIPMENT_TIERS`, `EQUIPMENT_TIER_LABEL`, `EQUIPMENT_TIER_BADGE`, `EQUIPMENT_LEVEL_MAX` em `lib/afk.ts`.
+- **Testes:**
+  - `PowerCalculatorTest`: 5 novos cenários (zero quando null, fórmula T1-T6 Lv1-20, clamp acima de 20, soma 4 slots, integração forUserHero).
+  - `UserHeroArtifactTest`: 4 novos cenários (equipa 4 peças, valida tier inválido, valida level >20, normaliza tier sem level).
+  - **186 testes verdes** no projeto (era 177, +9).
 
 ---
 

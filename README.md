@@ -119,6 +119,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 14b. Coleções da Galeria Tenebrosa (cadastro manual admin, mutex com artefato) | ✅ |
 | 14c. Beasts (pets — sync de nomes via wiki, buffs S/I/A admin, ativo por formação) | ✅ |
 | 14d. Integração ao optimizer (PowerCalculator soma art/col/beast; scorer/optimizers propagam beast) | ✅ |
+| 15. Equipamentos por herói (4 slots: Arma/Capacete/Peitoral/Bota com tier T1-T6 + level 1-20) | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

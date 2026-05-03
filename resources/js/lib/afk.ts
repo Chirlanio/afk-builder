@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { Brain, Crosshair, Dumbbell, Heart, Shield, Sparkles, Sword, Wind } from 'lucide-react';
-import type { ClassCode, FactionCode, HeroType, TierCode } from '@/types/afk';
+import type { ClassCode, EquipmentTier, FactionCode, HeroType, TierCode } from '@/types/afk';
 
 export interface FactionTheme {
     label: string;
@@ -120,6 +120,29 @@ export const HERO_TYPE_BADGE: Record<HeroType, string> = {
     intelligence: 'bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-500/40',
     agility: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40',
 };
+
+export const EQUIPMENT_TIERS: EquipmentTier[] = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
+
+export const EQUIPMENT_TIER_LABEL: Record<EquipmentTier, string> = {
+    T1: 'Comum',
+    T2: 'Raro',
+    T3: 'Elite',
+    T4: 'Lendário',
+    T5: 'Mítico',
+    T6: 'Ascendido',
+};
+
+/** Cor da borda do slot baseada no tier (cores do jogo: cinza → verde → azul → roxo → laranja → dourado). */
+export const EQUIPMENT_TIER_BADGE: Record<EquipmentTier, string> = {
+    T1: 'border-stone-400/60 bg-stone-500/10 text-stone-700 dark:text-stone-300',
+    T2: 'border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    T3: 'border-blue-500/60 bg-blue-500/10 text-blue-700 dark:text-blue-300',
+    T4: 'border-violet-500/60 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+    T5: 'border-orange-500/60 bg-orange-500/10 text-orange-700 dark:text-orange-300',
+    T6: 'border-amber-400/60 bg-gradient-to-br from-amber-400/20 to-yellow-500/10 text-amber-700 dark:text-amber-300',
+};
+
+export const EQUIPMENT_LEVEL_MAX = 20;
 
 export interface TierTheme {
     label: string;

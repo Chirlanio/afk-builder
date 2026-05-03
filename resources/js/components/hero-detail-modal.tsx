@@ -41,6 +41,7 @@ import {
     ascendedStars,
     CLASS_ICON,
     CLASS_LABEL,
+    EQUIPMENT_TIER_BADGE,
     FACTION_THEME,
     HERO_TYPE_BADGE,
     HERO_TYPE_ICON,
@@ -55,6 +56,7 @@ import type {
     Artifact,
     ClassCode,
     Collection,
+    EquipmentTier,
     Faction,
     FactionCode,
     Hero,
@@ -314,10 +316,10 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
 
             {/* Upper: 3-col paperdoll com slots quadrados */}
             <section className="mx-auto grid w-full max-w-3xl grid-cols-[96px_minmax(240px,1fr)_96px] gap-3 p-4 sm:grid-cols-[112px_minmax(280px,1fr)_112px]">
-                {/* Esquerda: Arma (placeholder) → Capacete (placeholder) → Assinatura (SI) */}
+                {/* Esquerda: Arma → Capacete → Assinatura (SI) */}
                 <div className="grid grid-cols-1 gap-1.5">
-                    <HeroSlotCard icon={Sword} label="Arma" empty />
-                    <HeroSlotCard icon={Shield} label="Capacete" empty />
+                    <EquipmentSlot icon={Sword} label="Arma" tier={userHero?.weapon_tier ?? null} level={userHero?.weapon_level ?? null} />
+                    <EquipmentSlot icon={Shield} label="Capacete" tier={userHero?.helmet_tier ?? null} level={userHero?.helmet_level ?? null} />
                     <HeroSlotCard
                         icon={Crown}
                         label="Item de Assinatura"
@@ -410,10 +412,10 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     )}
                 </div>
 
-                {/* Direita: Peitoral (placeholder) → Bota (placeholder) → Artefato OU Coleção */}
+                {/* Direita: Peitoral → Bota → Artefato OU Coleção */}
                 <div className="grid grid-cols-1 gap-1.5">
-                    <HeroSlotCard icon={Shirt} label="Peitoral" empty />
-                    <HeroSlotCard icon={Footprints} label="Bota" empty />
+                    <EquipmentSlot icon={Shirt} label="Peitoral" tier={userHero?.chest_tier ?? null} level={userHero?.chest_level ?? null} />
+                    <EquipmentSlot icon={Footprints} label="Bota" tier={userHero?.boots_tier ?? null} level={userHero?.boots_level ?? null} />
                     {userHero?.artifact ? (
                         <HeroSlotCard
                             icon={Gem}
@@ -659,6 +661,29 @@ function Chip({ icon: Icon, label, value, extra, accent }: ChipProps) {
             {value !== null && <span className="font-semibold tabular-nums">{value}</span>}
             {extra && <span className="flex items-center gap-1">{extra}</span>}
         </div>
+    );
+}
+
+interface EquipmentSlotProps {
+    icon: typeof Sword;
+    label: string;
+    tier: EquipmentTier | null;
+    level: number | null;
+}
+
+function EquipmentSlot({ icon, label, tier, level }: EquipmentSlotProps) {
+    if (!tier) {
+        return <HeroSlotCard icon={icon} label={label} empty />;
+    }
+    return (
+        <HeroSlotCard
+            icon={icon}
+            label={label}
+            empty={false}
+            accentClass={EQUIPMENT_TIER_BADGE[tier]}
+            valueText={tier}
+            detail={level ? <span className="text-muted-foreground">Lv {level}</span> : undefined}
+        />
     );
 }
 

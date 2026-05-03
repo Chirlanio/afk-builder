@@ -290,6 +290,83 @@ class UserHeroArtifactTest extends TestCase
             ->assertJsonPath('availableCollections.0.slug', 'a');
     }
 
+    public function test_user_pode_equipar_4_pecas_de_equipamento(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero();
+
+        $this->actingAs($user)
+            ->post('/user/heroes', [
+                'hero_id' => $hero->id,
+                'level' => 240,
+                'weapon_tier' => 'T6', 'weapon_level' => 20,
+                'helmet_tier' => 'T3', 'helmet_level' => 10,
+                'chest_tier' => 'T5', 'chest_level' => 15,
+                'boots_tier' => 'T4', 'boots_level' => 12,
+            ])
+            ->assertRedirect();
+
+        $userHero = UserHero::where('user_id', $user->id)->first();
+        $this->assertSame('T6', $userHero->weapon_tier);
+        $this->assertSame(20, $userHero->weapon_level);
+        $this->assertSame('T3', $userHero->helmet_tier);
+        $this->assertSame(10, $userHero->helmet_level);
+        $this->assertSame('T5', $userHero->chest_tier);
+        $this->assertSame(15, $userHero->chest_level);
+        $this->assertSame('T4', $userHero->boots_tier);
+        $this->assertSame(12, $userHero->boots_level);
+    }
+
+    public function test_validacao_rejeita_tier_invalido(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero();
+
+        $this->actingAs($user)
+            ->post('/user/heroes', [
+                'hero_id' => $hero->id,
+                'level' => 240,
+                'weapon_tier' => 'T99',
+                'weapon_level' => 5,
+            ])
+            ->assertSessionHasErrors('weapon_tier');
+    }
+
+    public function test_validacao_rejeita_level_acima_de_20(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero();
+
+        $this->actingAs($user)
+            ->post('/user/heroes', [
+                'hero_id' => $hero->id,
+                'level' => 240,
+                'weapon_tier' => 'T6',
+                'weapon_level' => 25,
+            ])
+            ->assertSessionHasErrors('weapon_level');
+    }
+
+    public function test_tier_sem_level_e_normalizado_para_null(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero();
+
+        $this->actingAs($user)
+            ->post('/user/heroes', [
+                'hero_id' => $hero->id,
+                'level' => 240,
+                'weapon_tier' => 'T3',
+                // sem weapon_level
+            ])
+            ->assertRedirect();
+
+        $userHero = UserHero::where('user_id', $user->id)->first();
+        // Sem level, controller normaliza tier pra null
+        $this->assertNull($userHero->weapon_tier);
+        $this->assertNull($userHero->weapon_level);
+    }
+
     public function test_details_inclui_artifact_relation_quando_equipado(): void
     {
         $user = User::factory()->create();

@@ -151,6 +151,8 @@ export interface HeroAbility {
     effects?: Record<string, unknown> | null;
 }
 
+export type EquipmentTier = 'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6';
+
 export interface UserHero {
     id: number;
     hero_id: number;
@@ -160,6 +162,14 @@ export interface UserHero {
     signature_item: number;
     furniture: number;
     engraving: number;
+    weapon_tier: EquipmentTier | null;
+    weapon_level: number | null;
+    helmet_tier: EquipmentTier | null;
+    helmet_level: number | null;
+    chest_tier: EquipmentTier | null;
+    chest_level: number | null;
+    boots_tier: EquipmentTier | null;
+    boots_level: number | null;
     artifact_id: number | null;
     artifact_star_level: number | null;
     artifact?: Artifact | null;
