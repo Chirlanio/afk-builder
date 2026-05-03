@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-03 (Refactor UI — modal unificada de herói)
+> **Última atualização:** 2026-05-03 (Fase 14b — Coleções da Galeria Tenebrosa)
 
 ---
 
@@ -503,6 +503,37 @@ Migração de fluxos de página dedicada para modal. Visualização, criação e
 - **Componentes novos**: `components/ui/tabs.tsx` (radix wrapper), `components/hero-detail-modal.tsx`, `components/create-hero-modal.tsx`.
 - **Componentes/páginas removidos**: `pages/heroes/show.tsx`, `pages/admin/heroes/create.tsx`, `pages/admin/heroes/stats.tsx`.
 - **Testes**: `HeroShowTest` reescrito pra cobrir endpoint `/details` (JSON) + redirect do permalink. `HeroStatsAdminTest` adaptado pra patchJson (sem rota GET). `HeroAdminTest` removido `test_admin_acessa_pagina_de_criacao_manual` (página não existe mais). **144 testes verdes** no projeto.
+
+---
+
+### ✅ Fase 14b — Coleções da Galeria Tenebrosa (cadastro manual admin)
+
+Wiki da Fandom não tem dados estruturados de Collections (apenas stub). CRUD totalmente manual via admin. Coleção e Artefato dividem o mesmo slot (mutuamente exclusivos, conforme regra do jogo).
+
+- **Schema:** tabela `collections` com `slug`, `name`, `description`, `hp_bonus`, `attack_bonus`, `defense_bonus` (unsigned int), `portrait_url`, `source_url`, `is_active`. `user_heroes.collection_id` FK nullable.
+- **Model**: `App\Models\Collection` com casts numéricos + `userHeroes()` hasMany. `UserHero` ganha `belongsTo collection`.
+- **Controller** `Admin\CollectionAdminController` (Gate manage-heroes):
+  - `index` (Inertia, lista todas)
+  - `store/update` retornam JSON consumido pelo modal
+  - `destroy` redirect com flash
+  - Validação: slug regex `[a-z0-9-]+` único, name obrigatório, bônus 0-999_999, URLs opcionais.
+- **Rotas:** `GET /admin/collections`, `POST /admin/collections`, `PATCH /admin/collections/{collection}`, `DELETE /admin/collections/{collection}`.
+- **UI:**
+  - `pages/admin/collections/index.tsx` — grid de cards com portrait + nome + bônus + ações Edit/Delete.
+  - `components/collection-form-modal.tsx` — modal dialog (max-w-3xl) seguindo estilo dos demais modais (cabeçalho com título + descrição, form em grid, botões Cancelar/Salvar). CRUD via axios.
+  - Sidebar admin ganhou item **Coleções** (ícone Package).
+- **Integração ao roster:**
+  - `UserHeroController` ganha validação de `collection_id` (Rule::exists com `is_active=true`).
+  - Lógica de mutex em `resolveEquipmentFields`: quando ambos artifact_id e collection_id vêm preenchidos, **Coleção tem prioridade** e zera o artefato (regra do jogo: Collection sobrescreve Artifact). Quando só artifact vem, zera collection.
+  - `HeroController::details` carrega `userHero.collection` (relação) + `availableCollections` (todas ativas).
+- **UI no perfil:**
+  - Slot "Coleção" no `HeroDetailModal` (placeholder antigo) agora mostra o item equipado (portrait + nome + bônus HP/ATK/DEF).
+  - `RosterEditModal` ganhou Select de coleções no slot esquerdo. Selecionar coleção zera artefato no estado local; selecionar artefato zera coleção.
+- **Tipo TS:** `Collection` em `types/afk.ts`. `UserHero` ganha `collection_id` + `collection`.
+- **Testes:**
+  - `CollectionAdminTest`: 8 cenários (auth, list, create, validação slug único/pattern, update, delete).
+  - `UserHeroArtifactTest`: 5 novos cenários (equipa coleção, coleção sobrescreve artifact no mesmo payload, artifact substitui coleção em update, validação FK, details inclui availableCollections filtrado por is_active).
+  - **157 testes verdes** no projeto.
 
 ---
 

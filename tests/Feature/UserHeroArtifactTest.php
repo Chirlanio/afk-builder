@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Artifact;
+use App\Models\Collection;
 use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroClass;
@@ -185,6 +186,108 @@ class UserHeroArtifactTest extends TestCase
             ->assertOk()
             ->assertJsonCount(2, 'availableArtifacts') // Dura's + tank class, NÃO mage
             ->assertJsonPath('availableArtifacts.0.kind', 'dura');
+    }
+
+    public function test_user_pode_equipar_collection(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero();
+        $collection = Collection::create([
+            'slug' => 'reapers-talon',
+            'name' => "Reaper's Talon",
+            'hp_bonus' => 1500,
+            'attack_bonus' => 200,
+        ]);
+
+        $this->actingAs($user)
+            ->post('/user/heroes', [
+                'hero_id' => $hero->id,
+                'level' => 240,
+                'collection_id' => $collection->id,
+            ])
+            ->assertRedirect();
+
+        $userHero = UserHero::where('user_id', $user->id)->first();
+        $this->assertSame($collection->id, $userHero->collection_id);
+        $this->assertNull($userHero->artifact_id);
+    }
+
+    public function test_collection_sobrescreve_artifact_no_mesmo_payload(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero();
+        $artifact = $this->makeArtifact('duras-grace', Artifact::KIND_DURA);
+        $collection = Collection::create(['slug' => 'rt', 'name' => 'RT']);
+
+        $this->actingAs($user)
+            ->post('/user/heroes', [
+                'hero_id' => $hero->id,
+                'level' => 240,
+                'artifact_id' => $artifact->id,
+                'artifact_star_level' => 3,
+                'collection_id' => $collection->id,
+            ])
+            ->assertRedirect();
+
+        $userHero = UserHero::where('user_id', $user->id)->first();
+        // Coleção tem prioridade — artifact é zerado mesmo quando vem no mesmo payload
+        $this->assertSame($collection->id, $userHero->collection_id);
+        $this->assertNull($userHero->artifact_id);
+        $this->assertNull($userHero->artifact_star_level);
+    }
+
+    public function test_artifact_substitui_collection_quando_apenas_artifact_no_payload(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero();
+        $artifact = $this->makeArtifact('duras-grace', Artifact::KIND_DURA);
+        $collection = Collection::create(['slug' => 'rt', 'name' => 'RT']);
+
+        $userHero = $user->userHeroes()->create([
+            'hero_id' => $hero->id,
+            'level' => 240,
+            'collection_id' => $collection->id,
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/user/heroes/{$userHero->id}", [
+                'level' => 240,
+                'artifact_id' => $artifact->id,
+                'artifact_star_level' => 2,
+            ])
+            ->assertRedirect();
+
+        $userHero->refresh();
+        $this->assertSame($artifact->id, $userHero->artifact_id);
+        $this->assertNull($userHero->collection_id);
+    }
+
+    public function test_validacao_rejeita_collection_inexistente(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero();
+
+        $this->actingAs($user)
+            ->post('/user/heroes', [
+                'hero_id' => $hero->id,
+                'level' => 240,
+                'collection_id' => 9999,
+            ])
+            ->assertSessionHasErrors('collection_id');
+    }
+
+    public function test_details_carrega_collections_disponiveis(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero();
+        Collection::create(['slug' => 'a', 'name' => 'Alpha', 'is_active' => true]);
+        Collection::create(['slug' => 'b', 'name' => 'Beta', 'is_active' => false]);
+
+        $this->actingAs($user)
+            ->getJson("/heroes/{$hero->slug}/details")
+            ->assertOk()
+            ->assertJsonCount(1, 'availableCollections')
+            ->assertJsonPath('availableCollections.0.slug', 'a');
     }
 
     public function test_details_inclui_artifact_relation_quando_equipado(): void

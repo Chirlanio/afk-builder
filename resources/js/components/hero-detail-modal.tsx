@@ -48,6 +48,7 @@ import type { Locale, SharedData } from '@/types';
 import type {
     Artifact,
     ClassCode,
+    Collection,
     Faction,
     FactionCode,
     Hero,
@@ -69,6 +70,7 @@ interface DetailsPayload {
     userHero: UserHero | null;
     synergies: SynergyEntry[];
     availableArtifacts: Artifact[];
+    availableCollections: Collection[];
 }
 
 interface HeroDetailModalProps {
@@ -172,6 +174,7 @@ export function HeroDetailModal({ slug, open, onOpenChange, onNavigate }: HeroDe
                         hero={data.hero}
                         userHero={data.userHero}
                         availableArtifacts={data.availableArtifacts}
+                        availableCollections={data.availableCollections}
                         onSaved={onMutation}
                     />
                     <StatsEditModal
@@ -323,8 +326,31 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                         )}
                     </HeroSlotCard>
 
-                    <HeroSlotCard icon={Package} label="Coleção" empty>
-                        <span className="text-[10px] text-muted-foreground">disponível na Fase 14b</span>
+                    <HeroSlotCard
+                        icon={Package}
+                        label="Coleção"
+                        empty={!userHero?.collection}
+                        accentClass={userHero?.collection ? 'border-fuchsia-500/40' : undefined}
+                    >
+                        {userHero?.collection && (
+                            <div className="flex items-center gap-2">
+                                {userHero.collection.portrait_url ? (
+                                    <img src={userHero.collection.portrait_url} alt="" className="size-10 shrink-0 rounded object-contain" />
+                                ) : (
+                                    <div className="grid size-10 shrink-0 place-items-center rounded border bg-muted/30">
+                                        <Package className="size-5 text-muted-foreground" />
+                                    </div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                    <div className="truncate text-xs font-medium">{userHero.collection.name}</div>
+                                    <div className="text-[10px] text-muted-foreground">
+                                        {userHero.collection.hp_bonus > 0 && <span>HP+{userHero.collection.hp_bonus} </span>}
+                                        {userHero.collection.attack_bonus > 0 && <span>ATK+{userHero.collection.attack_bonus} </span>}
+                                        {userHero.collection.defense_bonus > 0 && <span>DEF+{userHero.collection.defense_bonus}</span>}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </HeroSlotCard>
 
                     <HeroSlotCard icon={Star} label="Assinatura" empty={userSI === 0} accentClass={userSI > 0 ? 'border-yellow-500/40' : undefined}>

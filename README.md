@@ -115,6 +115,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 13b. Stats numéricos via UI admin (HP/ATK/DEF/Crit Rate/Crit Amp/Accuracy/Dodge/Haste) | ✅ |
 | 13c. Stats integradas ao optimizer (PowerCalculator soma contribution quando cadastradas) | ✅ |
 | 14a. Artefatos via wiki sync (Dura's + Class, atribuição por herói com star level) | ✅ |
+| 14b. Coleções da Galeria Tenebrosa (cadastro manual admin, mutex com artefato) | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Artifact;
+use App\Models\Collection;
 use App\Models\Hero;
 use App\Models\UserHero;
 use Illuminate\Http\RedirectResponse;
@@ -22,20 +23,10 @@ class UserHeroController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'hero_id' => ['required', 'integer', Rule::exists('heroes', 'id')->where('is_active', true)],
-            'level' => ['required', 'integer', 'min:1', 'max:240'],
-            'ascension_code' => ['nullable', 'string', Rule::in(self::ASCENSION_CODES)],
-            'signature_item' => ['nullable', 'integer', 'min:0', 'max:40'],
-            'furniture' => ['nullable', 'integer', 'min:0', 'max:9'],
-            'engraving' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'artifact_id' => ['nullable', 'integer', Rule::exists('artifacts', 'id')->where('is_active', true)],
-            'artifact_star_level' => ['nullable', 'integer', 'min:1', 'max:5'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ]);
+        $data = $request->validate($this->validationRules(['hero_id' => ['required', 'integer', Rule::exists('heroes', 'id')->where('is_active', true)]]));
 
         $hero = Hero::with('tier')->findOrFail($data['hero_id']);
-        $artifactFields = $this->resolveArtifactFields($data, $hero);
+        $equipmentFields = $this->resolveEquipmentFields($data, $hero);
 
         if ($data['level'] > $hero->tier->max_level) {
             $data['level'] = $hero->tier->max_level;
@@ -50,7 +41,7 @@ class UserHeroController extends Controller
                 'signature_item' => $data['signature_item'] ?? 0,
                 'furniture' => $data['furniture'] ?? 0,
                 'engraving' => $data['engraving'] ?? 0,
-                ...$artifactFields,
+                ...$equipmentFields,
                 'notes' => $data['notes'] ?? null,
             ]
         );
@@ -62,19 +53,10 @@ class UserHeroController extends Controller
     {
         abort_unless($userHero->user_id === $request->user()->id, 403);
 
-        $data = $request->validate([
-            'level' => ['required', 'integer', 'min:1', 'max:240'],
-            'ascension_code' => ['nullable', 'string', Rule::in(self::ASCENSION_CODES)],
-            'signature_item' => ['nullable', 'integer', 'min:0', 'max:40'],
-            'furniture' => ['nullable', 'integer', 'min:0', 'max:9'],
-            'engraving' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'artifact_id' => ['nullable', 'integer', Rule::exists('artifacts', 'id')->where('is_active', true)],
-            'artifact_star_level' => ['nullable', 'integer', 'min:1', 'max:5'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ]);
+        $data = $request->validate($this->validationRules());
 
         $hero = $userHero->hero()->with('tier')->first();
-        $artifactFields = $this->resolveArtifactFields($data, $hero);
+        $equipmentFields = $this->resolveEquipmentFields($data, $hero);
 
         if ($hero && $data['level'] > $hero->tier->max_level) {
             $data['level'] = $hero->tier->max_level;
@@ -87,11 +69,48 @@ class UserHeroController extends Controller
             'signature_item' => $data['signature_item'] ?? 0,
             'furniture' => $data['furniture'] ?? 0,
             'engraving' => $data['engraving'] ?? 0,
-            ...$artifactFields,
+            ...$equipmentFields,
             'notes' => $data['notes'] ?? null,
         ]);
 
         return back();
+    }
+
+    private function validationRules(array $extra = []): array
+    {
+        return [
+            ...$extra,
+            'level' => ['required', 'integer', 'min:1', 'max:240'],
+            'ascension_code' => ['nullable', 'string', Rule::in(self::ASCENSION_CODES)],
+            'signature_item' => ['nullable', 'integer', 'min:0', 'max:40'],
+            'furniture' => ['nullable', 'integer', 'min:0', 'max:9'],
+            'engraving' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'artifact_id' => ['nullable', 'integer', Rule::exists('artifacts', 'id')->where('is_active', true)],
+            'artifact_star_level' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'collection_id' => ['nullable', 'integer', Rule::exists('collections', 'id')->where('is_active', true)],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ];
+    }
+
+    /**
+     * Coleção e Artefato compartilham o mesmo slot — apenas um pode estar equipado.
+     * Quando ambos vêm preenchidos, prioriza Coleção (regra do jogo: Coleção sobrescreve Artefato).
+     *
+     * @return array{artifact_id: int|null, artifact_star_level: int|null, collection_id: int|null}
+     */
+    private function resolveEquipmentFields(array $data, ?Hero $hero): array
+    {
+        $collectionId = $data['collection_id'] ?? null;
+
+        if ($collectionId !== null) {
+            $exists = Collection::where('id', $collectionId)->where('is_active', true)->exists();
+            if ($exists) {
+                return ['artifact_id' => null, 'artifact_star_level' => null, 'collection_id' => $collectionId];
+            }
+        }
+
+        $artifactFields = $this->resolveArtifactFields($data, $hero);
+        return [...$artifactFields, 'collection_id' => null];
     }
 
     /**

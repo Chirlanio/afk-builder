@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Artifact;
+use App\Models\Collection;
 use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroClass;
@@ -93,13 +94,21 @@ class HeroController extends Controller
 
         $userHero = $request->user()
             ->userHeroes()
-            ->with(['artifact:id,slug,name,kind,hero_class_id,description,portrait_url,max_stars'])
+            ->with([
+                'artifact:id,slug,name,kind,hero_class_id,description,portrait_url,max_stars',
+                'collection:id,slug,name,description,hp_bonus,attack_bonus,defense_bonus,portrait_url',
+            ])
             ->where('hero_id', $hero->id)
             ->first([
                 'id', 'hero_id', 'level', 'ascension_code', 'ascension_value',
                 'signature_item', 'furniture', 'engraving',
-                'artifact_id', 'artifact_star_level', 'notes',
+                'artifact_id', 'artifact_star_level', 'collection_id', 'notes',
             ]);
+
+        $availableCollections = Collection::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'slug', 'name', 'description', 'hp_bonus', 'attack_bonus', 'defense_bonus', 'portrait_url']);
 
         $availableArtifacts = Artifact::query()
             ->where('is_active', true)
@@ -155,6 +164,7 @@ class HeroController extends Controller
             'userHero' => $userHero,
             'synergies' => $synergies,
             'availableArtifacts' => $availableArtifacts,
+            'availableCollections' => $availableCollections,
         ]);
     }
 }

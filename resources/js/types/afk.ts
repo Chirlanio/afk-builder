@@ -73,6 +73,19 @@ export interface HeroFurnitureAbility {
     f9_description: string | null;
 }
 
+export interface Collection {
+    id: number;
+    slug: string;
+    name: string;
+    description: string | null;
+    hp_bonus: number;
+    attack_bonus: number;
+    defense_bonus: number;
+    portrait_url: string | null;
+    source_url: string | null;
+    is_active: boolean;
+}
+
 export type ArtifactKind = 'dura' | 'class';
 
 export interface ArtifactAttribute {
@@ -137,6 +150,8 @@ export interface UserHero {
     artifact_id: number | null;
     artifact_star_level: number | null;
     artifact?: Artifact | null;
+    collection_id: number | null;
+    collection?: Collection | null;
     notes: string | null;
 }
 

@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ascensionStagesForTier, FACTION_THEME, TIER_THEME, tierFromAscension } from '@/lib/afk';
 import { cn } from '@/lib/utils';
-import type { Artifact, FactionCode, Hero, TierCode, UserHero } from '@/types/afk';
+import type { Artifact, Collection, FactionCode, Hero, TierCode, UserHero } from '@/types/afk';
 
 interface Props {
     open: boolean;
@@ -18,10 +18,11 @@ interface Props {
     hero: (Hero & { faction: { code: FactionCode } }) | null;
     userHero: UserHero | null;
     availableArtifacts: Artifact[];
+    availableCollections: Collection[];
     onSaved?: () => void | Promise<void>;
 }
 
-export function RosterEditModal({ open, onOpenChange, hero, userHero, availableArtifacts, onSaved }: Props) {
+export function RosterEditModal({ open, onOpenChange, hero, userHero, availableArtifacts, availableCollections, onSaved }: Props) {
     const tierCode = (hero?.tier?.code ?? 'common') as TierCode;
     const tierTheme = TIER_THEME[tierCode];
     const validStages = ascensionStagesForTier(tierTheme.maxLevel);
@@ -36,6 +37,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
     const [engraving, setEngraving] = useState<number>(userHero?.engraving ?? 0);
     const [artifactId, setArtifactId] = useState<number | null>(userHero?.artifact_id ?? null);
     const [artifactStarLevel, setArtifactStarLevel] = useState<number | null>(userHero?.artifact_star_level ?? null);
+    const [collectionId, setCollectionId] = useState<number | null>(userHero?.collection_id ?? null);
     const [notes, setNotes] = useState<string>(userHero?.notes ?? '');
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,6 +52,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
         setEngraving(userHero?.engraving ?? 0);
         setArtifactId(userHero?.artifact_id ?? null);
         setArtifactStarLevel(userHero?.artifact_star_level ?? null);
+        setCollectionId(userHero?.collection_id ?? null);
         setNotes(userHero?.notes ?? '');
         setErrors({});
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -60,14 +63,16 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
         if (!hero) return;
         setSaving(true);
         setErrors({});
+        // Collection e Artifact compartilham slot — quando ambos preenchidos, prioriza Collection
         const payload = {
             level,
             ascension_code: ascensionCode || null,
             signature_item: signatureItem,
             furniture,
             engraving,
-            artifact_id: artifactId,
-            artifact_star_level: artifactId ? artifactStarLevel : null,
+            artifact_id: collectionId ? null : artifactId,
+            artifact_star_level: collectionId ? null : (artifactId ? artifactStarLevel : null),
+            collection_id: collectionId,
             notes: notes || null,
         };
 
@@ -127,6 +132,8 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                                         } else {
                                             setArtifactId(Number(v));
                                             if (!artifactStarLevel) setArtifactStarLevel(1);
+                                            // Artefato sobrescreve coleção
+                                            setCollectionId(null);
                                         }
                                     }}
                                 >
@@ -156,8 +163,33 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                                 )}
                             </SlotEdit>
 
-                            <SlotEdit icon={<Package className="size-3" />} label="Coleção" disabled>
-                                <span className="text-xs text-muted-foreground">em breve (Fase 14b)</span>
+                            <SlotEdit icon={<Package className="size-3" />} label="Coleção">
+                                <Select
+                                    value={collectionId ? String(collectionId) : 'none'}
+                                    onValueChange={(v) => {
+                                        if (v === 'none') {
+                                            setCollectionId(null);
+                                        } else {
+                                            setCollectionId(Number(v));
+                                            // Coleção sobrescreve artefato (mesmo slot no jogo)
+                                            setArtifactId(null);
+                                            setArtifactStarLevel(null);
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="h-8 text-xs">
+                                        <SelectValue placeholder="—" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">— nenhuma —</SelectItem>
+                                        {availableCollections.map((c) => (
+                                            <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {collectionId && (
+                                    <p className="mt-1 text-[10px] text-muted-foreground">Substitui o artefato.</p>
+                                )}
                             </SlotEdit>
 
                             <SlotEdit icon={<Star className="size-3" />} label="Assinatura (0-40)">

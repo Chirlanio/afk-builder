@@ -18,6 +18,7 @@ class UserHero extends Model
         'engraving',
         'artifact_id',
         'artifact_star_level',
+        'collection_id',
         'power_rating',
         'notes',
     ];
@@ -45,5 +46,10 @@ class UserHero extends Model
     public function artifact(): BelongsTo
     {
         return $this->belongsTo(Artifact::class);
+    }
+
+    public function collection(): BelongsTo
+    {
+        return $this->belongsTo(Collection::class);
     }
 }

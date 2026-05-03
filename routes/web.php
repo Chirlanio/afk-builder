@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\CollectionAdminController;
 use App\Http\Controllers\Admin\HeroAdminController;
 use App\Http\Controllers\Admin\HeroStatsAdminController;
 use App\Http\Controllers\FormationCompareController;
@@ -72,6 +73,11 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('heroes/{slug}/stats', [HeroStatsAdminController::class, 'update'])
             ->where('slug', '[a-z0-9-]+')
             ->name('heroes.stats.update');
+
+        Route::get('collections', [CollectionAdminController::class, 'index'])->name('collections.index');
+        Route::post('collections', [CollectionAdminController::class, 'store'])->name('collections.store');
+        Route::patch('collections/{collection}', [CollectionAdminController::class, 'update'])->name('collections.update');
+        Route::delete('collections/{collection}', [CollectionAdminController::class, 'destroy'])->name('collections.destroy');
     });
 });
 

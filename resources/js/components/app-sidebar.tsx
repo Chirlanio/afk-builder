@@ -5,7 +5,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Library, ShieldCheck, Swords, Users } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Library, Package, ShieldCheck, Swords, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const baseNavItems: NavItem[] = [
@@ -31,11 +31,18 @@ const baseNavItems: NavItem[] = [
     },
 ];
 
-const adminNavItem: NavItem = {
-    title: 'Aprovar heróis',
-    url: '/admin/heroes/pending',
-    icon: ShieldCheck,
-};
+const adminNavItems: NavItem[] = [
+    {
+        title: 'Aprovar heróis',
+        url: '/admin/heroes/pending',
+        icon: ShieldCheck,
+    },
+    {
+        title: 'Coleções',
+        url: '/admin/collections',
+        icon: Package,
+    },
+];
 
 const footerNavItems: NavItem[] = [
     {
@@ -52,7 +59,7 @@ const footerNavItems: NavItem[] = [
 
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
-    const mainNavItems = auth.user?.is_admin ? [...baseNavItems, adminNavItem] : baseNavItems;
+    const mainNavItems = auth.user?.is_admin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
 
     return (
         <Sidebar collapsible="icon" variant="inset">
