@@ -153,7 +153,7 @@ export function HeroDetailModal({ slug, open, onOpenChange, onNavigate }: HeroDe
     return (
         <>
             <Dialog open={open} onOpenChange={handleClose}>
-                <DialogContent className="max-h-[92vh] max-w-5xl overflow-x-hidden overflow-y-auto p-0">
+                <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto p-0">
                     {/* Sempre presente para acessibilidade (radix exige). Visualmente o nome aparece dentro do header. */}
                     <DialogTitle className="sr-only">
                         {data?.hero.name ?? 'Detalhes do herói'}
@@ -617,10 +617,10 @@ interface SectionBlockProps {
 
 function SectionBlock({ icon: Icon, title, extra, children }: SectionBlockProps) {
     return (
-        <section className="flex flex-col gap-2">
-            <h2 className="flex items-center gap-2 text-base font-semibold">
-                <Icon className="size-4 text-primary" />
-                {title}
+        <section className="flex min-w-0 flex-col gap-2">
+            <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold">
+                <Icon className="size-4 shrink-0 text-primary" />
+                <span className="break-words">{title}</span>
                 {extra}
             </h2>
             {children}
