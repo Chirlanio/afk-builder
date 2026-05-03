@@ -64,15 +64,15 @@ export function CreateHeroModal({ open, onOpenChange, factions, heroClasses, tie
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Adicionar herói manualmente</DialogTitle>
+                    <DialogTitle className="text-xl font-semibold">Adicionar herói manualmente</DialogTitle>
                     <DialogDescription>
                         Para heróis que o sync automático não conseguiu capturar (Saveas, Daimon, etc.). Fica ativo e visível no catálogo imediatamente.
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-3 pt-2">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="slug">Slug *</Label>
