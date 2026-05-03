@@ -124,7 +124,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
 
                 <form onSubmit={submit} className="flex flex-col gap-4 p-4">
                     {/* Upper: 3-col (slots editáveis | portrait | slots editáveis) */}
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_minmax(180px,260px)_1fr]">
+                    <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 md:grid-cols-[140px_minmax(220px,1fr)_140px]">
                         {/* Esquerda: Artefato, Coleção, Assinatura */}
                         <div className="flex flex-col gap-2">
                             <SlotEdit icon={<Gem className="size-3" />} label="Artefato">
@@ -309,10 +309,10 @@ interface SlotEditProps {
 
 function SlotEdit({ icon, label, children, disabled, expand }: SlotEditProps) {
     return (
-        <div className={cn('flex flex-col gap-1 rounded-lg border bg-card p-2', disabled && 'opacity-50', expand && 'flex-1')}>
-            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div className={cn('flex flex-col gap-1 rounded-md border bg-card p-1.5', disabled && 'opacity-50', expand && 'flex-1')}>
+            <div className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
                 {icon}
-                <span>{label}</span>
+                <span className="truncate">{label}</span>
             </div>
             {children}
         </div>

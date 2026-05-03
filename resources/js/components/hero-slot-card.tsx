@@ -15,55 +15,54 @@ interface SlotCardProps {
     accentClass?: string;
     onClick?: () => void;
     className?: string;
+    children?: ReactNode;
 }
 
 /**
- * Slot quadrado estilo paperdoll: imagem do item dominando o slot, label sobreposta no topo.
- * Empty state mostra ícone placeholder + label.
+ * Slot quadrado estilo paperdoll: imagem do item dominando o slot, ícone discreto no canto.
+ * Empty state mostra ícone placeholder centralizado.
+ *
+ * Tamanho típico: ~96-112px (configurado pelo container).
  */
-export function HeroSlotCard({ icon: Icon, label, empty = false, imageUrl, valueText, detail, accentClass, onClick, className }: SlotCardProps) {
+export function HeroSlotCard({ icon: Icon, label, empty = false, imageUrl, valueText, detail, accentClass, onClick, className, children }: SlotCardProps) {
     const Wrapper = onClick ? 'button' : 'div';
 
     return (
         <Wrapper
             type={onClick ? 'button' : undefined}
             onClick={onClick}
+            title={label}
             className={cn(
-                'group relative flex aspect-square w-full flex-col overflow-hidden rounded-lg border-2 bg-card text-left transition-all',
+                'group relative flex aspect-square w-full flex-col items-center justify-center overflow-hidden rounded-md border-2 bg-card text-center transition-all',
                 empty
                     ? 'border-dashed border-muted-foreground/30 bg-muted/20 text-muted-foreground'
-                    : 'border-foreground/10 shadow-sm',
-                onClick && 'cursor-pointer hover:scale-[1.02] hover:border-foreground/40',
+                    : 'border-foreground/15 shadow-sm',
+                onClick && 'cursor-pointer hover:scale-[1.03] hover:border-foreground/50',
                 accentClass,
                 className,
             )}
         >
-            {/* Label badge no topo */}
-            <div className="absolute left-1 top-1 z-10 flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide backdrop-blur-sm">
-                <Icon className="size-3" />
-                <span>{label}</span>
-            </div>
+            {/* Ícone discreto no canto superior esquerdo */}
+            <Icon className="absolute left-0.5 top-0.5 size-3 text-muted-foreground/70" />
 
-            {/* Conteúdo */}
-            <div className="flex size-full flex-col items-center justify-center gap-1 p-1">
-                {empty ? (
-                    <div className="flex flex-col items-center gap-1 opacity-40">
-                        <Icon className="size-8" />
-                    </div>
-                ) : imageUrl ? (
-                    <>
-                        <img src={imageUrl} alt={label} className="max-h-[60%] w-auto object-contain" />
-                        {detail && <div className="text-[10px] leading-tight">{detail}</div>}
-                    </>
-                ) : (
-                    <>
-                        {valueText !== undefined && (
-                            <div className="text-xl font-bold leading-none tabular-nums">{valueText}</div>
-                        )}
-                        {detail && <div className="text-[10px] leading-tight">{detail}</div>}
-                    </>
-                )}
-            </div>
+            {/* Conteúdo central */}
+            {empty ? (
+                <Icon className="size-7 opacity-30" />
+            ) : imageUrl ? (
+                <div className="flex size-full flex-col items-center justify-center gap-0.5 p-1.5">
+                    <img src={imageUrl} alt={label} className="max-h-[70%] w-auto object-contain" />
+                    {detail && <div className="text-[9px] leading-none">{detail}</div>}
+                </div>
+            ) : children ? (
+                <div className="flex size-full flex-col items-center justify-center p-1">{children}</div>
+            ) : (
+                <div className="flex flex-col items-center justify-center gap-0.5 p-1">
+                    {valueText !== undefined && (
+                        <div className="text-base font-bold leading-none tabular-nums">{valueText}</div>
+                    )}
+                    {detail && <div className="text-[9px] leading-tight">{detail}</div>}
+                </div>
+            )}
         </Wrapper>
     );
 }

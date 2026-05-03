@@ -310,9 +310,9 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
             </header>
 
             {/* Upper: 3-col paperdoll com slots quadrados */}
-            <section className="grid grid-cols-[1fr_minmax(220px,320px)_1fr] gap-3 p-4">
-                {/* Esquerda: Artefato / Coleção / Assinatura */}
-                <div className="grid grid-cols-1 gap-2">
+            <section className="mx-auto grid w-full max-w-3xl grid-cols-[96px_minmax(240px,1fr)_96px] gap-3 p-4 sm:grid-cols-[112px_minmax(280px,1fr)_112px]">
+                {/* Esquerda: Artefato (Arma) → Coleção (Capacete) → Assinatura (SI) */}
+                <div className="grid grid-cols-1 gap-1.5">
                     <HeroSlotCard
                         icon={Gem}
                         label="Artefato"
@@ -409,8 +409,8 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     )}
                 </div>
 
-                {/* Direita: Móveis / Inscrições / Notas */}
-                <div className="grid grid-cols-1 gap-2">
+                {/* Direita: Móveis (Peitoral) → Inscrições (Bota) → Notas */}
+                <div className="grid grid-cols-1 gap-1.5">
                     <HeroSlotCard
                         icon={Hotel}
                         label="Móveis"
