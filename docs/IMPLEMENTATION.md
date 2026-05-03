@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 5 completa + Fases 6.1 e 6.3 — aprovação de heróis + share público)
+> **Última atualização:** 2026-05-02 (Fase 5 completa + Fases 6.1, 6.2 e 6.3 — aprovação + criação manual + share público)
 
 ---
 
@@ -199,7 +199,14 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
 - **UI:** página `pages/admin/heroes/pending.tsx` com cards (portrait + facção/classe/tier + link Fandom + botões aprovar/rejeitar). Item **Aprovar heróis** aparece no sidebar só pra admins (via `auth.user.is_admin` no shared data).
 - **Testes:** 6 cenários — guest redireciona, não-admin recebe 403 (index e action), admin lista, admin aprova, admin rejeita.
 
-#### ⏭️ 6.2 — Importação manual de heróis (pendente)
+#### ✅ 6.2 — Importação manual de heróis (concluído)
+
+- **Endpoints** (admin-only):
+  - `GET /admin/heroes/create` (admin.heroes.create) — renderiza form com factions/classes/tiers nas props.
+  - `POST /admin/heroes` (admin.heroes.store) — valida slug regex `[a-z0-9-]+` único, name, faction/class/tier (FK exists), gender enum opcional, role_label/portrait_url/source_url opcionais. Cria com `is_active=true, pending_review=false`.
+- **UI:** página `pages/admin/heroes/create.tsx` com form (slug+name, title, faction/class/tier selects, gender, role, URLs). Botão **Adicionar manualmente** no header da página de pending. Redireciona pro catálogo `/heroes` após criar.
+- **Casos de uso:** heróis ignorados pelo sync devido a tier/classe vazios na wiki (Saveas, Daimon, Arden, etc.).
+- **Testes:** 6 cenários adicionais — admin acessa form, não-admin 403, admin cria com sucesso, slug duplicado falha, slug com maiúsculas falha, campos obrigatórios validados. 64 testes verdes no projeto.
 #### ✅ 6.3 — Share via link público read-only (concluído)
 
 - **Schema:** migration `add_share_token_to_formations_table` (string 40, nullable, unique).

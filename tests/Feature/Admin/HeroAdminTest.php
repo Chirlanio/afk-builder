@@ -103,4 +103,92 @@ class HeroAdminTest extends TestCase
         $hero->refresh();
         $this->assertTrue($hero->pending_review);
     }
+
+    public function test_admin_acessa_pagina_de_criacao_manual(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->get('/admin/heroes/create')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('admin/heroes/create')
+                ->has('factions')
+                ->has('heroClasses')
+                ->has('tiers')
+            );
+    }
+
+    public function test_nao_admin_recebe_403_na_criacao_manual(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+
+        $this->actingAs($user)
+            ->get('/admin/heroes/create')
+            ->assertForbidden();
+    }
+
+    public function test_admin_cria_heroi_manualmente(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $payload = [
+            'slug' => 'saveas',
+            'name' => 'Saveas',
+            'title' => 'Slayer of Souls',
+            'faction_id' => Faction::where('code', 'mauler')->value('id'),
+            'hero_class_id' => HeroClass::where('code', 'warrior')->value('id'),
+            'tier_id' => Tier::where('code', 'ascended')->value('id'),
+        ];
+
+        $this->actingAs($admin)
+            ->post('/admin/heroes', $payload)
+            ->assertRedirect();
+
+        $hero = Hero::where('slug', 'saveas')->first();
+        $this->assertNotNull($hero);
+        $this->assertSame('Saveas', $hero->name);
+        $this->assertTrue($hero->is_active);
+        $this->assertFalse($hero->pending_review);
+    }
+
+    public function test_slug_duplicado_falha_validacao(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $this->makePendingHero('saveas');
+
+        $this->actingAs($admin)
+            ->post('/admin/heroes', [
+                'slug' => 'saveas',
+                'name' => 'Outro',
+                'faction_id' => Faction::where('code', 'mauler')->value('id'),
+                'hero_class_id' => HeroClass::where('code', 'warrior')->value('id'),
+                'tier_id' => Tier::where('code', 'ascended')->value('id'),
+            ])
+            ->assertSessionHasErrors('slug');
+    }
+
+    public function test_slug_invalido_com_maiusculas_falha_validacao(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->post('/admin/heroes', [
+                'slug' => 'Saveas',
+                'name' => 'Saveas',
+                'faction_id' => Faction::where('code', 'mauler')->value('id'),
+                'hero_class_id' => HeroClass::where('code', 'warrior')->value('id'),
+                'tier_id' => Tier::where('code', 'ascended')->value('id'),
+            ])
+            ->assertSessionHasErrors('slug');
+    }
+
+    public function test_campos_obrigatorios_validados(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->post('/admin/heroes', [])
+            ->assertSessionHasErrors(['slug', 'name', 'faction_id', 'hero_class_id', 'tier_id']);
+    }
 }

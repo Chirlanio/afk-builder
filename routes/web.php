@@ -45,6 +45,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::middleware('can:manage-heroes')->prefix('admin')->name('admin.')->group(function () {
         Route::get('heroes/pending', [HeroAdminController::class, 'pendingIndex'])->name('heroes.pending');
+        Route::get('heroes/create', [HeroAdminController::class, 'create'])->name('heroes.create');
+        Route::post('heroes', [HeroAdminController::class, 'storeManual'])->name('heroes.store');
         Route::patch('heroes/{hero}/approve', [HeroAdminController::class, 'approve'])->name('heroes.approve');
         Route::patch('heroes/{hero}/reject', [HeroAdminController::class, 'reject'])->name('heroes.reject');
     });

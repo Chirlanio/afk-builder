@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { Check, ExternalLink, ShieldCheck, X } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Check, ExternalLink, Plus, ShieldCheck, X } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,14 +51,22 @@ export default function HeroesPendingReview({ heroes }: PageProps) {
             <Head title="Aprovar heróis" />
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div>
-                    <h1 className="flex items-center gap-2 text-2xl font-semibold">
-                        <ShieldCheck className="size-6 text-primary" />
-                        Heróis aguardando aprovação
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Heróis novos sincronizados da wiki entram aqui antes de aparecer no catálogo. Aprove pra ativar, rejeite pra ocultar.
-                    </p>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                        <h1 className="flex items-center gap-2 text-2xl font-semibold">
+                            <ShieldCheck className="size-6 text-primary" />
+                            Heróis aguardando aprovação
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                            Heróis novos sincronizados da wiki entram aqui antes de aparecer no catálogo. Aprove pra ativar, rejeite pra ocultar.
+                        </p>
+                    </div>
+                    <Link href="/admin/heroes/create">
+                        <Button variant="outline" size="sm">
+                            <Plus className="size-4" />
+                            Adicionar manualmente
+                        </Button>
+                    </Link>
                 </div>
 
                 {heroes.length === 0 ? (
