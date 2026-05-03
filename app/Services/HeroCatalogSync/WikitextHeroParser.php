@@ -64,7 +64,11 @@ class WikitextHeroParser
 
         $params = $this->parseTemplateParams($template);
 
+        // Fandom às vezes usa `nickname=` no lugar de `name=` (ex: Daimon, Arden).
         $name = $this->cleanValue($params['name'] ?? '');
+        if ($name === '') {
+            $name = $this->cleanValue($params['nickname'] ?? '');
+        }
 
         if ($name === '') {
             return null;
@@ -74,6 +78,9 @@ class WikitextHeroParser
         $classRaw = strtolower($this->cleanValue($params['class'] ?? ''));
         $rarityRaw = strtolower($this->cleanValue($params['rarity'] ?? ''));
         $genderRaw = strtolower($this->cleanValue($params['gender'] ?? ''));
+
+        // role pode aparecer como `role=` ou `role1=` (varia entre páginas).
+        $roleLabel = $this->cleanValue($params['role'] ?? '') ?: $this->cleanValue($params['role1'] ?? '') ?: null;
 
         return [
             'name' => $name,
@@ -87,7 +94,7 @@ class WikitextHeroParser
                 '' => null,
                 default => 'other',
             },
-            'role_label' => $this->cleanValue($params['role'] ?? '') ?: null,
+            'role_label' => $roleLabel,
             'image_filename' => $this->extractImageFilename($params['image'] ?? ''),
         ];
     }

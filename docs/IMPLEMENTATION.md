@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 5 + 6.1/6.2/6.3/6.4/6.5 — aprovação, criação, share, comparação, versionamento)
+> **Última atualização:** 2026-05-02 (Fase 5 completa + Fase 6: 6.1-6.5 ✅ + 6.7 ✅ — investigação parser/heróis ignorados)
 
 ---
 
@@ -240,7 +240,21 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
 - **UI:** botão **Histórico** no header do editor abre `Dialog` listando versões com timestamp pt-BR e contador de heróis/equipes; botão **Restaurar** em cada item (com `confirm()` antes — restore explica que o estado atual também é guardado).
 - **Testes:** 6 cenários — update gera snapshot anterior, lista versões (JSON), outro user 403 (index e restore), restore aplica corretamente, cap de 20. **73 testes verdes** no projeto.
 #### ⏭️ 6.6 — Refinamentos visuais (pendente)
-#### ⏭️ 6.7 — Investigar heróis ignorados na wiki (Saveas, Daimon, Arden, etc.) (pendente)
+#### ✅ 6.7 — Investigar heróis ignorados na wiki (concluído)
+
+Inspeção página por página dos 12 heróis que o sync ignorava:
+
+**Parser corrigido** (recuperam-se automaticamente no próximo sync):
+- **Daimon, Arden** — usavam `nickname=` no lugar de `name=`. Adicionado fallback em `WikitextHeroParser`. Bonus: também adicionado fallback `role` → `role1` (mais comum nas páginas modernas).
+
+**Wiki sem dado essencial** (parser não tem como inferir; precisa entrada manual via `/admin/heroes/create`):
+- **Sem `class=`:** Saveas, Angelo, Ankhira, Dreaf, Eletha, Golus, Gourgue, Draconis Archer, Draconis Warrior. Wiki tem apenas `type=` (Strength/Intelligence/Agility) e `role1/role2`, que não mapeiam 1:1 para Tank/Warrior/Ranger/Mage/Support.
+- **Sem `rarity=`:** Bronn (resto dos campos presentes).
+- **Página inexistente:** Twins of Glory (título não existe no Fandom como esse texto — `Elijah & Lailah` cobre o conteúdo dos "Celestial Twins").
+
+**Arden ainda ignorado** (não-fix:) Arden tem `nickname=` (que o fix novo agora detecta) MAS também não tem `class=` no wiki, então cai na categoria manual.
+
+**Testes:** novo `tests/Unit/HeroCatalogSync/WikitextHeroParserTest.php` com 11 cenários cobrindo o parser direto: template padrão, fallback name→nickname, fallback role→role1, ausência de class/rarity, plurais de facção, rarity intermediário→legendary, extração de imagem (simples + gallery), templates aninhados. Total **84 testes verdes** no projeto.
 
 ---
 
@@ -285,7 +299,7 @@ No editor, `team-row.tsx::computeFactionBonus` calcula o bônus ao vivo:
 | # | Severidade | Descrição |
 |---|---|---|
 | 1 | baixa | Hero "Ukyo" detectado como awakened (false positive — slug "ukyo" mas name "Ukyo Tachibana" na wiki) |
-| 2 | baixa | ~10 heróis ignorados pelo sync por `tier=''` ou `class=''` na wiki (Bronn, Daimon, Angelo, Ankhira, Dreaf, Eletha, Golus, Gourgue, Draconis Archer/Warrior) — investigar caso a caso |
+| 2 | baixa | 9 heróis ignorados pelo sync por `class=''` na wiki (Saveas, Angelo, Ankhira, Dreaf, Eletha, Golus, Gourgue, Draconis Archer, Draconis Warrior) — entrada manual via `/admin/heroes/create`. Bronn idem por `rarity=''`. Daimon e Arden recuperados após parser fix da 6.7. |
 | 3 | informativa | Adrian & Elyse usa só a imagem do Adrian (escolha da wiki como "page representative image", não bug nosso) |
-| 4 | baixa | `pending_review=true` para heróis novos não tem UI de aprovação ainda — workaround temporário: `UPDATE heroes SET is_active=1, pending_review=0 WHERE pending_review=1;` |
+| ~~4~~ | ~~baixa~~ | ~~UI de aprovação `pending_review`~~ — resolvido na 6.1. |
 | 5 | melhoria | Mobile: drag-and-drop funciona via TouchSensor mas UX não foi otimizada para touch (pool fica oculto em telas < lg) |
