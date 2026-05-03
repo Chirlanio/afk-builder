@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-03 (Fase 13b — UI admin de stats numéricos)
+> **Última atualização:** 2026-05-03 (Fase 13c — stats integradas ao optimizer)
 
 ---
 
@@ -445,9 +445,16 @@ Stats base (Nv 1) cadastradas manualmente por admin — Fandom não publica num�
 
 ---
 
-### 🚧 Fase 13c — (futuro) Integrar stats ao optimizer
+### ✅ Fase 13c — Stats integradas ao optimizer
 
-Quando uma quantidade significativa de stats estiver cadastrada, modelar `PowerCalculator` para usar `HP * 0.6 + ATK * 3 + DEF * 4` (fórmula AFK Arena clássica) com fallback para a fórmula atual quando stats faltam. Não implementado nesta fase.
+`PowerCalculator` agora soma uma contribuição linear das stats quando cadastradas. Heróis sem stats não são penalizados (contribution = 0).
+
+- **`statContribution(?HeroStat)`** — fórmula linear: `HP*0.1 + ATK*1.0 + DEF*0.7 + (CritRate+CritAmp)*0.3 + (Acc+Dodge+Haste)*0.2`. Soma assimétrica que privilegia ATK puro mas valoriza HP/DEF; stats secundárias entram com peso menor.
+- **`forUserHero(UserHero, ?Hero)`** — assinatura estendida com hero opcional pra lookup de stats. Backward-compat preservado: chamada sem o segundo argumento mantém a fórmula antiga.
+- **`targetBaseline(Hero)`** — também soma stats quando o hero tem (modo target sem roster).
+- **Eager loading:** `FormationController::loadHeroPool` e `FormationCompareController` agora incluem `'stats'` no `with()` pra que o calculator não dispare N+1.
+- **Comportamento:** com hero típico (HP=1500, ATK=200, DEF=100, demais=50), stats contribuem ~480 pontos — ~20-25% do total. Suficiente pra diferenciar heróis com mesmo level/ascension mas perfis diferentes; insuficiente pra dominar bonificações de facção/sinergia.
+- **Testes:** 6 novos cenários no `PowerCalculatorTest` (zero quando null, soma de pesos, campos nulos parciais, integração com forUserHero, backward-compat sem hero, targetBaseline com stats). **136 testes verdes** no projeto.
 
 ---
 

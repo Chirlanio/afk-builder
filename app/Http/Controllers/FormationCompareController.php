@@ -38,7 +38,7 @@ class FormationCompareController extends Controller
 
         $heroesById = Hero::query()
             ->whereIn('id', $allHeroIds)
-            ->with(['faction:id,code', 'heroClass:id,code', 'tier:id,code'])
+            ->with(['faction:id,code', 'heroClass:id,code', 'tier:id,code', 'stats'])
             ->get()
             ->keyBy('id');
 

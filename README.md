@@ -112,6 +112,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 12. Ajuste fino do algoritmo (47 synergias, class balance refinado, F3/F9 power bonus, profiles afinados) | ✅ |
 | 13a. Tipo do herói (Força/Inteligência/Agilidade do infobox + sync) | ✅ |
 | 13b. Stats numéricos via UI admin (HP/ATK/DEF/Crit Rate/Crit Amp/Accuracy/Dodge/Haste) | ✅ |
+| 13c. Stats integradas ao optimizer (PowerCalculator soma contribution quando cadastradas) | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

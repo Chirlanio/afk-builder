@@ -371,7 +371,7 @@ class FormationController extends Controller
     private function loadHeroPool(Formation $formation, int $userId): array
     {
         $query = Hero::query()
-            ->with(['faction:id,code', 'heroClass:id,code', 'tier:id,code'])
+            ->with(['faction:id,code', 'heroClass:id,code', 'tier:id,code', 'stats'])
             ->where('is_active', true)
             ->where('pending_review', false);
 
