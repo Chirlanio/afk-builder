@@ -317,24 +317,46 @@ class WikitextHeroParser
         $order = 0;
 
         foreach ($rows as $rowText) {
-            // Skip header (contém "Unlock Level" ou começa com {|)
-            if (preg_match('/Unlock\s*Level/i', $rowText) || preg_match('/^\{\|/', $rowText)) {
+            // Skip rows que começam com {|
+            if (preg_match('/^\{\|/', $rowText)) {
                 continue;
             }
 
             // Cells split por linhas iniciadas com | ou !
             $cells = $this->extractRowCells($rowText);
-            if (count($cells) < 4) {
+
+            // Limpa atributo scope="col" que aparece antes do conteúdo de cells header.
+            $cells = array_map(
+                fn ($c) => preg_replace('/^scope=["\'][^"\']*["\']\s*\|?\s*/', '', $c) ?? $c,
+                $cells,
+            );
+
+            $cellCount = count($cells);
+            if ($cellCount < 3) {
                 continue;
             }
 
-            $unlockLevel = trim($cells[0]);
-            // Cell 1 (nome) costuma estar em ! ' ' '...' ' ' ou ! Name
-            $nameRaw = trim($cells[1]);
+            // Detecta linha de cabeçalho (Name|Icon|Description ou Unlock Level|Name|...)
+            $cleanedFirst = trim($this->stripWikitext($cells[0]));
+            if ($this->isHeaderRow($cells, $cleanedFirst)) {
+                continue;
+            }
+
+            // Dois formatos:
+            //   Padrão (4 colunas): Unlock Level | Name | Icon | Description
+            //   Despertos (3 colunas): Name | Icon | Description
+            if ($cellCount >= 4) {
+                $unlockLevel = $cleanedFirst;
+                $nameRaw = trim($cells[1]);
+                $description = $this->stripWikitext($cells[3]);
+            } else {
+                $unlockLevel = '';
+                $nameRaw = trim($cells[0]);
+                $description = $this->stripWikitext($cells[2]);
+            }
+
             $name = trim(preg_replace("/^'+|'+$/", '', $nameRaw) ?? $nameRaw);
             $name = $this->stripWikitext($name);
-            // Skip cell 2 (icon) — não usado.
-            $description = $this->stripWikitext($cells[3]);
 
             if ($name === '' || $description === '') {
                 continue;
@@ -344,7 +366,7 @@ class WikitextHeroParser
                 $byName[$name] = count($abilities);
                 $abilities[] = [
                     'name' => $name,
-                    'ascension_unlock' => $unlockLevel !== '' ? "Nv {$unlockLevel}" : null,
+                    'ascension_unlock' => $unlockLevel !== '' && is_numeric($unlockLevel) ? "Nv {$unlockLevel}" : null,
                     'description' => $description,
                     'display_order' => $order++,
                     'type' => 'active',
@@ -357,7 +379,33 @@ class WikitextHeroParser
     }
 
     /**
+     * Heurística para detectar linha de cabeçalho de tabela de skills.
+     *
+     * @param  string[]  $cells
+     */
+    private function isHeaderRow(array $cells, string $firstCellClean): bool
+    {
+        // Cabeçalho clássico: contém "Unlock Level"
+        foreach ($cells as $c) {
+            if (preg_match('/Unlock\s*Level/i', $c)) {
+                return true;
+            }
+        }
+
+        // Cabeçalho Despertos: cells exatas Name/Icon/Description
+        $cleaned = array_map(fn ($c) => trim($this->stripWikitext($c)), $cells);
+        $first3 = array_slice($cleaned, 0, 3);
+        $signature = strtolower(implode('|', $first3));
+        if ($signature === 'name|icon|description') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Splits a wikitable row body into cells (each cell starts with | or ! at line start).
+     * Ignora a linha de fechamento `|}`.
      *
      * @return array<int, string>
      */
@@ -373,6 +421,11 @@ class WikitextHeroParser
         $current = null;
 
         foreach ($lines as $line) {
+            // Linha de fechamento de tabela `|}` — ignora
+            if (preg_match('/^\s*\|\}\s*$/', $line)) {
+                continue;
+            }
+
             if (preg_match('/^([|!])(.*)$/', $line, $m)) {
                 if ($current !== null) {
                     $cells[] = $current;

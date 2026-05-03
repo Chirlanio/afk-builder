@@ -267,6 +267,8 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
   - Resolve título da wiki via `source_url` (mais robusto que reverter slug).
 - 5 testes adicionais no parser (parseLore extrai, retorna null quando ausente ou placeholder; parseAbilities extrai e agrupa por nome; retorna [] sem seção Skills). Validação manual: 6 heróis enriquecidos com sucesso (lore 2.9k-7.6k chars, 4 abilities cada). **94 testes verdes** no projeto.
 
+**Bugfix (parser de tabelas Despertos):** páginas de Despertos usam tabela com 3 colunas (Name | Icon | Description) sem coluna de Unlock Level — parser exigia 4 colunas e descartava todas as linhas. Corrigido para suportar ambos formatos + ignorar linha de fechamento `|}` da tabela. Adicionado teste do formato 3-colunas. Re-rodado `heroes:enrich` em 42 Despertos: agora 212/213 heróis ativos com abilities (Gavus - Keeper of Order é o único restante porque a página dele na wiki não tem seção `== Skills ==`).
+
 #### ✅ 7.3 — Tag de tier dinâmica por ascensão (concluído)
 
 ---

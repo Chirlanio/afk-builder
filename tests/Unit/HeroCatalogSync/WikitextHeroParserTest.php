@@ -304,4 +304,38 @@ TEXT;
         $wikitext = '{{Hero|name = X|faction = Mauler|class = Tank|rarity = Legendary}}';
         $this->assertSame([], $this->parser->parseAbilities($wikitext));
     }
+
+    public function test_parse_abilities_aceita_formato_desperto_3_colunas(): void
+    {
+        // Despertos (Awakened) usam tabela sem coluna de Unlock Level.
+        $wikitext = <<<'TEXT'
+== Skills ==
+{|class="wikitable" border="0" cellspacing="1" cellpadding="1" style="width:100%;"
+|-
+! scope="col" |'''Name'''
+! scope="col" |'''Icon'''
+! scope="col" |'''Description'''
+|-
+!'''Infernal Jealousy'''
+|[[File:Infernal Jealousy.png|78px]]
+|Passive: After every 2 normal attacks, the next attack is enhanced.
+|-
+!'''Echoing Shackles'''
+|[[File:Echoing Shackles.png|78px]]
+|Passive: When an enemy suffers a debuff, the Shadowed Core records it.
+|-
+!'''Loom of Longing'''
+|[[File:Loom of Longing.png|78px]]
+|Passive: At the start of battle, marks the highest base Attack enemy.
+|}
+TEXT;
+        $abilities = $this->parser->parseAbilities($wikitext);
+
+        $this->assertCount(3, $abilities);
+        $this->assertSame('Infernal Jealousy', $abilities[0]['name']);
+        $this->assertNull($abilities[0]['ascension_unlock'], 'Despertos não têm Unlock Level');
+        $this->assertStringContainsString('After every 2 normal attacks', $abilities[0]['description']);
+        $this->assertSame('Echoing Shackles', $abilities[1]['name']);
+        $this->assertSame('Loom of Longing', $abilities[2]['name']);
+    }
 }
