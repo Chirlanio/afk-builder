@@ -103,6 +103,10 @@ class HeroController extends Controller
             ->first([
                 'id', 'hero_id', 'level', 'ascension_code', 'ascension_value',
                 'signature_item', 'furniture', 'engraving',
+                'weapon_tier', 'weapon_level',
+                'helmet_tier', 'helmet_level',
+                'chest_tier', 'chest_level',
+                'boots_tier', 'boots_level',
                 'artifact_id', 'artifact_star_level', 'collection_id', 'notes',
             ]);
 

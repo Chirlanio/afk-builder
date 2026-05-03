@@ -332,6 +332,28 @@ class UserHeroArtifactTest extends TestCase
             ->assertSessionHasErrors('weapon_tier');
     }
 
+    public function test_details_retorna_equipamento_no_payload(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero();
+        $user->userHeroes()->create([
+            'hero_id' => $hero->id,
+            'level' => 240,
+            'weapon_tier' => 'T6', 'weapon_level' => 20,
+            'helmet_tier' => 'T3', 'helmet_level' => 10,
+        ]);
+
+        $this->actingAs($user)
+            ->getJson("/heroes/{$hero->slug}/details")
+            ->assertOk()
+            ->assertJsonPath('userHero.weapon_tier', 'T6')
+            ->assertJsonPath('userHero.weapon_level', 20)
+            ->assertJsonPath('userHero.helmet_tier', 'T3')
+            ->assertJsonPath('userHero.helmet_level', 10)
+            ->assertJsonPath('userHero.chest_tier', null)
+            ->assertJsonPath('userHero.boots_tier', null);
+    }
+
     public function test_validacao_rejeita_level_acima_de_20(): void
     {
         $user = User::factory()->create();
