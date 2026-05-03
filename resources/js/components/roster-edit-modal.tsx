@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Crown, Footprints, Loader2, Save, ScrollText, Shield, Shirt, Sword } from 'lucide-react';
+import { Crown, Footprints, Gem, Hotel, Loader2, PenLine, Save, ScrollText, Shield, Shirt, Sword } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -123,81 +123,17 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                 </header>
 
                 <form onSubmit={submit} className="flex flex-col gap-4 p-4">
-                    {/* Upper: 3-col (slots editáveis | portrait | slots editáveis) */}
+                    {/* Upper: 3-col (slots equipamentos | portrait | slots equipamentos) */}
                     <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 md:grid-cols-[140px_minmax(220px,1fr)_140px]">
-                        {/* Esquerda: Artefato, Coleção, Assinatura */}
+                        {/* Esquerda: Arma (em breve) → Capacete (em breve) → Assinatura */}
                         <div className="flex flex-col gap-2">
-                            <SlotEdit icon={<Sword className="size-3" />} label="Artefato (Arma)">
-                                <Select
-                                    value={artifactId ? String(artifactId) : 'none'}
-                                    onValueChange={(v) => {
-                                        if (v === 'none') {
-                                            setArtifactId(null);
-                                            setArtifactStarLevel(null);
-                                        } else {
-                                            setArtifactId(Number(v));
-                                            if (!artifactStarLevel) setArtifactStarLevel(1);
-                                            // Artefato sobrescreve coleção
-                                            setCollectionId(null);
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger className="h-8 text-xs">
-                                        <SelectValue placeholder="—" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">— nenhum —</SelectItem>
-                                        {availableArtifacts.filter((a) => a.kind === 'dura').map((a) => (
-                                            <SelectItem key={a.id} value={String(a.id)}>Dura's · {a.name}</SelectItem>
-                                        ))}
-                                        {availableArtifacts.filter((a) => a.kind === 'class').map((a) => (
-                                            <SelectItem key={a.id} value={String(a.id)}>Classe · {a.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {selectedArtifact && (
-                                    <Input
-                                        type="number"
-                                        min={1}
-                                        max={selectedArtifact.max_stars}
-                                        value={artifactStarLevel ?? 1}
-                                        onChange={(e) => setArtifactStarLevel(Math.min(selectedArtifact.max_stars, Math.max(1, Number(e.target.value) || 1)))}
-                                        className="mt-1 h-7 text-xs"
-                                        placeholder={`★ 1-${selectedArtifact.max_stars}`}
-                                    />
-                                )}
+                            <SlotEdit icon={<Sword className="size-3" />} label="Arma" disabled>
+                                <span className="text-[10px] text-muted-foreground">em breve</span>
                             </SlotEdit>
-
-                            <SlotEdit icon={<Shield className="size-3" />} label="Coleção (Capacete)">
-                                <Select
-                                    value={collectionId ? String(collectionId) : 'none'}
-                                    onValueChange={(v) => {
-                                        if (v === 'none') {
-                                            setCollectionId(null);
-                                        } else {
-                                            setCollectionId(Number(v));
-                                            // Coleção sobrescreve artefato (mesmo slot no jogo)
-                                            setArtifactId(null);
-                                            setArtifactStarLevel(null);
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger className="h-8 text-xs">
-                                        <SelectValue placeholder="—" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">— nenhuma —</SelectItem>
-                                        {availableCollections.map((c) => (
-                                            <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {collectionId && (
-                                    <p className="mt-1 text-[10px] text-muted-foreground">Substitui o artefato.</p>
-                                )}
+                            <SlotEdit icon={<Shield className="size-3" />} label="Capacete" disabled>
+                                <span className="text-[10px] text-muted-foreground">em breve</span>
                             </SlotEdit>
-
-                            <SlotEdit icon={<Crown className="size-3" />} label="Assinatura SI (0-40)">
+                            <SlotEdit icon={<Crown className="size-3" />} label="Assinatura (0-40)">
                                 <Input
                                     type="number"
                                     min={0}
@@ -243,44 +179,118 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                             </div>
                         </div>
 
-                        {/* Direita: Móveis, Inscrições, Notas (curtas) */}
+                        {/* Direita: Peitoral (em breve) → Bota (em breve) → Artefato OU Coleção */}
                         <div className="flex flex-col gap-2">
-                            <SlotEdit icon={<Shirt className="size-3" />} label="Móveis Peitoral (0-9)">
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    max={9}
-                                    value={furniture}
-                                    onChange={(e) => setFurniture(Math.min(9, Math.max(0, Number(e.target.value) || 0)))}
-                                    className="h-8"
-                                />
-                                <div className="mt-1 flex gap-1 text-[10px]">
-                                    <Badge variant={furniture >= 3 ? 'default' : 'outline'} className="h-4 px-1 text-[9px]">F3</Badge>
-                                    <Badge variant={furniture >= 9 ? 'default' : 'outline'} className={cn('h-4 px-1 text-[9px]', furniture >= 9 && 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900')}>F9</Badge>
-                                </div>
+                            <SlotEdit icon={<Shirt className="size-3" />} label="Peitoral" disabled>
+                                <span className="text-[10px] text-muted-foreground">em breve</span>
                             </SlotEdit>
+                            <SlotEdit icon={<Footprints className="size-3" />} label="Bota" disabled>
+                                <span className="text-[10px] text-muted-foreground">em breve</span>
+                            </SlotEdit>
+                            <SlotEdit icon={<Gem className="size-3" />} label="Artefato / Coleção">
+                                <Select
+                                    value={collectionId ? `c:${collectionId}` : artifactId ? `a:${artifactId}` : 'none'}
+                                    onValueChange={(v) => {
+                                        if (v === 'none') {
+                                            setArtifactId(null);
+                                            setArtifactStarLevel(null);
+                                            setCollectionId(null);
+                                        } else if (v.startsWith('a:')) {
+                                            const id = Number(v.slice(2));
+                                            setArtifactId(id);
+                                            if (!artifactStarLevel) setArtifactStarLevel(1);
+                                            setCollectionId(null);
+                                        } else if (v.startsWith('c:')) {
+                                            const id = Number(v.slice(2));
+                                            setCollectionId(id);
+                                            setArtifactId(null);
+                                            setArtifactStarLevel(null);
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="h-8 text-xs">
+                                        <SelectValue placeholder="—" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">— nenhum —</SelectItem>
+                                        {availableArtifacts.filter((a) => a.kind === 'dura').map((a) => (
+                                            <SelectItem key={`a-${a.id}`} value={`a:${a.id}`}>Dura's · {a.name}</SelectItem>
+                                        ))}
+                                        {availableArtifacts.filter((a) => a.kind === 'class').map((a) => (
+                                            <SelectItem key={`a-${a.id}`} value={`a:${a.id}`}>Classe · {a.name}</SelectItem>
+                                        ))}
+                                        {availableCollections.map((c) => (
+                                            <SelectItem key={`c-${c.id}`} value={`c:${c.id}`}>Coleção · {c.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {selectedArtifact && (
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        max={selectedArtifact.max_stars}
+                                        value={artifactStarLevel ?? 1}
+                                        onChange={(e) => setArtifactStarLevel(Math.min(selectedArtifact.max_stars, Math.max(1, Number(e.target.value) || 1)))}
+                                        className="mt-1 h-7 text-xs"
+                                        placeholder={`★ 1-${selectedArtifact.max_stars}`}
+                                    />
+                                )}
+                            </SlotEdit>
+                        </div>
+                    </div>
 
-                            <SlotEdit icon={<Footprints className="size-3" />} label="Inscrições Bota (0-100)">
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    max={100}
-                                    value={engraving}
-                                    onChange={(e) => setEngraving(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
-                                    className="h-8"
-                                />
-                            </SlotEdit>
+                    {/* Atributos extras: Móveis, Inscrições, Notas */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <div className="flex flex-col gap-1">
+                            <Label htmlFor="rh-furn" className="flex items-center gap-1.5 text-xs">
+                                <Hotel className="size-3" />
+                                Móveis (0-9)
+                            </Label>
+                            <Input
+                                id="rh-furn"
+                                type="number"
+                                min={0}
+                                max={9}
+                                value={furniture}
+                                onChange={(e) => setFurniture(Math.min(9, Math.max(0, Number(e.target.value) || 0)))}
+                                className="h-8"
+                            />
+                            <div className="flex gap-1">
+                                <Badge variant={furniture >= 3 ? 'default' : 'outline'} className={cn('h-4 px-1 text-[9px]', furniture >= 3 && 'bg-emerald-500')}>F3</Badge>
+                                <Badge variant={furniture >= 9 ? 'default' : 'outline'} className={cn('h-4 px-1 text-[9px]', furniture >= 9 && 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900')}>F9</Badge>
+                            </div>
+                        </div>
 
-                            <SlotEdit icon={<ScrollText className="size-3" />} label="Notas" expand>
-                                <textarea
-                                    className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
-                                    value={notes}
-                                    onChange={(e) => setNotes(e.target.value)}
-                                    maxLength={1000}
-                                    rows={3}
-                                    placeholder="Opcional"
-                                />
-                            </SlotEdit>
+                        <div className="flex flex-col gap-1">
+                            <Label htmlFor="rh-eng" className="flex items-center gap-1.5 text-xs">
+                                <PenLine className="size-3" />
+                                Inscrições (0-100)
+                            </Label>
+                            <Input
+                                id="rh-eng"
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={engraving}
+                                onChange={(e) => setEngraving(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                                className="h-8"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                            <Label htmlFor="rh-notes" className="flex items-center gap-1.5 text-xs">
+                                <ScrollText className="size-3" />
+                                Notas
+                            </Label>
+                            <textarea
+                                id="rh-notes"
+                                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
+                                maxLength={1000}
+                                rows={2}
+                                placeholder="Opcional"
+                            />
                         </div>
                     </div>
 

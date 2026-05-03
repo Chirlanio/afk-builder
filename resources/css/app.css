@@ -155,4 +155,46 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* Scrollbar customizada — cores do tema */
+    /* Firefox */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--muted-foreground) transparent;
+    }
+
+    /* WebKit (Chrome / Safari / Edge) */
+    *::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    *::-webkit-scrollbar-track {
+        background: var(--background);
+        border-radius: 9999px;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        background: var(--muted);
+        border: 2px solid var(--background);
+        border-radius: 9999px;
+        transition: background-color 150ms ease-in-out;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+        background: var(--muted-foreground);
+    }
+
+    *::-webkit-scrollbar-corner {
+        background: var(--background);
+    }
+
+    /* No modo escuro o thumb fica um pouco mais visível */
+    .dark *::-webkit-scrollbar-thumb {
+        background: var(--accent);
+    }
+
+    .dark *::-webkit-scrollbar-thumb:hover {
+        background: var(--muted-foreground);
+    }
 }

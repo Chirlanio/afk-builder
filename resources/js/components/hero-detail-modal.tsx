@@ -7,10 +7,13 @@ import {
     ExternalLink,
     Flame,
     Footprints,
+    Gem,
     Hotel,
     Loader2,
     Lock,
+    Package,
     Pencil,
+    PenLine,
     Plus,
     ScrollText,
     Shield,
@@ -311,40 +314,13 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
 
             {/* Upper: 3-col paperdoll com slots quadrados */}
             <section className="mx-auto grid w-full max-w-3xl grid-cols-[96px_minmax(240px,1fr)_96px] gap-3 p-4 sm:grid-cols-[112px_minmax(280px,1fr)_112px]">
-                {/* Esquerda: Artefato (Arma) → Coleção (Capacete) → Assinatura (SI) */}
+                {/* Esquerda: Arma (placeholder) → Capacete (placeholder) → Assinatura (SI) */}
                 <div className="grid grid-cols-1 gap-1.5">
-                    <HeroSlotCard
-                        icon={Sword}
-                        label="Artefato (Arma)"
-                        empty={!userHero?.artifact}
-                        imageUrl={userHero?.artifact?.portrait_url}
-                        accentClass={userHero?.artifact ? 'border-violet-500/60' : undefined}
-                        detail={userHero?.artifact && userHero.artifact_star_level !== null ? (
-                            <span className="text-amber-500">
-                                {'★'.repeat(userHero.artifact_star_level)}
-                                {'☆'.repeat(userHero.artifact.max_stars - userHero.artifact_star_level)}
-                            </span>
-                        ) : undefined}
-                    />
-
-                    <HeroSlotCard
-                        icon={Shield}
-                        label="Coleção (Capacete)"
-                        empty={!userHero?.collection}
-                        imageUrl={userHero?.collection?.portrait_url}
-                        accentClass={userHero?.collection ? 'border-fuchsia-500/60' : undefined}
-                        detail={userHero?.collection && (
-                            <div className="flex flex-wrap justify-center gap-x-1 text-[9px] text-muted-foreground">
-                                {userHero.collection.hp_bonus > 0 && <span>HP+{userHero.collection.hp_bonus}</span>}
-                                {userHero.collection.attack_bonus > 0 && <span>ATK+{userHero.collection.attack_bonus}</span>}
-                                {userHero.collection.defense_bonus > 0 && <span>DEF+{userHero.collection.defense_bonus}</span>}
-                            </div>
-                        )}
-                    />
-
+                    <HeroSlotCard icon={Sword} label="Arma" empty />
+                    <HeroSlotCard icon={Shield} label="Capacete" empty />
                     <HeroSlotCard
                         icon={Crown}
-                        label="Assinatura (SI)"
+                        label="Item de Assinatura"
                         empty={userSI === 0}
                         valueText={userSI > 0 ? `+${userSI}` : undefined}
                         detail={userSI > 0 && <span className="text-muted-foreground">/40</span>}
@@ -376,22 +352,47 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
 
                     {/* Stats strip */}
                     {owned && userHero ? (
-                        <div className="flex w-full items-center justify-center gap-3 rounded-md border bg-muted/30 px-3 py-1.5 text-xs">
-                            <div className="flex flex-col items-center">
-                                <span className="text-[9px] uppercase text-muted-foreground">Nível</span>
-                                <span className="font-semibold tabular-nums">{userHero.level}</span>
+                        <>
+                            <div className="flex w-full items-center justify-center gap-3 rounded-md border bg-muted/30 px-3 py-1.5 text-xs">
+                                <div className="flex flex-col items-center">
+                                    <span className="text-[9px] uppercase text-muted-foreground">Nível</span>
+                                    <span className="font-semibold tabular-nums">{userHero.level}</span>
+                                </div>
+                                {stats && (
+                                    <>
+                                        <Divider />
+                                        <StatColumn label="HP" value={stats.hp} />
+                                        <Divider />
+                                        <StatColumn label="ATK" value={stats.attack} />
+                                        <Divider />
+                                        <StatColumn label="DEF" value={stats.defense} />
+                                    </>
+                                )}
                             </div>
-                            {stats && (
-                                <>
-                                    <Divider />
-                                    <StatColumn label="HP" value={stats.hp} />
-                                    <Divider />
-                                    <StatColumn label="ATK" value={stats.attack} />
-                                    <Divider />
-                                    <StatColumn label="DEF" value={stats.defense} />
-                                </>
-                            )}
-                        </div>
+
+                            {/* Atributos extras: Móveis, Inscrições, Notas */}
+                            <div className="flex w-full flex-wrap items-center justify-center gap-1.5">
+                                <Chip icon={Hotel} label="Móveis" value={userFurniture > 0 ? `${userFurniture}/9` : '—'}
+                                    accent={f9Unlocked ? 'border-amber-400/60 bg-amber-400/10' : f3Unlocked ? 'border-emerald-500/40 bg-emerald-500/10' : undefined}
+                                    extra={userFurniture > 0 && (
+                                        <>
+                                            <span className={cn('text-[9px]', f3Unlocked && 'text-emerald-600 dark:text-emerald-400')}>{f3Unlocked ? '★F3' : '☆F3'}</span>
+                                            <span className={cn('text-[9px]', f9Unlocked && 'text-amber-600 dark:text-amber-400')}>{f9Unlocked ? '★F9' : '☆F9'}</span>
+                                        </>
+                                    )}
+                                />
+                                <Chip icon={PenLine} label="Inscrições" value={userEngraving > 0 ? `+${userEngraving}` : '—'}
+                                    accent={userEngraving > 0 ? 'border-blue-500/40 bg-blue-500/10' : undefined}
+                                />
+                                {userHero.notes && (
+                                    <Chip icon={ScrollText} label="Notas" value={null} extra={
+                                        <span className="line-clamp-1 max-w-[140px] text-[10px] text-muted-foreground" title={userHero.notes}>
+                                            {userHero.notes}
+                                        </span>
+                                    } />
+                                )}
+                            </div>
+                        </>
                     ) : (
                         <p className="text-xs text-muted-foreground">Não cadastrado no roster.</p>
                     )}
@@ -409,44 +410,42 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     )}
                 </div>
 
-                {/* Direita: Móveis (Peitoral) → Inscrições (Bota) → Notas */}
+                {/* Direita: Peitoral (placeholder) → Bota (placeholder) → Artefato OU Coleção */}
                 <div className="grid grid-cols-1 gap-1.5">
-                    <HeroSlotCard
-                        icon={Shirt}
-                        label="Móveis (Peitoral)"
-                        empty={userFurniture === 0}
-                        valueText={userFurniture > 0 ? `${userFurniture}/9` : undefined}
-                        accentClass={f9Unlocked ? 'border-amber-400/60' : f3Unlocked ? 'border-emerald-500/60' : undefined}
-                        detail={userFurniture > 0 && (
-                            <div className="flex gap-1">
-                                <Badge variant={f3Unlocked ? 'default' : 'outline'} className={cn('h-3.5 px-1 text-[8px]', f3Unlocked && 'bg-emerald-500')}>
-                                    {f3Unlocked ? <Unlock className="size-2" /> : <Lock className="size-2" />}
-                                    F3
-                                </Badge>
-                                <Badge variant={f9Unlocked ? 'default' : 'outline'} className={cn('h-3.5 px-1 text-[8px]', f9Unlocked && 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900')}>
-                                    {f9Unlocked ? <Unlock className="size-2" /> : <Lock className="size-2" />}
-                                    F9
-                                </Badge>
-                            </div>
-                        )}
-                    />
-
-                    <HeroSlotCard
-                        icon={Footprints}
-                        label="Inscrições (Bota)"
-                        empty={userEngraving === 0}
-                        valueText={userEngraving > 0 ? `+${userEngraving}` : undefined}
-                        detail={userEngraving > 0 && <span className="text-muted-foreground">/100</span>}
-                        accentClass={userEngraving > 0 ? 'border-blue-500/60' : undefined}
-                    />
-
-                    <HeroSlotCard
-                        icon={ScrollText}
-                        label="Notas"
-                        empty={!userHero?.notes}
-                    >
-                        {userHero?.notes && <p className="line-clamp-3 text-[10px] text-muted-foreground">{userHero.notes}</p>}
-                    </HeroSlotCard>
+                    <HeroSlotCard icon={Shirt} label="Peitoral" empty />
+                    <HeroSlotCard icon={Footprints} label="Bota" empty />
+                    {userHero?.artifact ? (
+                        <HeroSlotCard
+                            icon={Gem}
+                            label="Artefato"
+                            empty={false}
+                            imageUrl={userHero.artifact.portrait_url}
+                            accentClass="border-violet-500/60"
+                            detail={userHero.artifact_star_level !== null ? (
+                                <span className="text-amber-500">
+                                    {'★'.repeat(userHero.artifact_star_level)}
+                                    {'☆'.repeat(userHero.artifact.max_stars - userHero.artifact_star_level)}
+                                </span>
+                            ) : undefined}
+                        />
+                    ) : userHero?.collection ? (
+                        <HeroSlotCard
+                            icon={Package}
+                            label="Coleção"
+                            empty={false}
+                            imageUrl={userHero.collection.portrait_url}
+                            accentClass="border-fuchsia-500/60"
+                            detail={(
+                                <div className="flex flex-wrap justify-center gap-x-1 text-[9px] text-muted-foreground">
+                                    {userHero.collection.hp_bonus > 0 && <span>HP+{userHero.collection.hp_bonus}</span>}
+                                    {userHero.collection.attack_bonus > 0 && <span>ATK+{userHero.collection.attack_bonus}</span>}
+                                    {userHero.collection.defense_bonus > 0 && <span>DEF+{userHero.collection.defense_bonus}</span>}
+                                </div>
+                            )}
+                        />
+                    ) : (
+                        <HeroSlotCard icon={Gem} label="Artefato / Coleção" empty />
+                    )}
                 </div>
             </section>
 
@@ -640,6 +639,25 @@ function StatColumn({ label, value }: { label: string; value: number | null }) {
         <div className="flex flex-col items-center">
             <span className="text-[9px] uppercase text-muted-foreground">{label}</span>
             <span className="font-semibold tabular-nums">{value === null ? '—' : value.toLocaleString('pt-BR')}</span>
+        </div>
+    );
+}
+
+interface ChipProps {
+    icon: typeof BarChart3;
+    label: string;
+    value: React.ReactNode;
+    extra?: React.ReactNode;
+    accent?: string;
+}
+
+function Chip({ icon: Icon, label, value, extra, accent }: ChipProps) {
+    return (
+        <div className={cn('flex items-center gap-1.5 rounded-full border bg-card px-2 py-1 text-xs', accent)}>
+            <Icon className="size-3 text-muted-foreground" />
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+            {value !== null && <span className="font-semibold tabular-nums">{value}</span>}
+            {extra && <span className="flex items-center gap-1">{extra}</span>}
         </div>
     );
 }
