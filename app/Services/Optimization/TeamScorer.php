@@ -178,7 +178,14 @@ class TeamScorer
     }
 
     /**
-     * Pontua presença de tanque, suporte e variedade de classes.
+     * Pontua composição de classes:
+     *   +0.3 — presença de tanque
+     *   +0.3 — presença de suporte
+     *   +0.05 por classe única (variedade)
+     *   -0.15 — penalidade quando 4+ heróis da mesma classe (over-stacking)
+     *   +0.10 — bônus para composição balanceada (3+ classes únicas E inclui tank)
+     *
+     * Ranges típicos para times de 5: 0.0 (terrível) a ~1.0 (ideal: tank+support+3 classes).
      *
      * @param  Hero[]  $heroes
      */
@@ -188,24 +195,38 @@ class TeamScorer
             return 0.0;
         }
 
-        $classes = [];
+        $counts = [];
         foreach ($heroes as $hero) {
             $code = $hero->heroClass?->code;
             if ($code !== null) {
-                $classes[$code] = true;
+                $counts[$code] = ($counts[$code] ?? 0) + 1;
             }
         }
 
-        $score = 0.0;
-        if (isset($classes['tank'])) {
-            $score += 0.3;
-        }
-        if (isset($classes['support'])) {
-            $score += 0.3;
-        }
-        $score += count($classes) * 0.08;
+        $unique = count($counts);
+        $maxStack = empty($counts) ? 0 : max($counts);
 
-        return $score;
+        $score = 0.0;
+        if (isset($counts['tank'])) {
+            $score += 0.3;
+        }
+        if (isset($counts['support'])) {
+            $score += 0.3;
+        }
+
+        $score += $unique * 0.05;
+
+        // Penalidade por over-stacking (4+ da mesma classe)
+        if ($maxStack >= 4) {
+            $score -= 0.15;
+        }
+
+        // Bônus de composição balanceada
+        if ($unique >= 3 && isset($counts['tank'])) {
+            $score += 0.10;
+        }
+
+        return max(0.0, $score);
     }
 
     /**

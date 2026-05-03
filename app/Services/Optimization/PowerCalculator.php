@@ -15,11 +15,23 @@ class PowerCalculator
 
     public function forUserHero(UserHero $userHero): float
     {
-        return $userHero->ascension_value * 100
+        $base = $userHero->ascension_value * 100
             + $userHero->level
             + $userHero->signature_item * 5
             + $userHero->furniture * 30
             + $userHero->engraving * 0.5;
+
+        // Bônus de Mythic Furniture: F3 desbloqueia uma habilidade transformadora,
+        // F9 melhora pra versão mais forte. Reflete que esses unlocks valem
+        // muito mais do que apenas o stat boost dos 30 power/peça.
+        if ($userHero->furniture >= 9) {
+            $base += 200; // F9 unlock (cumulativo com F3)
+        }
+        if ($userHero->furniture >= 3) {
+            $base += 100; // F3 unlock
+        }
+
+        return $base;
     }
 
     public function targetBaseline(Hero $hero): float

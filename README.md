@@ -108,6 +108,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 9. Guias adicionais (Hotel Oak, Móveis, Atributos) + Dragon Trial challenge type | ✅ |
 | 10. Hotel Furniture (habilidades F3/F9 per-hero, sync da Fandom, indicador no perfil) | ✅ |
 | 11. i18n EN/PT-BR (lore, abilities, furniture, guides) com seletor de idioma | ✅ |
+| 12. Ajuste fino do algoritmo (47 synergias, class balance refinado, F3/F9 power bonus, profiles afinados) | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

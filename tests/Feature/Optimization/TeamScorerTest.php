@@ -154,8 +154,26 @@ class TeamScorerTest extends TestCase
 
         $score = $this->scorer->score($heroes, [], [], $this->defaultProfile);
 
-        // sem tank/support → só conta variedade de classes (3 classes * 0.08 = 0.24)
-        $this->assertEqualsWithDelta(0.24, $score->classBalance, 0.001);
+        // sem tank/support → só conta variedade (3 classes * 0.05 = 0.15);
+        // sem 4+ same class → sem penalidade; sem tank → sem balanced bonus.
+        $this->assertEqualsWithDelta(0.15, $score->classBalance, 0.001);
+    }
+
+    public function test_time_com_4_da_mesma_classe_sofre_penalidade(): void
+    {
+        // 4 rangers + 1 tank = over-stack (max=4) → penalidade -0.15
+        $heroes = [
+            $this->makeHero('h1', 'lightbearer', 'tank'),
+            $this->makeHero('h2', 'lightbearer', 'ranger'),
+            $this->makeHero('h3', 'lightbearer', 'ranger'),
+            $this->makeHero('h4', 'lightbearer', 'ranger'),
+            $this->makeHero('h5', 'lightbearer', 'ranger'),
+        ];
+
+        $score = $this->scorer->score($heroes, [], [], $this->defaultProfile);
+
+        // tank(0.3) + 0 support + 2 unique * 0.05 + 0 balanced (precisa 3 unique) - 0.15 over-stack = 0.25
+        $this->assertEqualsWithDelta(0.25, $score->classBalance, 0.001);
     }
 
     public function test_time_balanceado_pontua_alto_no_class_balance(): void
@@ -170,8 +188,9 @@ class TeamScorerTest extends TestCase
 
         $score = $this->scorer->score($heroes, [], [], $this->defaultProfile);
 
-        // tank (0.3) + support (0.3) + 5 classes * 0.08 = 1.0
-        $this->assertEqualsWithDelta(1.0, $score->classBalance, 0.001);
+        // tank(0.3) + support(0.3) + 5 unique * 0.05 + balanced bonus(0.10, 3+ unique com tank)
+        // = 0.95
+        $this->assertEqualsWithDelta(0.95, $score->classBalance, 0.001);
     }
 
     public function test_par_com_synergia_incrementa_o_synergy_score(): void
@@ -206,7 +225,7 @@ class TeamScorerTest extends TestCase
 
         $score = $this->scorer->score($heroes, [], [], $profile);
 
-        // faction(1.0)*2.0 + class(1.0)*0.5 + synergy(0)*1.0 + power(0)*0.0 = 2.5
-        $this->assertEqualsWithDelta(2.5, $score->total, 0.001);
+        // faction(1.0)*2.0 + class(0.95)*0.5 + synergy(0)*1.0 + power(0)*0.0 = 2.475
+        $this->assertEqualsWithDelta(2.475, $score->total, 0.001);
     }
 }

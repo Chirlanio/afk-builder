@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 11 — i18n EN/PT-BR para conteúdo dos heróis e guias)
+> **Última atualização:** 2026-05-02 (Fase 12 — ajuste fino do algoritmo de scoring)
 
 ---
 
@@ -360,6 +360,51 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
 - **Validação:** lore + 4 abilities do Lucius + 3 furniture abilities + 1 guide traduzidos com qualidade aceitável (ex: "Heaven's Protection" → "Proteção do Céu", "Divine Strike" → "Golpe Divino"). Markdown preservado nas tabelas e formatação.
 - **Testes:** novo `LocaleTest` (4 cenários — default 'en', endpoint atualiza, rejeita locale inválido, guest redireciona). **113 testes verdes** no projeto.
 - **Para popular o resto:** `php artisan content:translate` (sem flags) pega tudo que falta. ~213 lores + ~850 abilities + 117 furniture + 8 guides → estimativa ~30-60 min com throttle, sem garantia (scraping pode bloquear).
+
+---
+
+### ✅ Fase 12 — Ajuste fino do algoritmo de scoring
+
+Sem dados novos — só refinamento de lógica e expansão de dados curados.
+
+#### Synergias expandidas (17 → 47 duos)
+`HeroSynergySeeder` ganhou 30 novos pares (peso 9-12) cobrindo:
+- **Maulers:** Khazard+Brutus, Peggy+Brutus, Mishka+Tarnos, Vurk+Khazard
+- **Lightbearers:** Ezio+Lucius, Gwyneth+Ezio, Lucretia+Lucius, Estrilda+Lucius
+- **Wilders:** Flora+Atheus, Nakoruru+Atheus, Solise+Flora, Saurus+Atheus
+- **Graveborns:** Thoran+Grezhul, Kelthur+Thoran, Olgath+Thoran, Crassio+Grezhul
+- **Mages:** Walker+Tasi, Mehira+Walker, Rem+Tasi
+- **Speed/Burst:** Eironn+Lyca, Drez+Zikis, Ezio+Joker, Theowyn+Ezizh
+- **Hypogeans:** Ezizh+Mehira, Baden+Ezizh
+- **Celestials/Revive:** Talene+Gwyneth, Talene+Saurus
+- **Collabs/Dimensionais:** Ainz+Albedo, Wu Kong+Nakoruru, Mulan+QUEEN
+
+#### `TeamScorer::classBalance` refinado
+Antes: `tank?+0.3 / support?+0.3 / unique*0.08`. Agora:
+- Mantém presença de tank (+0.3) e support (+0.3)
+- Variedade reduzida: `unique * 0.05` (antes 0.08)
+- **Penalidade de over-stacking**: `-0.15` quando 4+ heróis da mesma classe
+- **Bônus de comp balanceada**: `+0.10` quando ≥3 classes únicas E inclui tank
+- Score garantido ≥ 0 (max já era ~1.0 + bônus)
+
+Resultado: time balanceado padrão (tank+support+5 classes) = 0.95 (antes 1.0). Time 4-rangers + tank = 0.25 (antes 0.62). Time sem tank/support com 3 classes = 0.15 (antes 0.24).
+
+#### `PowerCalculator` com bônus F3/F9
+Antes: `asc*100 + level + SI*5 + furniture*30 + eng*0.5`. Agora soma:
+- `+100` quando `furniture >= 3` (F3 unlock — habilidade transformadora)
+- `+200` adicional quando `furniture >= 9` (F9 unlock — versão mais forte)
+
+Reflete que os móveis F3/F9 desbloqueiam habilidades transformadoras (não apenas o stat boost de 30/peça). Herói full power: 2360 → 2660 (+12.7%).
+
+#### Profiles de scoring afinados
+- **Dream Realm**: power 1.5 → 2.0; class 0.6 → 0.4; faction 0.7 → 0.5 (boss = pure DPS)
+- **Arena of Heroes**: synergy 1.3 → 1.5; class 0.8 → 0.9 (PvP exige meta comp)
+- **Cursed Realm**: faction 1.0 → 0.9; class 1.0 → 1.3 (modificadores recompensam variedade)
+
+#### Testes
+- `TeamScorerTest`: 3 cenários atualizados pros novos valores + 1 novo teste cobrindo over-stacking penalty.
+- Novo `tests/Unit/Optimization/PowerCalculatorTest.php` (4 cenários — fórmula base, F3, F3+F9 cumulativo, threshold entre 3 e 9).
+- **118 testes verdes** no projeto.
 - **Testes:** 4 cenários (`GuideTest`) — guest redireciona, index agrupa por categoria com counts, show renderiza com categoryLabel, 404 em slug inexistente. **98 testes verdes** no projeto.
 - Helper `tierFromAscension(ascensionValue)` em `lib/afk.ts`: 0-3 → `common`, 4-9 → `legendary`, 10+ → `ascended`.
 - `hero-card.tsx`: quando `userHero` está presente, badge mostra o tier ATINGIDO (estado real do user). Sem roster, mostra o max potencial do herói.
