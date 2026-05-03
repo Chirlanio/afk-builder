@@ -8,6 +8,7 @@ import { HeroPool } from '@/components/formation-editor/hero-pool';
 import { TeamRow, type TeamSlotsState } from '@/components/formation-editor/team-row';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
@@ -81,6 +82,7 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
     const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
     const [versions, setVersions] = useState<Array<{ id: number; created_at: string | null; team_count: number; hero_count: number; name: string | null }>>([]);
     const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+    const { confirm, dialog: confirmDialog } = useConfirm();
     const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
 
     const enforceUnique = formation.challenge_type.teams_must_be_unique;
@@ -311,10 +313,14 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
         }
     };
 
-    const restoreVersion = (versionId: number) => {
-        if (!confirm('Restaurar esta versão? A versão atual será salva no histórico antes de ser substituída.')) {
-            return;
-        }
+    const restoreVersion = async (versionId: number) => {
+        const ok = await confirm({
+            title: 'Restaurar esta versão?',
+            description: 'A versão atual será salva no histórico antes de ser substituída.',
+            confirmLabel: 'Restaurar',
+        });
+        if (!ok) return;
+
         router.post(
             `/formations/${formation.id}/versions/${versionId}/restore`,
             {},
@@ -557,6 +563,8 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
                         )}
                     </DialogContent>
                 </Dialog>
+
+                {confirmDialog}
 
                 <DragOverlay dropAnimation={null}>
                     {activeDragHero && activeDragFaction && activeDragClass && activeDragTier ? (

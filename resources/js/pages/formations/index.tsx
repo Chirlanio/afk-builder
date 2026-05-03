@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
@@ -21,9 +22,16 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Formações', href: '/formation
 
 export default function FormationsIndex({ formations }: PageProps) {
     const [selected, setSelected] = useState<number[]>([]);
+    const { confirm, dialog: confirmDialog } = useConfirm();
 
-    const remove = (formation: FormationListItem) => {
-        if (!confirm(`Remover a formação "${formation.name}"?`)) return;
+    const remove = async (formation: FormationListItem) => {
+        const ok = await confirm({
+            title: `Remover "${formation.name}"?`,
+            description: 'Esta ação não pode ser desfeita. Todas as equipes e versões da formação serão apagadas.',
+            confirmLabel: 'Remover',
+            variant: 'destructive',
+        });
+        if (!ok) return;
         router.delete(`/formations/${formation.id}`, { preserveScroll: true });
     };
 
@@ -159,6 +167,7 @@ export default function FormationsIndex({ formations }: PageProps) {
                     </div>
                 )}
             </div>
+            {confirmDialog}
         </AppLayout>
     );
 }

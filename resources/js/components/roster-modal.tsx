@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,6 +46,8 @@ export function RosterModal({ open, onOpenChange, hero, factionCode, tierCode, u
         engraving: userHero?.engraving ?? 0,
         notes: userHero?.notes ?? '',
     });
+
+    const { confirm, dialog: confirmDialog } = useConfirm();
 
     useEffect(() => {
         if (!open || !hero) return;
@@ -90,9 +93,15 @@ export function RosterModal({ open, onOpenChange, hero, factionCode, tierCode, u
         }
     };
 
-    const remove = () => {
+    const remove = async () => {
         if (!userHero) return;
-        if (!confirm(`Remover ${hero.name} do seu roster?`)) return;
+        const ok = await confirm({
+            title: `Remover ${hero.name} do roster?`,
+            description: 'Os atributos cadastrados (nível, ascensão, Assinatura/Móveis/Inscrições) serão perdidos.',
+            confirmLabel: 'Remover',
+            variant: 'destructive',
+        });
+        if (!ok) return;
 
         form.delete(`/user/heroes/${userHero.id}`, {
             preserveScroll: true,
@@ -103,6 +112,8 @@ export function RosterModal({ open, onOpenChange, hero, factionCode, tierCode, u
     const maxLevel = tierTheme?.maxLevel ?? 240;
 
     return (
+        <>
+        {confirmDialog}
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
@@ -234,5 +245,6 @@ export function RosterModal({ open, onOpenChange, hero, factionCode, tierCode, u
                 </form>
             </DialogContent>
         </Dialog>
+        </>
     );
 }
