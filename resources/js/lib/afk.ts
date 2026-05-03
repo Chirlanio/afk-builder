@@ -198,6 +198,18 @@ export function tierFromAscension(ascensionValue: number | null | undefined): Ti
 }
 
 /**
+ * Conta as estrelas de Ascendido a partir do ascension_value (0-16).
+ * Ascended 1★=12, 2★=13, ..., 5★=16. Abaixo de 12 retorna 0/5 (Ascendido sem estrelas)
+ * ou 0/0 (não-Ascendido).
+ */
+export function ascendedStars(ascensionValue: number | null | undefined): { filled: number; total: number } {
+    const v = ascensionValue ?? 0;
+    if (v >= 12) return { filled: v - 11, total: 5 };
+    if (v >= 10) return { filled: 0, total: 5 };
+    return { filled: 0, total: 0 };
+}
+
+/**
  * Retorna o valor de um campo no idioma escolhido, com fallback para o original (EN).
  * Para PT-BR, usa `field_pt` se preenchido; senão devolve o `field` original.
  */

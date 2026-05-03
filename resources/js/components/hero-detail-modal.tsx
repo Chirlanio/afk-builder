@@ -33,6 +33,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+    ascendedStars,
     CLASS_ICON,
     CLASS_LABEL,
     FACTION_THEME,
@@ -202,13 +203,14 @@ interface ContentProps {
 }
 
 function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, onMutation, onClose, onNavigate }: ContentProps) {
-    const { hero, userHero, synergies, availableArtifacts } = data;
+    const { hero, userHero, synergies, availableArtifacts, availableCollections: _ } = data;
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     const factionTheme = FACTION_THEME[hero.faction.code as FactionCode];
     const ClassIcon = CLASS_ICON[hero.hero_class.code as ClassCode];
     const displayTierCode: TierCode = userHero ? tierFromAscension(userHero.ascension_value) : (hero.tier.code as TierCode);
     const tierTheme = TIER_THEME[displayTierCode];
+    const stars = userHero ? ascendedStars(userHero.ascension_value) : { filled: 0, total: 0 };
 
     const owned = userHero !== null;
     const awakened = hero.is_awakened;
@@ -240,129 +242,123 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
         <>
             {confirmDialog}
 
-            {/* Header */}
-            <header className={cn('flex items-start justify-between gap-3 border-b p-4', factionTheme.cardGradient)}>
-                <div className="flex flex-col gap-1.5">
-                    <DialogTitle className="flex flex-wrap items-center gap-2 text-2xl font-semibold leading-tight">
-                        <span className={cn(awakened && 'bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 bg-clip-text text-transparent')}>
-                            {hero.name}
-                        </span>
-                        {hero.title && <span className="text-sm font-normal text-muted-foreground">· {hero.title}</span>}
-                    </DialogTitle>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge className={cn('gap-1', factionTheme.headerBg, factionTheme.headerText)}>{hero.faction.name_pt}</Badge>
-                        <Badge variant="outline" className="gap-1">
-                            <ClassIcon className="size-3" />
-                            {CLASS_LABEL[hero.hero_class.code as ClassCode]}
-                        </Badge>
-                        {hero.type && (() => {
-                            const TypeIcon = HERO_TYPE_ICON[hero.type];
-                            return (
-                                <Badge variant="outline" className={cn('gap-1', HERO_TYPE_BADGE[hero.type])}>
-                                    <TypeIcon className="size-3" />
-                                    {HERO_TYPE_LABEL[hero.type]}
-                                </Badge>
-                            );
-                        })()}
-                        <Badge className={cn('text-xs', tierTheme.badge)}>{tierTheme.label}</Badge>
-                        {awakened && (
-                            <Badge className="gap-1 bg-gradient-to-r from-rose-500 via-amber-400 to-rose-500 text-white">
-                                <Flame className="size-3" />
-                                Desperto
+            {/* Header centralizado: tier+stars > title > name > badges */}
+            <header className={cn('relative border-b p-4', factionTheme.cardGradient)}>
+                <Button size="icon" variant="ghost" onClick={onClose} className="absolute right-2 top-2 size-7">
+                    <X className="size-4" />
+                </Button>
+
+                <DialogTitle asChild>
+                    <div className="flex flex-col items-center gap-1.5 text-center">
+                        {/* Tier + Stars */}
+                        <div className="flex items-center gap-2">
+                            <Badge className={cn('px-3 py-0.5 text-xs uppercase tracking-wide', tierTheme.badge)}>
+                                {tierTheme.label}
                             </Badge>
+                            {stars.total > 0 && (
+                                <div className="flex gap-0.5">
+                                    {Array.from({ length: stars.total }).map((_, i) => (
+                                        <Star
+                                            key={i}
+                                            className={cn('size-3.5', i < stars.filled ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/40')}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Title (subtitle) */}
+                        {hero.title && (
+                            <p className="text-xs uppercase tracking-wider text-muted-foreground">{hero.title}</p>
                         )}
-                        {hero.role_label && <Badge variant="secondary">{hero.role_label}</Badge>}
+
+                        {/* Hero Name */}
+                        <h1 className={cn(
+                            'text-2xl font-bold leading-tight sm:text-3xl',
+                            awakened && 'bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 bg-clip-text text-transparent',
+                            !awakened && factionTheme.headerText,
+                        )}>
+                            {hero.name}
+                        </h1>
+
+                        {/* Badges */}
+                        <div className="flex flex-wrap items-center justify-center gap-1.5">
+                            <Badge className={cn('gap-1', factionTheme.headerBg, factionTheme.headerText)}>{hero.faction.name_pt}</Badge>
+                            <Badge variant="outline" className="gap-1">
+                                <ClassIcon className="size-3" />
+                                {CLASS_LABEL[hero.hero_class.code as ClassCode]}
+                            </Badge>
+                            {hero.type && (() => {
+                                const TypeIcon = HERO_TYPE_ICON[hero.type];
+                                return (
+                                    <Badge variant="outline" className={cn('gap-1', HERO_TYPE_BADGE[hero.type])}>
+                                        <TypeIcon className="size-3" />
+                                        {HERO_TYPE_LABEL[hero.type]}
+                                    </Badge>
+                                );
+                            })()}
+                            {awakened && (
+                                <Badge className="gap-1 bg-gradient-to-r from-rose-500 via-amber-400 to-rose-500 text-white">
+                                    <Flame className="size-3" />
+                                    Desperto
+                                </Badge>
+                            )}
+                            {hero.role_label && <Badge variant="secondary">{hero.role_label}</Badge>}
+                        </div>
                     </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    {owned ? (
-                        <>
-                            <Button size="sm" variant="outline" onClick={onEditRoster}>
-                                <Pencil className="size-3" />
-                                Editar
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={handleRemoveFromRoster} className="border-destructive/40 text-destructive hover:bg-destructive/10">
-                                <Trash2 className="size-3" />
-                                Remover
-                            </Button>
-                        </>
-                    ) : (
-                        <Button size="sm" onClick={onEditRoster}>
-                            <Plus className="size-3" />
-                            Adicionar ao roster
-                        </Button>
-                    )}
-                    <Button size="icon" variant="ghost" onClick={onClose} className="size-7">
-                        <X className="size-4" />
-                    </Button>
-                </div>
+                </DialogTitle>
             </header>
 
-            {/* Upper: 3-col paperdoll */}
-            <section className="grid grid-cols-1 gap-3 p-4 md:grid-cols-[1fr_minmax(200px,280px)_1fr]">
-                {/* Esquerda: Artefato, Coleção, Assinatura */}
-                <div className="flex flex-col gap-2">
+            {/* Upper: 3-col paperdoll com slots quadrados */}
+            <section className="grid grid-cols-[1fr_minmax(220px,320px)_1fr] gap-3 p-4">
+                {/* Esquerda: Artefato / Coleção / Assinatura */}
+                <div className="grid grid-cols-1 gap-2">
                     <HeroSlotCard
                         icon={Gem}
                         label="Artefato"
                         empty={!userHero?.artifact}
-                        accentClass={userHero?.artifact ? 'border-violet-500/40' : undefined}
-                    >
-                        {userHero?.artifact && (
-                            <div className="flex items-center gap-2">
-                                {userHero.artifact.portrait_url && (
-                                    <img src={userHero.artifact.portrait_url} alt="" className="size-10 shrink-0 rounded object-contain" />
-                                )}
-                                <div className="min-w-0 flex-1">
-                                    <div className="truncate text-xs font-medium">{userHero.artifact.name}</div>
-                                    {userHero.artifact_star_level !== null && (
-                                        <div className="text-[10px] text-amber-500">
-                                            {'★'.repeat(userHero.artifact_star_level)}
-                                            {'☆'.repeat(userHero.artifact.max_stars - userHero.artifact_star_level)}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </HeroSlotCard>
+                        imageUrl={userHero?.artifact?.portrait_url}
+                        accentClass={userHero?.artifact ? 'border-violet-500/60' : undefined}
+                        detail={userHero?.artifact && userHero.artifact_star_level !== null ? (
+                            <span className="text-amber-500">
+                                {'★'.repeat(userHero.artifact_star_level)}
+                                {'☆'.repeat(userHero.artifact.max_stars - userHero.artifact_star_level)}
+                            </span>
+                        ) : undefined}
+                    />
 
                     <HeroSlotCard
                         icon={Package}
                         label="Coleção"
                         empty={!userHero?.collection}
-                        accentClass={userHero?.collection ? 'border-fuchsia-500/40' : undefined}
-                    >
-                        {userHero?.collection && (
-                            <div className="flex items-center gap-2">
-                                {userHero.collection.portrait_url ? (
-                                    <img src={userHero.collection.portrait_url} alt="" className="size-10 shrink-0 rounded object-contain" />
-                                ) : (
-                                    <div className="grid size-10 shrink-0 place-items-center rounded border bg-muted/30">
-                                        <Package className="size-5 text-muted-foreground" />
-                                    </div>
-                                )}
-                                <div className="min-w-0 flex-1">
-                                    <div className="truncate text-xs font-medium">{userHero.collection.name}</div>
-                                    <div className="text-[10px] text-muted-foreground">
-                                        {userHero.collection.hp_bonus > 0 && <span>HP+{userHero.collection.hp_bonus} </span>}
-                                        {userHero.collection.attack_bonus > 0 && <span>ATK+{userHero.collection.attack_bonus} </span>}
-                                        {userHero.collection.defense_bonus > 0 && <span>DEF+{userHero.collection.defense_bonus}</span>}
-                                    </div>
-                                </div>
+                        imageUrl={userHero?.collection?.portrait_url}
+                        accentClass={userHero?.collection ? 'border-fuchsia-500/60' : undefined}
+                        detail={userHero?.collection && (
+                            <div className="flex flex-wrap justify-center gap-x-1 text-[9px] text-muted-foreground">
+                                {userHero.collection.hp_bonus > 0 && <span>HP+{userHero.collection.hp_bonus}</span>}
+                                {userHero.collection.attack_bonus > 0 && <span>ATK+{userHero.collection.attack_bonus}</span>}
+                                {userHero.collection.defense_bonus > 0 && <span>DEF+{userHero.collection.defense_bonus}</span>}
                             </div>
                         )}
-                    </HeroSlotCard>
+                    />
 
-                    <HeroSlotCard icon={Star} label="Assinatura" empty={userSI === 0} accentClass={userSI > 0 ? 'border-yellow-500/40' : undefined}>
-                        {userSI > 0 && (
-                            <div className="text-base font-semibold tabular-nums">+{userSI}<span className="ml-1 text-[10px] text-muted-foreground">/40</span></div>
-                        )}
-                    </HeroSlotCard>
+                    <HeroSlotCard
+                        icon={Star}
+                        label="Assinatura"
+                        empty={userSI === 0}
+                        valueText={userSI > 0 ? `+${userSI}` : undefined}
+                        detail={userSI > 0 && <span className="text-muted-foreground">/40</span>}
+                        accentClass={userSI > 0 ? 'border-yellow-500/60' : undefined}
+                    />
                 </div>
 
-                {/* Centro: portrait */}
-                <div className="flex flex-col items-center gap-2">
-                    <div className={cn('relative aspect-[3/4] w-full overflow-hidden rounded-lg border-2', factionTheme.cardGradient, awakened ? 'border-amber-400/90 shadow-[0_0_18px_-2px_rgba(251,191,36,0.55)]' : factionTheme.cardBorder)}>
+                {/* Centro: portrait + power + stats strip */}
+                <div className="flex flex-col items-center gap-3">
+                    <div className={cn(
+                        'relative aspect-[3/4] w-full overflow-hidden rounded-lg border-2',
+                        factionTheme.cardGradient,
+                        awakened ? 'border-amber-400/90 shadow-[0_0_18px_-2px_rgba(251,191,36,0.55)]' : factionTheme.cardBorder,
+                    )}>
                         {hero.portrait_url ? (
                             <img src={hero.portrait_url} alt={hero.name} className="size-full object-contain object-bottom" />
                         ) : (
@@ -370,15 +366,34 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                         )}
                     </div>
 
+                    {/* Power score */}
+                    {userHero?.power_rating !== undefined && (
+                        <div className="flex flex-col items-center">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Pontuação</span>
+                            <span className="text-2xl font-bold tabular-nums">{userHero.power_rating.toLocaleString('pt-BR')}</span>
+                        </div>
+                    )}
+
+                    {/* Stats strip */}
                     {owned && userHero ? (
-                        <div className="flex w-full items-center justify-center gap-1.5 text-xs">
-                            <Badge variant="secondary">Nv {userHero.level}</Badge>
-                            {userHero.ascension_code && (
-                                <Badge variant="secondary" className="text-[10px]">{userHero.ascension_code.replace(/_/g, ' ')}</Badge>
+                        <div className="flex w-full items-center justify-center gap-3 rounded-md border bg-muted/30 px-3 py-1.5 text-xs">
+                            <div className="flex flex-col items-center">
+                                <span className="text-[9px] uppercase text-muted-foreground">Nível</span>
+                                <span className="font-semibold tabular-nums">{userHero.level}</span>
+                            </div>
+                            {stats && (
+                                <>
+                                    <Divider />
+                                    <StatColumn label="HP" value={stats.hp} />
+                                    <Divider />
+                                    <StatColumn label="ATK" value={stats.attack} />
+                                    <Divider />
+                                    <StatColumn label="DEF" value={stats.defense} />
+                                </>
                             )}
                         </div>
                     ) : (
-                        <p className="text-[10px] text-muted-foreground">Não cadastrado no roster.</p>
+                        <p className="text-xs text-muted-foreground">Não cadastrado no roster.</p>
                     )}
 
                     {hero.source_url && (
@@ -394,59 +409,86 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     )}
                 </div>
 
-                {/* Direita: Móveis, Inscrições, Notas */}
-                <div className="flex flex-col gap-2">
-                    <HeroSlotCard icon={Hotel} label="Móveis" empty={userFurniture === 0} accentClass={userFurniture >= 9 ? 'border-amber-400/60' : userFurniture >= 3 ? 'border-emerald-500/40' : undefined}>
-                        {userFurniture > 0 && (
-                            <div className="flex items-center justify-between gap-2">
-                                <div className="text-base font-semibold tabular-nums">{userFurniture}<span className="ml-1 text-[10px] text-muted-foreground">/9</span></div>
-                                <div className="flex gap-1">
-                                    <Badge variant={f3Unlocked ? 'default' : 'outline'} className={cn('h-4 px-1 text-[9px]', f3Unlocked && 'bg-emerald-500')}>
-                                        {f3Unlocked ? <Unlock className="size-2" /> : <Lock className="size-2" />}
-                                        F3
-                                    </Badge>
-                                    <Badge variant={f9Unlocked ? 'default' : 'outline'} className={cn('h-4 px-1 text-[9px]', f9Unlocked && 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900')}>
-                                        {f9Unlocked ? <Unlock className="size-2" /> : <Lock className="size-2" />}
-                                        F9
-                                    </Badge>
-                                </div>
+                {/* Direita: Móveis / Inscrições / Notas */}
+                <div className="grid grid-cols-1 gap-2">
+                    <HeroSlotCard
+                        icon={Hotel}
+                        label="Móveis"
+                        empty={userFurniture === 0}
+                        valueText={userFurniture > 0 ? `${userFurniture}/9` : undefined}
+                        accentClass={f9Unlocked ? 'border-amber-400/60' : f3Unlocked ? 'border-emerald-500/60' : undefined}
+                        detail={userFurniture > 0 && (
+                            <div className="flex gap-1">
+                                <Badge variant={f3Unlocked ? 'default' : 'outline'} className={cn('h-3.5 px-1 text-[8px]', f3Unlocked && 'bg-emerald-500')}>
+                                    {f3Unlocked ? <Unlock className="size-2" /> : <Lock className="size-2" />}
+                                    F3
+                                </Badge>
+                                <Badge variant={f9Unlocked ? 'default' : 'outline'} className={cn('h-3.5 px-1 text-[8px]', f9Unlocked && 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900')}>
+                                    {f9Unlocked ? <Unlock className="size-2" /> : <Lock className="size-2" />}
+                                    F9
+                                </Badge>
                             </div>
                         )}
-                    </HeroSlotCard>
+                    />
 
-                    <HeroSlotCard icon={PenLine} label="Inscrições" empty={userEngraving === 0} accentClass={userEngraving > 0 ? 'border-blue-500/40' : undefined}>
-                        {userEngraving > 0 && (
-                            <div className="text-base font-semibold tabular-nums">+{userEngraving}<span className="ml-1 text-[10px] text-muted-foreground">/100</span></div>
-                        )}
-                    </HeroSlotCard>
+                    <HeroSlotCard
+                        icon={PenLine}
+                        label="Inscrições"
+                        empty={userEngraving === 0}
+                        valueText={userEngraving > 0 ? `+${userEngraving}` : undefined}
+                        detail={userEngraving > 0 && <span className="text-muted-foreground">/100</span>}
+                        accentClass={userEngraving > 0 ? 'border-blue-500/60' : undefined}
+                    />
 
-                    <HeroSlotCard icon={Sparkles} label="Notas" empty={!userHero?.notes}>
-                        {userHero?.notes && <p className="line-clamp-3 text-[11px] text-muted-foreground">{userHero.notes}</p>}
+                    <HeroSlotCard
+                        icon={Sparkles}
+                        label="Notas"
+                        empty={!userHero?.notes}
+                    >
+                        {userHero?.notes && <p className="line-clamp-3 text-[10px] text-muted-foreground">{userHero.notes}</p>}
                     </HeroSlotCard>
                 </div>
             </section>
 
+            {/* Action footer (acima das tabs) */}
+            <section className="flex flex-wrap items-center justify-center gap-2 border-y bg-muted/20 px-4 py-3">
+                {owned ? (
+                    <>
+                        <Button size="sm" variant="default" onClick={onEditRoster}>
+                            <Pencil className="size-3" />
+                            Editar Roster
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleRemoveFromRoster} className="border-destructive/40 text-destructive hover:bg-destructive/10">
+                            <Trash2 className="size-3" />
+                            Remover
+                        </Button>
+                    </>
+                ) : (
+                    <Button size="sm" onClick={onEditRoster}>
+                        <Plus className="size-3" />
+                        Adicionar ao Roster
+                    </Button>
+                )}
+                {isAdmin && (
+                    <Button size="sm" variant="outline" onClick={onEditStats}>
+                        <BarChart3 className="size-3" />
+                        Editar Stats
+                    </Button>
+                )}
+            </section>
+
             {/* Lower: Tabs */}
-            <section className="border-t">
+            <section>
                 <Tabs defaultValue="detalhes" className="flex flex-col gap-3 p-4">
-                    <TabsList className="self-start">
+                    <TabsList className="self-center">
                         <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
                         <TabsTrigger value="historia">História</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="detalhes" className="flex flex-col gap-4">
                         {/* Stats */}
-                        <SectionBlock icon={BarChart3} title="Estatísticas Base"
-                            action={isAdmin && (
-                                <Button size="sm" variant="outline" onClick={onEditStats} className="ml-auto h-7">
-                                    <Pencil className="size-3" />
-                                    Editar
-                                </Button>
-                            )}
-                        >
-                            {stats ? <StatsGrid stats={stats} /> : (
-                                <Empty>Estatísticas base ainda não cadastradas.</Empty>
-                            )}
+                        <SectionBlock icon={BarChart3} title="Estatísticas Base">
+                            {stats ? <StatsGrid stats={stats} /> : <Empty>Estatísticas base ainda não cadastradas.</Empty>}
                         </SectionBlock>
 
                         {/* Abilities */}
@@ -466,9 +508,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                                                         {ABILITY_TYPE_LABEL[ability.type] ?? ability.type}
                                                     </Badge>
                                                     {ability.ascension_unlock && (
-                                                        <Badge variant="outline" className="text-[10px]">
-                                                            {ability.ascension_unlock}
-                                                        </Badge>
+                                                        <Badge variant="outline" className="text-[10px]">{ability.ascension_unlock}</Badge>
                                                     )}
                                                 </div>
                                                 {abilityDesc && (
@@ -571,18 +611,16 @@ interface SectionBlockProps {
     icon: typeof BarChart3;
     title: string;
     extra?: React.ReactNode;
-    action?: React.ReactNode;
     children: React.ReactNode;
 }
 
-function SectionBlock({ icon: Icon, title, extra, action, children }: SectionBlockProps) {
+function SectionBlock({ icon: Icon, title, extra, children }: SectionBlockProps) {
     return (
         <section className="flex flex-col gap-2">
             <h2 className="flex items-center gap-2 text-base font-semibold">
                 <Icon className="size-4 text-primary" />
                 {title}
                 {extra}
-                {action}
             </h2>
             {children}
         </section>
@@ -591,6 +629,19 @@ function SectionBlock({ icon: Icon, title, extra, action, children }: SectionBlo
 
 function Empty({ children }: { children: React.ReactNode }) {
     return <div className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">{children}</div>;
+}
+
+function Divider() {
+    return <span className="h-6 w-px bg-border" />;
+}
+
+function StatColumn({ label, value }: { label: string; value: number | null }) {
+    return (
+        <div className="flex flex-col items-center">
+            <span className="text-[9px] uppercase text-muted-foreground">{label}</span>
+            <span className="font-semibold tabular-nums">{value === null ? '—' : value.toLocaleString('pt-BR')}</span>
+        </div>
+    );
 }
 
 function StatsGrid({ stats }: { stats: HeroStats }) {
@@ -609,5 +660,4 @@ function StatsGrid({ stats }: { stats: HeroStats }) {
     );
 }
 
-// Re-export so consumers can mount CreateHeroModal alongside if needed
 export { CreateHeroModal };

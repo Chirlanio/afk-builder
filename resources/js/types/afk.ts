@@ -153,6 +153,7 @@ export interface UserHero {
     collection_id: number | null;
     collection?: Collection | null;
     notes: string | null;
+    power_rating?: number;
 }
 
 export type RosterByHeroId = Record<number, UserHero>;

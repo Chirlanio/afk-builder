@@ -111,11 +111,16 @@ export function CollectionFormModal({ open, onOpenChange, collection, onSaved }:
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
-                <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
-                    <Package className="size-5 text-primary" />
-                    {isEditing ? 'Editar coleção' : 'Nova coleção'}
+                <DialogTitle asChild>
+                    <div className="flex flex-col items-center gap-1 text-center">
+                        <span className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                            <Package className="size-3" />
+                            Galeria Tenebrosa
+                        </span>
+                        <h2 className="text-xl font-bold leading-tight">{isEditing ? 'Editar coleção' : 'Nova coleção'}</h2>
+                    </div>
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-center">
                     Coleções da Galeria Tenebrosa fornecem bônus de HP/ATK/DEF e ocupam o slot de artefato do herói.
                 </DialogDescription>
 

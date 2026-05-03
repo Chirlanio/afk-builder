@@ -9,6 +9,7 @@ use App\Models\Hero;
 use App\Models\HeroClass;
 use App\Models\HeroSynergy;
 use App\Models\Tier;
+use App\Services\Optimization\PowerCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,7 +74,7 @@ class HeroController extends Controller
     /**
      * Retorna JSON com os dados completos do herói para a HeroDetailModal carregar via axios.
      */
-    public function details(Request $request, string $slug): JsonResponse
+    public function details(Request $request, string $slug, PowerCalculator $power): JsonResponse
     {
         $hero = Hero::query()
             ->where('slug', $slug)
@@ -104,6 +105,12 @@ class HeroController extends Controller
                 'signature_item', 'furniture', 'engraving',
                 'artifact_id', 'artifact_star_level', 'collection_id', 'notes',
             ]);
+
+        $userHeroPayload = null;
+        if ($userHero) {
+            $userHeroPayload = $userHero->toArray();
+            $userHeroPayload['power_rating'] = (int) round($power->forUserHero($userHero, $hero));
+        }
 
         $availableCollections = Collection::query()
             ->where('is_active', true)
@@ -161,7 +168,7 @@ class HeroController extends Controller
 
         return response()->json([
             'hero' => $heroPayload,
-            'userHero' => $userHero,
+            'userHero' => $userHeroPayload,
             'synergies' => $synergies,
             'availableArtifacts' => $availableArtifacts,
             'availableCollections' => $availableCollections,

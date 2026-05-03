@@ -83,11 +83,16 @@ export function StatsEditModal({ open, onOpenChange, hero, stats, onSaved }: Pro
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl">
-                <DialogTitle className="flex items-center gap-2">
-                    <BarChart3 className="size-5 text-primary" />
-                    Estatísticas Base — <span className="font-bold">{hero.name}</span>
+                <DialogTitle asChild>
+                    <div className="flex flex-col items-center gap-1 text-center">
+                        <span className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                            <BarChart3 className="size-3" />
+                            Estatísticas base
+                        </span>
+                        <h2 className="text-xl font-bold leading-tight">{hero.name}</h2>
+                    </div>
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-center">
                     Cadastre os atributos <strong>base</strong> do herói (Nv 1, sem progressão). Campos vazios não são cadastrados; se todos forem deixados em branco, o registro é apagado.
                 </DialogDescription>
 

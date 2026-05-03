@@ -111,9 +111,14 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto p-0">
                 <header className={cn('border-b p-4', factionTheme?.cardGradient)}>
-                    <DialogTitle className="text-xl font-semibold">
-                        {isEditing ? 'Editar' : 'Adicionar ao roster'} — <span className="font-bold">{hero.name}</span>
-                        {hero.title && <span className="ml-2 text-sm font-normal text-muted-foreground">· {hero.title}</span>}
+                    <DialogTitle asChild>
+                        <div className="flex flex-col items-center gap-1 text-center">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                {isEditing ? 'Editar roster' : 'Adicionar ao roster'}
+                            </span>
+                            {hero.title && <p className="text-xs uppercase tracking-wider text-muted-foreground">{hero.title}</p>}
+                            <h2 className={cn('text-2xl font-bold leading-tight', factionTheme?.headerText)}>{hero.name}</h2>
+                        </div>
                     </DialogTitle>
                 </header>
 

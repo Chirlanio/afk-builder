@@ -6,17 +6,22 @@ interface SlotCardProps {
     icon: LucideIcon;
     label: string;
     empty?: boolean;
-    children?: ReactNode;
+    /** Imagem dominante quando preenchido (estilo equipamento). */
+    imageUrl?: string | null;
+    /** Texto compacto exibido no centro quando não há imagem (ex: "+40", "3/9"). */
+    valueText?: ReactNode;
+    /** Subtítulo / detalhe (estrelas, badges F3/F9, etc). */
+    detail?: ReactNode;
     accentClass?: string;
     onClick?: () => void;
     className?: string;
 }
 
 /**
- * Card visual que representa um slot de equipamento/atributo do herói (estilo paperdoll).
- * Usado tanto na visualização (read-only) quanto na edição (com onClick interativo).
+ * Slot quadrado estilo paperdoll: imagem do item dominando o slot, label sobreposta no topo.
+ * Empty state mostra ícone placeholder + label.
  */
-export function HeroSlotCard({ icon: Icon, label, empty = false, children, accentClass, onClick, className }: SlotCardProps) {
+export function HeroSlotCard({ icon: Icon, label, empty = false, imageUrl, valueText, detail, accentClass, onClick, className }: SlotCardProps) {
     const Wrapper = onClick ? 'button' : 'div';
 
     return (
@@ -24,19 +29,40 @@ export function HeroSlotCard({ icon: Icon, label, empty = false, children, accen
             type={onClick ? 'button' : undefined}
             onClick={onClick}
             className={cn(
-                'flex min-h-[88px] flex-col gap-1 rounded-lg border bg-card p-2 text-left transition-colors',
-                onClick && 'cursor-pointer hover:border-foreground/30 hover:bg-accent',
-                empty && 'border-dashed bg-muted/30 text-muted-foreground',
+                'group relative flex aspect-square w-full flex-col overflow-hidden rounded-lg border-2 bg-card text-left transition-all',
+                empty
+                    ? 'border-dashed border-muted-foreground/30 bg-muted/20 text-muted-foreground'
+                    : 'border-foreground/10 shadow-sm',
+                onClick && 'cursor-pointer hover:scale-[1.02] hover:border-foreground/40',
                 accentClass,
                 className,
             )}
         >
-            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            {/* Label badge no topo */}
+            <div className="absolute left-1 top-1 z-10 flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide backdrop-blur-sm">
                 <Icon className="size-3" />
                 <span>{label}</span>
             </div>
-            <div className="flex flex-1 flex-col justify-center text-xs">
-                {empty ? <span className="text-muted-foreground">vazio</span> : children}
+
+            {/* Conteúdo */}
+            <div className="flex size-full flex-col items-center justify-center gap-1 p-1">
+                {empty ? (
+                    <div className="flex flex-col items-center gap-1 opacity-40">
+                        <Icon className="size-8" />
+                    </div>
+                ) : imageUrl ? (
+                    <>
+                        <img src={imageUrl} alt={label} className="max-h-[60%] w-auto object-contain" />
+                        {detail && <div className="text-[10px] leading-tight">{detail}</div>}
+                    </>
+                ) : (
+                    <>
+                        {valueText !== undefined && (
+                            <div className="text-xl font-bold leading-none tabular-nums">{valueText}</div>
+                        )}
+                        {detail && <div className="text-[10px] leading-tight">{detail}</div>}
+                    </>
+                )}
             </div>
         </Wrapper>
     );
