@@ -6,9 +6,11 @@ use App\Models\Artifact;
 use App\Models\Collection;
 use App\Models\Hero;
 use App\Models\UserHero;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\Response;
 
 class UserHeroController extends Controller
 {
@@ -21,7 +23,7 @@ class UserHeroController extends Controller
         'ascended_4_stars', 'ascended_5_stars',
     ];
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): Response
     {
         $data = $request->validate($this->validationRules(['hero_id' => ['required', 'integer', Rule::exists('heroes', 'id')->where('is_active', true)]]));
 
@@ -32,7 +34,7 @@ class UserHeroController extends Controller
             $data['level'] = $hero->tier->max_level;
         }
 
-        $request->user()->userHeroes()->updateOrCreate(
+        $userHero = $request->user()->userHeroes()->updateOrCreate(
             ['hero_id' => $data['hero_id']],
             [
                 'level' => $data['level'],
@@ -47,10 +49,13 @@ class UserHeroController extends Controller
             ]
         );
 
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true, 'user_hero' => $userHero]);
+        }
         return back();
     }
 
-    public function update(Request $request, UserHero $userHero): RedirectResponse
+    public function update(Request $request, UserHero $userHero): Response
     {
         abort_unless($userHero->user_id === $request->user()->id, 403);
 
@@ -75,6 +80,9 @@ class UserHeroController extends Controller
             'notes' => $data['notes'] ?? null,
         ]);
 
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true, 'user_hero' => $userHero->fresh()]);
+        }
         return back();
     }
 
@@ -179,12 +187,15 @@ class UserHeroController extends Controller
         ];
     }
 
-    public function destroy(Request $request, UserHero $userHero): RedirectResponse
+    public function destroy(Request $request, UserHero $userHero): Response
     {
         abort_unless($userHero->user_id === $request->user()->id, 403);
 
         $userHero->delete();
 
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
         return back();
     }
 
