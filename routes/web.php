@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\HeroAdminController;
+use App\Http\Controllers\Admin\HeroStatsAdminController;
 use App\Http\Controllers\FormationCompareController;
 use App\Http\Controllers\FormationController;
 use App\Http\Controllers\FormationShareController;
@@ -66,6 +67,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('heroes', [HeroAdminController::class, 'storeManual'])->name('heroes.store');
         Route::patch('heroes/{hero}/approve', [HeroAdminController::class, 'approve'])->name('heroes.approve');
         Route::patch('heroes/{hero}/reject', [HeroAdminController::class, 'reject'])->name('heroes.reject');
+        Route::get('heroes/{slug}/stats', [HeroStatsAdminController::class, 'edit'])
+            ->where('slug', '[a-z0-9-]+')
+            ->name('heroes.stats.edit');
+        Route::patch('heroes/{slug}/stats', [HeroStatsAdminController::class, 'update'])
+            ->where('slug', '[a-z0-9-]+')
+            ->name('heroes.stats.update');
     });
 });
 

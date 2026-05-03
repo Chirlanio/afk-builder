@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, BookText, ExternalLink, Flame, Hotel, ListChecks, Lock, Pencil, Plus, Sparkles, Unlock, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, BookText, ExternalLink, Flame, Hotel, ListChecks, Lock, Pencil, Plus, Sparkles, Unlock, Users } from 'lucide-react';
 import { useState } from 'react';
 import { MarkdownContent } from '@/components/markdown-content';
 import { RosterModal } from '@/components/roster-modal';
@@ -16,6 +16,7 @@ import type {
     FactionCode,
     Hero,
     HeroClass,
+    HeroStats,
     Tier,
     TierCode,
     UserHero,
@@ -54,6 +55,8 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
     const { confirm, dialog: confirmDialog } = useConfirm();
     const { auth } = usePage<SharedData>().props;
     const locale = (auth.user?.locale ?? 'en') as Locale;
+    const isAdmin = auth.user?.is_admin === true;
+    const stats = hero.stats ?? null;
 
     const factionTheme = FACTION_THEME[hero.faction.code as FactionCode];
     const ClassIcon = CLASS_ICON[hero.hero_class.code as ClassCode];
@@ -211,6 +214,35 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                         )}
                     </div>
                 </div>
+
+                {/* Stats */}
+                <section className="flex flex-col gap-2">
+                    <h2 className="flex items-center gap-2 text-lg font-semibold">
+                        <BarChart3 className="size-5 text-primary" />
+                        Estatísticas Base
+                        {isAdmin && (
+                            <Button asChild variant="outline" size="sm" className="ml-auto">
+                                <Link href={`/admin/heroes/${hero.slug}/stats`}>
+                                    <Pencil className="size-3" />
+                                    Editar stats
+                                </Link>
+                            </Button>
+                        )}
+                    </h2>
+                    {stats ? (
+                        <StatsGrid stats={stats} />
+                    ) : (
+                        <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                            {isAdmin ? (
+                                <>
+                                    Stats base ainda não cadastradas. <Link href={`/admin/heroes/${hero.slug}/stats`} className="text-primary underline">Cadastrar agora</Link>.
+                                </>
+                            ) : (
+                                'Estatísticas base ainda não cadastradas.'
+                            )}
+                        </div>
+                    )}
+                </section>
 
                 {/* Abilities */}
                 <section className="flex flex-col gap-2">
@@ -412,5 +444,32 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
             />
             {confirmDialog}
         </AppLayout>
+    );
+}
+
+const STAT_LABELS: Record<keyof Omit<HeroStats, 'id' | 'hero_id'>, string> = {
+    hp: 'HP',
+    attack: 'Ataque',
+    defense: 'Defesa',
+    crit_rate: 'Taxa Crítica',
+    crit_amp: 'Amp. Crítica',
+    accuracy: 'Precisão',
+    dodge: 'Esquiva',
+    haste: 'Pressa',
+};
+
+function StatsGrid({ stats }: { stats: HeroStats }) {
+    const fmt = (v: number | null) => (v === null ? '—' : v.toLocaleString('pt-BR'));
+    const order: (keyof typeof STAT_LABELS)[] = ['hp', 'attack', 'defense', 'crit_rate', 'crit_amp', 'accuracy', 'dodge', 'haste'];
+
+    return (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {order.map((key) => (
+                <div key={key} className="rounded-lg border bg-card p-3">
+                    <div className="text-xs text-muted-foreground">{STAT_LABELS[key]}</div>
+                    <div className="mt-1 text-xl font-semibold tabular-nums">{fmt(stats[key])}</div>
+                </div>
+            ))}
+        </div>
     );
 }

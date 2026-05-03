@@ -57,6 +57,7 @@ Acesse `http://127.0.0.1:8000`. Crie uma conta em `/register` (sem verificação
 | `php artisan heroes:enrich --slug=lucius` | Enriquece um herói específico |
 | `php artisan heroes:enrich --force` | Re-extrai mesmo se já populado |
 | `php artisan heroes:sync-furniture` | Sincroniza habilidades de móveis (F3/F9) da página master Fandom |
+| `php artisan heroes:sync-types` | Popula só `heroes.type` (Strength/Intelligence/Agility) via Fandom |
 | `php artisan content:translate` | Traduz EN→PT-BR (lore, abilities, furniture, guides) via Google Translate |
 | `php artisan content:translate --type=lore --limit=10` | Limita escopo do translate por tipo e quantidade |
 | `php artisan heroes:resolve-images` | Resolve URLs reais da CDN (Special:Filepath → static.wikia.nocookie.net) |
@@ -109,6 +110,8 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 10. Hotel Furniture (habilidades F3/F9 per-hero, sync da Fandom, indicador no perfil) | ✅ |
 | 11. i18n EN/PT-BR (lore, abilities, furniture, guides) com seletor de idioma | ✅ |
 | 12. Ajuste fino do algoritmo (47 synergias, class balance refinado, F3/F9 power bonus, profiles afinados) | ✅ |
+| 13a. Tipo do herói (Força/Inteligência/Agilidade do infobox + sync) | ✅ |
+| 13b. Stats numéricos via UI admin (HP/ATK/DEF/Crit Rate/Crit Amp/Accuracy/Dodge/Haste) | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

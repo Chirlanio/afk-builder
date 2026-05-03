@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 12 — ajuste fino do algoritmo de scoring)
+> **Última atualização:** 2026-05-03 (Fase 13b — UI admin de stats numéricos)
 
 ---
 
@@ -405,6 +405,52 @@ Reflete que os móveis F3/F9 desbloqueiam habilidades transformadoras (não apen
 - `TeamScorerTest`: 3 cenários atualizados pros novos valores + 1 novo teste cobrindo over-stacking penalty.
 - Novo `tests/Unit/Optimization/PowerCalculatorTest.php` (4 cenários — fórmula base, F3, F3+F9 cumulativo, threshold entre 3 e 9).
 - **118 testes verdes** no projeto.
+
+---
+
+### ✅ Fase 13a — Tipo do herói (Strength/Intelligence/Agility)
+
+Categorização básica do herói disponível no infobox da Fandom (`type=`), proxy do perfil de stats: Strength → high HP/DEF, Intelligence → high Magic, Agility → high ATK/Crit.
+
+- **Schema:** `heroes.type` enum `strength|intelligence|agility` nullable (migration `2026_05_03_120000_add_type_to_heroes_table`).
+- **Parser** (`WikitextHeroParser`): nova `TYPE_MAP` aceita `Strength/Intelligence/Agility` (e abreviações `Str/Int/Agi`) → mapeia para os 3 codes. Retorna `null` quando ausente.
+- **`FandomSyncService`**: persiste `type` no upsert de cada hero.
+- **`heroes:enrich`** estendido: agora também atualiza `type` e `role_label` em heróis já importados (mesmo when-null que lore/abilities).
+- **Novo comando `heroes:sync-types`** (`--force`, `--limit`, `--slug`): comando dedicado que só faz fetch + parse + update da coluna type, sem tocar lore/abilities. ~1 min para os 213 heróis.
+- **UI:** badge novo no `pages/heroes/show.tsx` ao lado da classe — Força (rose, ícone Dumbbell), Inteligência (sky, Brain), Agilidade (emerald, Wind). Helpers `HERO_TYPE_LABEL/ICON/BADGE` em `lib/afk.ts`.
+- **Resultado do backfill:** 208/208 heróis ativos populados — Força 62, Inteligência 85, Agilidade 66.
+- **Testes:** 3 novos cenários no `WikitextHeroParserTest` (Strength, Intelligence/Agility extra, ausência → null). **120 testes verdes** no projeto.
+
+---
+
+### ✅ Fase 13b — Stats numéricos via UI admin
+
+Stats base (Nv 1) cadastradas manualmente por admin — Fandom não publica numéricos. Usuários veem read-only.
+
+- **Schema:** tabela `hero_stats` (id, `hero_id` FK unique cascade, hp/attack/defense unsigned int, crit_rate/crit_amp/accuracy/dodge/haste unsigned smallint, todos nullable). Model `HeroStat` 1:1 com `Hero` via `hasOne stats`.
+- **Controller** `Admin\HeroStatsAdminController` (`Gate manage-heroes`):
+  - `edit($slug)` — renderiza `admin/heroes/stats` com hero+stats atual.
+  - `update($slug)` — valida 8 campos (HP/ATK/DEF max 999_999; Crit/Acc/Dodge/Haste max 9_999), normaliza ausentes para null. Se TODOS null → deleta o registro. Senão `updateOrCreate`.
+- **Rotas:**
+  - `GET /admin/heroes/{slug}/stats` (admin.heroes.stats.edit)
+  - `PATCH /admin/heroes/{slug}/stats` (admin.heroes.stats.update)
+- **UI admin** (`pages/admin/heroes/stats.tsx`): grid 2 colunas com 8 campos numéricos, helps por campo, botão "Salvar" / "Cancelar".
+- **UI no perfil** (`pages/heroes/show.tsx`):
+  - Nova seção **Estatísticas Base** entre o header e Habilidades.
+  - Componente `StatsGrid` com 8 cards (label + valor formatado pt-BR).
+  - Quando vazio: dashed placeholder com link "Cadastrar agora" (visível só pra admin) ou mensagem genérica.
+  - Botão **Editar stats** no header da seção (visível só pra admin).
+- **Tipos TS:** `HeroStats` em `types/afk.ts` + `Hero.stats?: HeroStats | null`.
+- **Testes:** 10 cenários (`HeroStatsAdminTest`) — guest redirect, não-admin 403 (GET+PATCH), admin acessa form, cria, atualiza, payload vazio apaga, validação (negativo, string, acima do max), 404 em slug inexistente, payload `show` inclui stats. **130 testes verdes** no projeto.
+
+---
+
+### 🚧 Fase 13c — (futuro) Integrar stats ao optimizer
+
+Quando uma quantidade significativa de stats estiver cadastrada, modelar `PowerCalculator` para usar `HP * 0.6 + ATK * 3 + DEF * 4` (fórmula AFK Arena clássica) com fallback para a fórmula atual quando stats faltam. Não implementado nesta fase.
+
+---
+
 - **Testes:** 4 cenários (`GuideTest`) — guest redireciona, index agrupa por categoria com counts, show renderiza com categoryLabel, 404 em slug inexistente. **98 testes verdes** no projeto.
 - Helper `tierFromAscension(ascensionValue)` em `lib/afk.ts`: 0-3 → `common`, 4-9 → `legendary`, 10+ → `ascended`.
 - `hero-card.tsx`: quando `userHero` está presente, badge mostra o tier ATINGIDO (estado real do user). Sem roster, mostra o max potencial do herói.

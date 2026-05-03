@@ -68,6 +68,7 @@ class HeroController extends Controller
                 'tier:id,code,name_pt,max_level',
                 'abilities' => fn ($q) => $q->orderBy('display_order'),
                 'furnitureAbility',
+                'stats',
             ])
             ->firstOrFail();
 

@@ -59,6 +59,7 @@ export interface Hero {
     lore?: string | null;
     abilities?: HeroAbility[];
     furniture_ability?: HeroFurnitureAbility | null;
+    stats?: HeroStats | null;
     faction?: Faction;
     hero_class?: HeroClass;
     tier?: Tier;
@@ -70,6 +71,19 @@ export interface HeroFurnitureAbility {
     name: string;
     f3_description: string | null;
     f9_description: string | null;
+}
+
+export interface HeroStats {
+    id: number;
+    hero_id: number;
+    hp: number | null;
+    attack: number | null;
+    defense: number | null;
+    crit_rate: number | null;
+    crit_amp: number | null;
+    accuracy: number | null;
+    dodge: number | null;
+    haste: number | null;
 }
 
 export type HeroAbilityType = 'basic' | 'active' | 'passive' | 'ultimate' | 'signature' | 'awakened';

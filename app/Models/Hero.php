@@ -62,6 +62,11 @@ class Hero extends Model
         return $this->hasOne(HeroFurnitureAbility::class);
     }
 
+    public function stats(): HasOne
+    {
+        return $this->hasOne(HeroStat::class);
+    }
+
     public function userHeroes(): HasMany
     {
         return $this->hasMany(UserHero::class);
