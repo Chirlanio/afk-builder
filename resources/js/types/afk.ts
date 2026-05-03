@@ -53,6 +53,24 @@ export interface Hero {
     is_active: boolean;
     pending_review: boolean;
     is_awakened: boolean;
+    lore?: string | null;
+    abilities?: HeroAbility[];
+    faction?: Faction;
+    hero_class?: HeroClass;
+    tier?: Tier;
+}
+
+export type HeroAbilityType = 'basic' | 'active' | 'passive' | 'ultimate' | 'signature' | 'awakened';
+
+export interface HeroAbility {
+    id: number;
+    hero_id: number;
+    name: string;
+    type: HeroAbilityType;
+    display_order: number;
+    ascension_unlock: string | null;
+    description: string | null;
+    effects?: Record<string, unknown> | null;
 }
 
 export interface UserHero {

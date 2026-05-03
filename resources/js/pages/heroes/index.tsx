@@ -1,8 +1,7 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { HeroCard } from '@/components/hero-card';
-import { RosterModal } from '@/components/roster-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +18,6 @@ import type {
     RosterByHeroId,
     Tier,
     TierCode,
-    UserHero,
 } from '@/types/afk';
 
 interface PageProps {
@@ -37,9 +35,6 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
     const [factionFilter, setFactionFilter] = useState<Set<number>>(new Set());
     const [classFilter, setClassFilter] = useState<Set<number>>(new Set());
     const [onlyOwned, setOnlyOwned] = useState(false);
-
-    const [modalHero, setModalHero] = useState<Hero | null>(null);
-    const [modalOpen, setModalOpen] = useState(false);
 
     const factionById = useMemo(() => Object.fromEntries(factions.map((f) => [f.id, f])) as Record<number, Faction>, [factions]);
     const classById = useMemo(() => Object.fromEntries(heroClasses.map((c) => [c.id, c])) as Record<number, HeroClass>, [heroClasses]);
@@ -90,19 +85,9 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
         setOnlyOwned(false);
     };
 
-    const openHeroModal = (hero: Hero) => {
-        setModalHero(hero);
-        setModalOpen(true);
+    const openHero = (hero: Hero) => {
+        router.visit(`/heroes/${hero.slug}`);
     };
-
-    const handleModalChange = (open: boolean) => {
-        setModalOpen(open);
-        if (!open) setTimeout(() => setModalHero(null), 200);
-    };
-
-    const userHeroForModal: UserHero | undefined = modalHero ? roster[modalHero.id] : undefined;
-    const factionCodeForModal = modalHero ? (factionById[modalHero.faction_id]?.code as FactionCode) : null;
-    const tierCodeForModal = modalHero ? (tierById[modalHero.tier_id]?.code as TierCode) : null;
 
     const filtersActive = search.length > 0 || factionFilter.size > 0 || classFilter.size > 0 || onlyOwned;
 
@@ -225,7 +210,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                                                 classCode={heroClass.code as ClassCode}
                                                 tierCode={tier.code as TierCode}
                                                 userHero={roster[hero.id]}
-                                                onClick={() => openHeroModal(hero)}
+                                                onClick={() => openHero(hero)}
                                             />
                                         );
                                     })}
@@ -247,14 +232,6 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                 </div>
             </div>
 
-            <RosterModal
-                open={modalOpen}
-                onOpenChange={handleModalChange}
-                hero={modalHero}
-                factionCode={factionCodeForModal}
-                tierCode={tierCodeForModal}
-                userHero={userHeroForModal}
-            />
         </AppLayout>
     );
 }

@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 5 completa + Fase 6: 6.1-6.5 ✅ + 6.7 ✅ — investigação parser/heróis ignorados)
+> **Última atualização:** 2026-05-02 (Fase 5 + 6.1-6.5/6.7 + 7.1-7.3 — perfil de herói com habilidades, lore e tag dinâmica)
 
 ---
 
@@ -239,7 +239,39 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
   - `POST /formations/{formation}/versions/{version}/restore` — snapshot do estado atual + aplica versão escolhida.
 - **UI:** botão **Histórico** no header do editor abre `Dialog` listando versões com timestamp pt-BR e contador de heróis/equipes; botão **Restaurar** em cada item (com `confirm()` antes — restore explica que o estado atual também é guardado).
 - **Testes:** 6 cenários — update gera snapshot anterior, lista versões (JSON), outro user 403 (index e restore), restore aplica corretamente, cap de 20. **73 testes verdes** no projeto.
-#### ⏭️ 6.6 — Refinamentos visuais (pendente)
+#### ⏭️ 6.6 — Refinamentos visuais (pendente — aberto sob demanda)
+
+---
+
+### 🚧 Fase 7 — Perfil completo de heróis
+
+#### ✅ 7.1 — Página de detalhe (`/heroes/{slug}`) (concluído)
+- Rota `GET /heroes/{slug}` com regex `[a-z0-9-]+`. `HeroController::show` carrega faction/heroClass/tier/abilities, computa `is_awakened`, busca synergias bidirecionais e UserHero do user logado.
+- Página `pages/heroes/show.tsx`: header com portrait grande, nome em gradient para Despertos, badges (facção/classe/tier dinâmico/Desperto/role/gender), info do roster (Nv, ascensão, SI, móveis, inscrições) quando aplicável, link Fandom, seções Habilidades/História com placeholders quando vazias, grid de Sinergias com cards clicáveis.
+- Cards do catálogo agora navegam direto para `/heroes/{slug}` (em vez de abrir modal). Modal `RosterModal` continua acessível pela página de detalhe (botão "Adicionar/Editar roster").
+- 5 testes (`HeroShowTest`): renderiza com props completas; inclui userHero quando no roster; lista synergias; 404 em slug inexistente; 404 em herói inativo.
+
+#### ✅ 7.2 — Skills + Background do wiki (concluído)
+- **Schema:** `heroes.lore` (text nullable) — adicionado via migration.
+- **Parser** (`WikitextHeroParser`):
+  - `parseLore($wikitext)` — extrai seção `== Background ==` (ou `History`/`Lore`/`Story`); descarta placeholders padrão da wiki ("There is no available background..."); strip de wikitext (links `[[X|Y]]`→`Y`, refs, `<gallery>`, templates, HTML, bold/italic).
+  - `parseAbilities($wikitext)` — encontra a tabela de Skills (`{| class="wikitable" ... |}`), parseia cada linha em cells (split por `|`/`!` no início de linha), agrupa por nome (mantém só a primeira ocorrência da skill com descrição completa, ignora upgrades subsequentes), retorna array de `{name, ascension_unlock: 'Nv N', description, display_order, type}`.
+- **`FandomSyncService`** agora chama parseLore + parseAbilities a cada hero processado e:
+  - Persiste `lore` em `heroes`.
+  - `syncAbilities(Hero, abilities[])` → delete + recreate em `hero_abilities` (idempotente).
+- **Comando `heroes:enrich`** — popula lore/abilities em heróis já importados sem refazer o sync inteiro:
+  - Sem flags: processa só heróis com `lore` null OU sem abilities (idempotente, pode rodar várias vezes).
+  - `--force`: re-extrai mesmo já populados.
+  - `--slug=X`: processa só esse herói.
+  - `--limit=N`: limita batch.
+  - Resolve título da wiki via `source_url` (mais robusto que reverter slug).
+- 5 testes adicionais no parser (parseLore extrai, retorna null quando ausente ou placeholder; parseAbilities extrai e agrupa por nome; retorna [] sem seção Skills). Validação manual: 6 heróis enriquecidos com sucesso (lore 2.9k-7.6k chars, 4 abilities cada). **94 testes verdes** no projeto.
+
+#### ✅ 7.3 — Tag de tier dinâmica por ascensão (concluído)
+- Helper `tierFromAscension(ascensionValue)` em `lib/afk.ts`: 0-3 → `common`, 4-9 → `legendary`, 10+ → `ascended`.
+- `hero-card.tsx`: quando `userHero` está presente, badge mostra o tier ATINGIDO (estado real do user). Sem roster, mostra o max potencial do herói.
+- Mesma lógica aplicada na página `heroes/show.tsx`.
+- Resultado: badge "Ascendido" só aparece em heróis cujo `ascension_value >= 10` no roster do user.
 #### ✅ 6.7 — Investigar heróis ignorados na wiki (concluído)
 
 Inspeção página por página dos 12 heróis que o sync ignorava:

@@ -1,6 +1,6 @@
 import { CheckCircle2, Flame } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
+import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME, tierFromAscension } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { ClassCode, FactionCode, Hero, TierCode, UserHero } from '@/types/afk';
 
@@ -15,7 +15,10 @@ interface HeroCardProps {
 
 export function HeroCard({ hero, factionCode, classCode, tierCode, userHero, onClick }: HeroCardProps) {
     const factionTheme = FACTION_THEME[factionCode];
-    const tierTheme = TIER_THEME[tierCode];
+    // Quando o herói está no roster, mostramos o tier ATINGIDO (baseado na
+    // ascensão atual). Sem roster, mostramos o max potencial do herói.
+    const displayTierCode = userHero ? tierFromAscension(userHero.ascension_value) : tierCode;
+    const tierTheme = TIER_THEME[displayTierCode];
     const ClassIconComponent = CLASS_ICON[classCode];
 
     const owned = userHero !== undefined;

@@ -24,6 +24,9 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard');
 
     Route::get('heroes', [HeroController::class, 'index'])->name('heroes.index');
+    Route::get('heroes/{slug}', [HeroController::class, 'show'])
+        ->where('slug', '[a-z0-9-]+')
+        ->name('heroes.show');
 
     Route::post('user/heroes', [UserHeroController::class, 'store'])->name('user-heroes.store');
     Route::patch('user/heroes/{userHero}', [UserHeroController::class, 'update'])->name('user-heroes.update');

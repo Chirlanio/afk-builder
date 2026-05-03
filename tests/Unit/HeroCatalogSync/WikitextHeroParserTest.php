@@ -205,4 +205,103 @@ TEXT;
         $this->assertNotNull($parsed);
         $this->assertSame('X', $parsed['name']);
     }
+
+    public function test_parse_lore_extrai_section_background(): void
+    {
+        $wikitext = <<<'TEXT'
+{{Hero|name = X|faction = Mauler|class = Tank|rarity = Legendary}}
+'''X''' is a tank...
+
+== Background ==
+Once upon a time, in [[Esperia|the land of Esperia]], there lived a hero named X. He was [[brave]] and strong.<ref>citation needed</ref>
+
+He fought many battles.
+
+== Skills ==
+{|class="wikitable"
+|}
+TEXT;
+        $lore = $this->parser->parseLore($wikitext);
+
+        $this->assertNotNull($lore);
+        $this->assertStringContainsString('Once upon a time', $lore);
+        $this->assertStringContainsString('the land of Esperia', $lore);
+        $this->assertStringContainsString('brave', $lore);
+        $this->assertStringNotContainsString('citation needed', $lore);
+        $this->assertStringNotContainsString('[[', $lore);
+        $this->assertStringNotContainsString('<ref>', $lore);
+    }
+
+    public function test_parse_lore_retorna_null_quando_section_ausente(): void
+    {
+        $wikitext = '{{Hero|name = X|faction = Mauler|class = Tank|rarity = Legendary}}';
+        $this->assertNull($this->parser->parseLore($wikitext));
+    }
+
+    public function test_parse_lore_retorna_null_para_placeholder_padrao(): void
+    {
+        $wikitext = <<<'TEXT'
+== Background ==
+
+''There is no available background for this hero.''
+{{ClearSpace}}
+== Skills ==
+TEXT;
+        $this->assertNull($this->parser->parseLore($wikitext));
+    }
+
+    public function test_parse_abilities_extrai_skills_da_tabela(): void
+    {
+        $wikitext = <<<'TEXT'
+== Skills ==
+{|class="wikitable" border="0"
+|-
+! scope="col"|'''Unlock Level (Hero)'''
+! scope="col"|'''Name'''
+! scope="col"|'''Icon'''
+! scope="col"|'''Description'''
+|-
+|1
+!'''Heaven's Protection'''
+|[[File:s441.png|78px]]
+|Lucius blesses all of his allies with a divine shield that reduces damage equal to 500% of his attack rating.
+|-
+|11
+!'''Divine Strike'''
+|[[File:s442.png|78px]]
+|Lucius smashes the ground causing a shockwave, dealing 130% AoE damage.
+|-
+|21
+!'''Divine Strike'''
+|[[File:s442.png|78px]]
+|Damage is increased to 150%.
+|-
+|41
+!'''Divine Blessing'''
+|[[File:s443.png|78px]]
+|Lucius heals the ally with the lowest health for 200% of his Attack Rating.
+|}
+TEXT;
+        $abilities = $this->parser->parseAbilities($wikitext);
+
+        $this->assertCount(3, $abilities, '3 skills únicas (upgrades agrupados)');
+        $this->assertSame("Heaven's Protection", $abilities[0]['name']);
+        $this->assertStringContainsString('divine shield', $abilities[0]['description']);
+        $this->assertStringNotContainsString('[[File:', $abilities[0]['description']);
+        $this->assertSame('Nv 1', $abilities[0]['ascension_unlock']);
+
+        $this->assertSame('Divine Strike', $abilities[1]['name']);
+        $this->assertSame('Nv 11', $abilities[1]['ascension_unlock']);
+        // Mantém a primeira descrição (não a do upgrade lvl 21)
+        $this->assertStringContainsString('shockwave', $abilities[1]['description']);
+
+        $this->assertSame('Divine Blessing', $abilities[2]['name']);
+        $this->assertSame('Nv 41', $abilities[2]['ascension_unlock']);
+    }
+
+    public function test_parse_abilities_retorna_vazio_quando_secao_skills_ausente(): void
+    {
+        $wikitext = '{{Hero|name = X|faction = Mauler|class = Tank|rarity = Legendary}}';
+        $this->assertSame([], $this->parser->parseAbilities($wikitext));
+    }
 }

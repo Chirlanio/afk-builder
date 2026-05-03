@@ -4,6 +4,7 @@ namespace App\Services\HeroCatalogSync;
 
 use App\Models\Faction;
 use App\Models\Hero;
+use App\Models\HeroAbility;
 use App\Models\HeroClass;
 use App\Models\SyncLog;
 use App\Models\Tier;
@@ -135,6 +136,9 @@ class FandomSyncService
 
                 $existing = Hero::where('slug', $slug)->first();
 
+                $lore = $this->parser->parseLore($wikitext);
+                $abilities = $this->parser->parseAbilities($wikitext);
+
                 $catalogFields = [
                     'name' => $parsed['name'],
                     'title' => $parsed['title'],
@@ -145,22 +149,25 @@ class FandomSyncService
                     'role_label' => $parsed['role_label'],
                     'portrait_url' => $portraitUrl,
                     'source_url' => $sourceUrl,
+                    'lore' => $lore,
                 ];
 
                 if ($existing) {
                     if (! $options->dryRun) {
                         $existing->update($catalogFields);
+                        $this->syncAbilities($existing, $abilities);
                     }
                     $updated++;
                     $this->reportProgress($options, $seen, $total, $title, 'updated');
                 } else {
                     if (! $options->dryRun) {
-                        Hero::create([
+                        $hero = Hero::create([
                             'slug' => $slug,
                             ...$catalogFields,
                             'is_active' => $options->initial,
                             'pending_review' => ! $options->initial,
                         ]);
+                        $this->syncAbilities($hero, $abilities);
                     }
                     $created++;
                     $newSlugs[] = $slug;
@@ -179,6 +186,25 @@ class FandomSyncService
     {
         if ($options->onProgress) {
             ($options->onProgress)($current, $total, $title, $action);
+        }
+    }
+
+    /**
+     * @param  array<int, array{name: string, ascension_unlock: string|null, description: string|null, display_order: int, type: string}>  $abilities
+     */
+    public function syncAbilities(Hero $hero, array $abilities): void
+    {
+        $hero->abilities()->delete();
+
+        foreach ($abilities as $a) {
+            HeroAbility::create([
+                'hero_id' => $hero->id,
+                'name' => $a['name'],
+                'type' => $a['type'],
+                'display_order' => $a['display_order'],
+                'ascension_unlock' => $a['ascension_unlock'],
+                'description' => $a['description'],
+            ]);
         }
     }
 }

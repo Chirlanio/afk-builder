@@ -163,3 +163,18 @@ export const ASCENSION_STAGES: AscensionStage[] = [
 export function ascensionStagesForTier(tierMaxLevel: number): AscensionStage[] {
     return ASCENSION_STAGES.filter((stage) => stage.minTierMaxLevel <= tierMaxLevel);
 }
+
+/**
+ * Mapeia o `ascension_value` (0-16) atual do user para o tier visualmente
+ * "atingido". Asc 0-3 (Comum/Raro) → comum; 4-9 (Elite/Lendário/Mítico+) →
+ * lendário; 10+ (Ascendido em diante) → ascendido.
+ *
+ * Use quando quiser mostrar o tier ATUAL do herói no roster (em vez do max
+ * potencial dele). Sem ascension_value definido (null/0), retorna 'common'.
+ */
+export function tierFromAscension(ascensionValue: number | null | undefined): TierCode {
+    const v = ascensionValue ?? 0;
+    if (v >= 10) return 'ascended';
+    if (v >= 4) return 'legendary';
+    return 'common';
+}

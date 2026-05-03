@@ -53,6 +53,9 @@ Acesse `http://127.0.0.1:8000`. Crie uma conta em `/register` (sem verificação
 | `php artisan heroes:sync` | Sincroniza catálogo (incremental — heróis novos entram com `pending_review=true`) |
 | `php artisan heroes:sync --initial` | Sync auto-aprovando tudo (1ª importação ou reset) |
 | `php artisan heroes:sync --page=Shemira --dry-run` | Testa parser de uma página específica |
+| `php artisan heroes:enrich` | Popula `lore` e `abilities` em heróis já importados (só os faltando) |
+| `php artisan heroes:enrich --slug=lucius` | Enriquece um herói específico |
+| `php artisan heroes:enrich --force` | Re-extrai mesmo se já populado |
 | `php artisan heroes:resolve-images` | Resolve URLs reais da CDN (Special:Filepath → static.wikia.nocookie.net) |
 | `php artisan heroes:resolve-images --force` | Re-resolve mesmo URLs já em CDN |
 | `php artisan migrate:fresh --seed` | Reset total do BD (apaga catálogo importado!) |
@@ -96,7 +99,8 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 3. Catálogo + roster do usuário (cards por facção, tema in-game, modal CRUD) | ✅ |
 | 4. Editor de formações com drag-and-drop | ✅ |
 | 5. Algoritmo de otimização (sugerir formação automaticamente) | ✅ |
-| 6. Polimento (histórico, comparação, share) | 🚧 6.1-6.5 + 6.7 ✅ · 6.6 (refinamentos visuais) aberta sob demanda |
+| 6. Polimento (histórico, comparação, share) | 🚧 6.1-6.5 + 6.7 ✅ · 6.6 aberta sob demanda |
+| 7. Perfil completo de heróis (página de detalhe + skills + lore + tier dinâmico) | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

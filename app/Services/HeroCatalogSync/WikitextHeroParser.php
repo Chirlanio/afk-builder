@@ -259,4 +259,160 @@ class WikitextHeroParser
 
         return null;
     }
+
+    /**
+     * Extracts the Background section as plain text (links and refs stripped).
+     * Returns null when no Background/History section exists.
+     */
+    public function parseLore(string $wikitext): ?string
+    {
+        // Aceita == Background ==, ==Background==, == History == etc.
+        if (! preg_match('/==\s*(?:Background|History|Lore|Story)\s*==\s*\n(.*?)(?=\n\s*==[^=]|$)/is', $wikitext, $m)) {
+            return null;
+        }
+
+        $body = $m[1];
+
+        // Remove placeholders comuns "There is no available background..."
+        if (preg_match('/^\s*\'\'There is no available background.*?\'\'/is', $body)) {
+            return null;
+        }
+
+        $cleaned = $this->stripWikitext($body);
+        $cleaned = trim($cleaned);
+
+        return $cleaned !== '' ? $cleaned : null;
+    }
+
+    /**
+     * Extracts skills/abilities table. Returns array of unique skills (deduplicated by name —
+     * keeps the first occurrence which has the full description; later upgrade rows are folded
+     * into ascension_unlock notes).
+     *
+     * @return array<int, array{name: string, ascension_unlock: string|null, description: string|null, display_order: int, type: string}>
+     */
+    public function parseAbilities(string $wikitext): array
+    {
+        // Encontra a primeira tabela de Skills (== Skills == header pode aparecer 1+ vezes)
+        if (! preg_match('/==\s*\'?\'?Skills\'?\'?\s*==(.*?)(?=\n\s*==[^=]|$)/is', $wikitext, $sectionMatch)) {
+            return [];
+        }
+
+        $section = $sectionMatch[1];
+
+        // Captura o conteúdo de {| ... |}
+        if (! preg_match('/\{\|.*?\|\}/s', $section, $tableMatch)) {
+            return [];
+        }
+
+        $table = $tableMatch[0];
+        // Remove header line e cabeçalho
+        $rows = preg_split('/\n\|-\s*\n/', $table);
+        if ($rows === false || count($rows) < 2) {
+            return [];
+        }
+
+        $abilities = [];
+        $byName = [];
+        $order = 0;
+
+        foreach ($rows as $rowText) {
+            // Skip header (contém "Unlock Level" ou começa com {|)
+            if (preg_match('/Unlock\s*Level/i', $rowText) || preg_match('/^\{\|/', $rowText)) {
+                continue;
+            }
+
+            // Cells split por linhas iniciadas com | ou !
+            $cells = $this->extractRowCells($rowText);
+            if (count($cells) < 4) {
+                continue;
+            }
+
+            $unlockLevel = trim($cells[0]);
+            // Cell 1 (nome) costuma estar em ! ' ' '...' ' ' ou ! Name
+            $nameRaw = trim($cells[1]);
+            $name = trim(preg_replace("/^'+|'+$/", '', $nameRaw) ?? $nameRaw);
+            $name = $this->stripWikitext($name);
+            // Skip cell 2 (icon) — não usado.
+            $description = $this->stripWikitext($cells[3]);
+
+            if ($name === '' || $description === '') {
+                continue;
+            }
+
+            if (! isset($byName[$name])) {
+                $byName[$name] = count($abilities);
+                $abilities[] = [
+                    'name' => $name,
+                    'ascension_unlock' => $unlockLevel !== '' ? "Nv {$unlockLevel}" : null,
+                    'description' => $description,
+                    'display_order' => $order++,
+                    'type' => 'active',
+                ];
+            }
+            // Linhas subsequentes de upgrade são ignoradas (mantemos só a primeira).
+        }
+
+        return $abilities;
+    }
+
+    /**
+     * Splits a wikitable row body into cells (each cell starts with | or ! at line start).
+     *
+     * @return array<int, string>
+     */
+    private function extractRowCells(string $rowText): array
+    {
+        // Quebra em linhas e agrupa por inicial | ou !
+        $lines = preg_split('/\r?\n/', $rowText);
+        if ($lines === false) {
+            return [];
+        }
+
+        $cells = [];
+        $current = null;
+
+        foreach ($lines as $line) {
+            if (preg_match('/^([|!])(.*)$/', $line, $m)) {
+                if ($current !== null) {
+                    $cells[] = $current;
+                }
+                $current = ltrim($m[2]);
+            } elseif ($current !== null) {
+                $current .= "\n" . $line;
+            }
+        }
+        if ($current !== null) {
+            $cells[] = $current;
+        }
+
+        return $cells;
+    }
+
+    /**
+     * Convert wikitext to plain-ish text: links → label, strip refs/templates/HTML/files.
+     */
+    private function stripWikitext(string $value): string
+    {
+        $value = preg_replace('/<ref\b[^>]*?\/>/i', '', $value) ?? $value;
+        $value = preg_replace('/<ref\b.*?<\/ref>/is', '', $value) ?? $value;
+        $value = preg_replace('/<!--.*?-->/s', '', $value) ?? $value;
+        $value = preg_replace('/<gallery\b.*?<\/gallery>/is', '', $value) ?? $value;
+        // [[File:...]] e [[Image:...]] removidos
+        $value = preg_replace('/\[\[(?:File|Image):[^\]]+\]\]/i', '', $value) ?? $value;
+        // [[X|Y]] → Y;  [[X]] → X
+        $value = preg_replace('/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/', '$1', $value) ?? $value;
+        // {{Template}} removidos
+        $value = preg_replace('/\{\{[^{}]*\}\}/', '', $value) ?? $value;
+        // tags HTML
+        $value = preg_replace('/<[^>]+>/', '', $value) ?? $value;
+        // '''bold''' e ''italic''
+        $value = preg_replace("/'{2,5}/", '', $value) ?? $value;
+        // colapsa espaços duplicados em linhas
+        $value = preg_replace('/[ \t]+/', ' ', $value) ?? $value;
+        // remove linhas vazias triplicadas
+        $value = preg_replace("/\n{3,}/", "\n\n", $value) ?? $value;
+
+        return trim($value);
+    }
 }
