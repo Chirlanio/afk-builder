@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 5 completa + Fases 6.1, 6.2 e 6.3 — aprovação + criação manual + share público)
+> **Última atualização:** 2026-05-02 (Fase 5 + 6.1/6.2/6.3/6.4 — aprovação, criação manual, share, comparação)
 
 ---
 
@@ -218,7 +218,15 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
   - Botão **Compartilhar** no header do editor abre `Dialog`. Estados: sem token → "Gerar link público"; com token → input read-only do URL + botão **Copiar** (com feedback "Copiado!") + botão **Revogar link**.
   - Página pública `pages/formations/public.tsx`: layout sem sidebar, sem DnD, sem botões de edição. Mostra equipes com bonus de facção computado client-side, atribuição ao usuário criador, link "faça login" pra criar próprias formações.
 - **Testes:** 6 cenários — dono gera; outro user 403; revoga; rota pública abre sem auth; 404 com token inválido; idempotência (segunda chamada retorna mesmo token). 58 testes verdes no projeto.
-#### ⏭️ 6.4 — Comparação lado a lado de 2 formações (pendente)
+#### ✅ 6.4 — Comparação lado a lado de 2 formações (concluído)
+
+- **`FormationCompareController::show($a, $b)`** — valida ownership de ambas, carrega heroes/userHeroes/synergies, computa `ScoreBreakdown` por equipe via `TeamScorer` usando o `scoring_profile` de cada `challenge_type` (formações de challenge types diferentes mantêm seus próprios pesos). Retorna payload com `formationA`/`formationB` + `total_score` agregado.
+- **Rota:** `GET /formations/compare/{a}/{b}` (formations.compare).
+- **UI:**
+  - Página `pages/formations/compare.tsx` com header de cada formação (nome, challenge type, badge target/PvP, total score), bloco de pontuação total, e linhas pareadas equipe-a-equipe mostrando heróis + breakdown lado a lado (faction/class/synergy/power/total).
+  - Componente `ScoreRow` destaca em verde a coluna vencedora por categoria.
+  - Página `formations/index.tsx` ganhou checkbox em cada card e botão **Comparar selecionadas** que aparece quando exatamente 2 estão selecionadas. Limita a 2 (selecionar uma 3ª substitui a primeira).
+- **Testes:** 3 cenários — owner compara suas próprias, 403 ao comparar de outro user, scores por equipe corretos (5-stack vs vazia). 67 testes verdes no projeto.
 #### ⏭️ 6.5 — Histórico/versionamento de formações (pendente)
 #### ⏭️ 6.6 — Refinamentos visuais (pendente)
 #### ⏭️ 6.7 — Investigar heróis ignorados na wiki (Saveas, Daimon, Arden, etc.) (pendente)

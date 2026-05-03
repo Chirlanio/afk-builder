@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\HeroAdminController;
+use App\Http\Controllers\FormationCompareController;
 use App\Http\Controllers\FormationController;
 use App\Http\Controllers\FormationShareController;
 use App\Http\Controllers\HeroController;
@@ -28,6 +29,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('user/heroes/{userHero}', [UserHeroController::class, 'destroy'])->name('user-heroes.destroy');
 
     Route::get('formations', [FormationController::class, 'index'])->name('formations.index');
+    Route::get('formations/compare/{a}/{b}', [FormationCompareController::class, 'show'])
+        ->name('formations.compare');
     Route::get('formations/create', [FormationController::class, 'create'])->name('formations.create');
     Route::post('formations', [FormationController::class, 'store'])->name('formations.store');
     Route::get('formations/{formation}/edit', [FormationController::class, 'edit'])->name('formations.edit');

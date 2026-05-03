@@ -1,8 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Plus, Swords, Target, Trash2 } from 'lucide-react';
+import { GitCompareArrows, Plus, Swords, Target, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { ChallengeType, Formation } from '@/types/afk';
 
@@ -17,9 +20,24 @@ interface PageProps {
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Formações', href: '/formations' }];
 
 export default function FormationsIndex({ formations }: PageProps) {
+    const [selected, setSelected] = useState<number[]>([]);
+
     const remove = (formation: FormationListItem) => {
         if (!confirm(`Remover a formação "${formation.name}"?`)) return;
         router.delete(`/formations/${formation.id}`, { preserveScroll: true });
+    };
+
+    const toggleSelected = (id: number) => {
+        setSelected((prev) => {
+            if (prev.includes(id)) return prev.filter((x) => x !== id);
+            if (prev.length >= 2) return [prev[1], id];
+            return [...prev, id];
+        });
+    };
+
+    const compareNow = () => {
+        if (selected.length !== 2) return;
+        router.visit(`/formations/compare/${selected[0]}/${selected[1]}`);
     };
 
     return (
@@ -36,13 +54,29 @@ export default function FormationsIndex({ formations }: PageProps) {
                                 : `${formations.length} ${formations.length === 1 ? 'formação' : 'formações'}.`}
                         </p>
                     </div>
-                    <Button asChild>
-                        <Link href="/formations/create">
-                            <Plus className="size-4" />
-                            Nova formação
-                        </Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        {selected.length === 2 && (
+                            <Button variant="outline" onClick={compareNow}>
+                                <GitCompareArrows className="size-4" />
+                                Comparar selecionadas
+                            </Button>
+                        )}
+                        <Button asChild>
+                            <Link href="/formations/create">
+                                <Plus className="size-4" />
+                                Nova formação
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
+
+                {selected.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                        {selected.length === 1
+                            ? '1 formação selecionada — selecione outra para comparar.'
+                            : `${selected.length} formações selecionadas. Clique "Comparar selecionadas".`}
+                    </p>
+                )}
 
                 {formations.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
@@ -59,18 +93,31 @@ export default function FormationsIndex({ formations }: PageProps) {
                     </div>
                 ) : (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {formations.map((formation) => (
+                        {formations.map((formation) => {
+                            const isSelected = selected.includes(formation.id);
+                            return (
                             <div
                                 key={formation.id}
-                                className="group flex flex-col gap-2 rounded-xl border bg-card p-4 transition-colors hover:border-foreground/20"
+                                className={cn(
+                                    'group flex flex-col gap-2 rounded-xl border bg-card p-4 transition-colors',
+                                    isSelected ? 'border-primary ring-1 ring-primary' : 'hover:border-foreground/20',
+                                )}
                             >
                                 <div className="flex items-start justify-between gap-2">
-                                    <Link
-                                        href={`/formations/${formation.id}/edit`}
-                                        className="flex-1 truncate text-base font-semibold hover:underline"
-                                    >
-                                        {formation.name}
-                                    </Link>
+                                    <div className="flex flex-1 items-start gap-2">
+                                        <Checkbox
+                                            checked={isSelected}
+                                            onCheckedChange={() => toggleSelected(formation.id)}
+                                            aria-label={`Selecionar ${formation.name} para comparar`}
+                                            className="mt-0.5"
+                                        />
+                                        <Link
+                                            href={`/formations/${formation.id}/edit`}
+                                            className="flex-1 truncate text-base font-semibold hover:underline"
+                                        >
+                                            {formation.name}
+                                        </Link>
+                                    </div>
                                     <Button
                                         size="icon"
                                         variant="ghost"
@@ -107,7 +154,8 @@ export default function FormationsIndex({ formations }: PageProps) {
                                     Atualizada {new Date(formation.updated_at).toLocaleDateString('pt-BR')}
                                 </p>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
