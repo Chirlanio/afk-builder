@@ -38,4 +38,9 @@ class Formation extends Model
     {
         return $this->hasMany(FormationTeam::class)->orderBy('position');
     }
+
+    public function versions(): HasMany
+    {
+        return $this->hasMany(FormationVersion::class)->orderByDesc('created_at');
+    }
 }

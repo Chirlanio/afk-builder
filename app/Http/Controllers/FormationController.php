@@ -10,6 +10,7 @@ use App\Models\HeroClass;
 use App\Models\HeroSynergy;
 use App\Models\Tier;
 use App\Models\UserHero;
+use App\Services\Formations\FormationVersioning;
 use App\Services\Optimization\MultiTeamPartitioner;
 use App\Services\Optimization\ScoringProfile;
 use App\Services\Optimization\SingleTeamOptimizer;
@@ -104,8 +105,11 @@ class FormationController extends Controller
         ]);
     }
 
-    public function update(Request $request, Formation $formation): RedirectResponse
-    {
+    public function update(
+        Request $request,
+        Formation $formation,
+        FormationVersioning $versioning,
+    ): RedirectResponse {
         abort_unless($formation->user_id === $request->user()->id, 403);
 
         $challengeType = $formation->challengeType;
@@ -148,6 +152,8 @@ class FormationController extends Controller
                 }
             }
         }
+
+        $versioning->snapshot($formation);
 
         DB::transaction(function () use ($formation, $data) {
             $formation->update([

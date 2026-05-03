@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\HeroAdminController;
 use App\Http\Controllers\FormationCompareController;
 use App\Http\Controllers\FormationController;
 use App\Http\Controllers\FormationShareController;
+use App\Http\Controllers\FormationVersionController;
 use App\Http\Controllers\HeroController;
 use App\Http\Controllers\UserHeroController;
 use Illuminate\Support\Facades\Route;
@@ -44,6 +45,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('formations.share');
     Route::delete('formations/{formation}/share', [FormationShareController::class, 'revoke'])
         ->name('formations.share.revoke');
+    Route::get('formations/{formation}/versions', [FormationVersionController::class, 'index'])
+        ->name('formations.versions.index');
+    Route::post('formations/{formation}/versions/{version}/restore', [FormationVersionController::class, 'restore'])
+        ->name('formations.versions.restore');
     Route::delete('formations/{formation}', [FormationController::class, 'destroy'])->name('formations.destroy');
 
     Route::middleware('can:manage-heroes')->prefix('admin')->name('admin.')->group(function () {

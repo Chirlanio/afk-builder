@@ -1,7 +1,7 @@
 import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { Copy, Link2, Loader2, Save, Share2, Sparkles, Target, Trash2 } from 'lucide-react';
+import { Copy, History, Link2, Loader2, RotateCcw, Save, Share2, Sparkles, Target, Trash2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
 import { HeroPool } from '@/components/formation-editor/hero-pool';
@@ -78,6 +78,9 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
     const [shareDialogOpen, setShareDialogOpen] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
+    const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+    const [versions, setVersions] = useState<Array<{ id: number; created_at: string | null; team_count: number; hero_count: number; name: string | null }>>([]);
+    const [isLoadingVersions, setIsLoadingVersions] = useState(false);
     const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
 
     const enforceUnique = formation.challenge_type.teams_must_be_unique;
@@ -293,6 +296,35 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
         }
     };
 
+    const openHistory = async () => {
+        setHistoryDialogOpen(true);
+        setIsLoadingVersions(true);
+        try {
+            const response = await axios.get<{ versions: Array<{ id: number; created_at: string | null; team_count: number; hero_count: number; name: string | null }> }>(
+                `/formations/${formation.id}/versions`,
+            );
+            setVersions(response.data.versions);
+        } catch (error) {
+            console.error('Falha ao carregar histórico:', error);
+        } finally {
+            setIsLoadingVersions(false);
+        }
+    };
+
+    const restoreVersion = (versionId: number) => {
+        if (!confirm('Restaurar esta versão? A versão atual será salva no histórico antes de ser substituída.')) {
+            return;
+        }
+        router.post(
+            `/formations/${formation.id}/versions/${versionId}/restore`,
+            {},
+            {
+                preserveScroll: false,
+                onSuccess: () => setHistoryDialogOpen(false),
+            },
+        );
+    };
+
     const save = () => {
         setIsSaving(true);
 
@@ -366,6 +398,14 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
                             {isDirty && <span className="text-xs text-amber-600 dark:text-amber-400">Alterações não salvas</span>}
                             <Button
                                 variant="outline"
+                                onClick={openHistory}
+                                disabled={isSaving}
+                            >
+                                <History className="size-4" />
+                                Histórico
+                            </Button>
+                            <Button
+                                variant="outline"
                                 onClick={() => setShareDialogOpen(true)}
                                 disabled={isSaving}
                             >
@@ -418,6 +458,60 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
                         </div>
                     </div>
                 </div>
+
+                <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <History className="size-5" />
+                                Histórico de versões
+                            </DialogTitle>
+                            <DialogDescription>
+                                Cada vez que você salva, uma versão anterior é guardada (até 20). Restaurar substitui o estado atual — a versão de agora também vai pro histórico antes da troca.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {isLoadingVersions ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : versions.length === 0 ? (
+                            <p className="py-8 text-center text-sm text-muted-foreground">
+                                Sem versões anteriores ainda. Salve a formação ao menos uma vez para começar o histórico.
+                            </p>
+                        ) : (
+                            <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto">
+                                {versions.map((v) => (
+                                    <div
+                                        key={v.id}
+                                        className="flex items-center justify-between gap-3 rounded-lg border p-2.5"
+                                    >
+                                        <div className="flex flex-col text-xs">
+                                            <span className="font-medium">
+                                                {v.created_at
+                                                    ? new Date(v.created_at).toLocaleString('pt-BR')
+                                                    : 'sem data'}
+                                            </span>
+                                            <span className="text-muted-foreground">
+                                                {v.name && v.name !== formation.name ? `"${v.name}" · ` : ''}
+                                                {v.hero_count} herói{v.hero_count !== 1 ? 's' : ''} em {v.team_count} equipe{v.team_count !== 1 ? 's' : ''}
+                                            </span>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => restoreVersion(v.id)}
+                                        >
+                                            <RotateCcw className="size-3" />
+                                            Restaurar
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
 
                 <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
                     <DialogContent>

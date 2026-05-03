@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 5 + 6.1/6.2/6.3/6.4 — aprovação, criação manual, share, comparação)
+> **Última atualização:** 2026-05-02 (Fase 5 + 6.1/6.2/6.3/6.4/6.5 — aprovação, criação, share, comparação, versionamento)
 
 ---
 
@@ -227,7 +227,18 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
   - Componente `ScoreRow` destaca em verde a coluna vencedora por categoria.
   - Página `formations/index.tsx` ganhou checkbox em cada card e botão **Comparar selecionadas** que aparece quando exatamente 2 estão selecionadas. Limita a 2 (selecionar uma 3ª substitui a primeira).
 - **Testes:** 3 cenários — owner compara suas próprias, 403 ao comparar de outro user, scores por equipe corretos (5-stack vs vazia). 67 testes verdes no projeto.
-#### ⏭️ 6.5 — Histórico/versionamento de formações (pendente)
+#### ✅ 6.5 — Histórico/versionamento de formações (concluído)
+
+- **Schema:** tabela `formation_versions` (id, formation_id FK cascade, snapshot json, created_at). Index em `(formation_id, created_at)`.
+- **`FormationVersioning` service** (`app/Services/Formations/`) com:
+  - `snapshot(Formation $f)` — serializa `name`, `notes`, `teams` (com slots, hero_id, row) e cria `FormationVersion`. Faz prune se exceder `MAX_VERSIONS_PER_FORMATION = 20`.
+  - `restore(Formation, FormationVersion)` — aplica snapshot dentro de transaction (delete + recreate teamHeroes).
+- **Auto-snapshot:** `FormationController::update` chama `versioning->snapshot()` ANTES de aplicar o payload novo, então a versão guardada é a *anterior* à edição.
+- **Rotas e controller:**
+  - `GET /formations/{formation}/versions` — JSON com lista (id, created_at, team_count, hero_count, name).
+  - `POST /formations/{formation}/versions/{version}/restore` — snapshot do estado atual + aplica versão escolhida.
+- **UI:** botão **Histórico** no header do editor abre `Dialog` listando versões com timestamp pt-BR e contador de heróis/equipes; botão **Restaurar** em cada item (com `confirm()` antes — restore explica que o estado atual também é guardado).
+- **Testes:** 6 cenários — update gera snapshot anterior, lista versões (JSON), outro user 403 (index e restore), restore aplica corretamente, cap de 20. **73 testes verdes** no projeto.
 #### ⏭️ 6.6 — Refinamentos visuais (pendente)
 #### ⏭️ 6.7 — Investigar heróis ignorados na wiki (Saveas, Daimon, Arden, etc.) (pendente)
 
