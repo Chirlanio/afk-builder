@@ -88,14 +88,21 @@ class FormationController extends Controller
         $formation->load([
             'challengeType:id,code,name_pt,description,min_teams,max_teams,is_pvp,teams_must_be_unique',
             'teams.teamHeroes:id,formation_team_id,hero_id,slot,row',
+            'beast:id,slug,name,strength_buff,intelligence_buff,agility_buff,portrait_url',
         ]);
 
         $heroPool = $this->buildHeroPool($formation, $request->user()->id);
+
+        $beasts = \App\Models\Beast::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'slug', 'name', 'strength_buff', 'intelligence_buff', 'agility_buff', 'portrait_url']);
 
         return Inertia::render('formations/edit', [
             'formation' => $formation,
             'heroPool' => $heroPool['heroes'],
             'rosterByHeroId' => $heroPool['roster'],
+            'beasts' => $beasts,
             'factions' => Faction::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'color_hex', 'display_order']),
             'heroClasses' => HeroClass::orderBy('display_order')
@@ -117,6 +124,7 @@ class FormationController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'beast_id' => ['nullable', 'integer', Rule::exists('beasts', 'id')->where('is_active', true)],
             'teams' => ['required', 'array', 'min:'.$formation->teams_count, 'max:'.$formation->teams_count],
             'teams.*.position' => ['required', 'integer', 'min:1', 'max:'.$formation->teams_count],
             'teams.*.name' => ['nullable', 'string', 'max:60'],
@@ -159,6 +167,7 @@ class FormationController extends Controller
             $formation->update([
                 'name' => $data['name'],
                 'notes' => $data['notes'] ?? null,
+                'beast_id' => $data['beast_id'] ?? null,
             ]);
 
             $teamsByPosition = $formation->teams()->get()->keyBy('position');

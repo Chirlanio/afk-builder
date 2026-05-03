@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\BeastAdminController;
 use App\Http\Controllers\Admin\CollectionAdminController;
 use App\Http\Controllers\Admin\HeroAdminController;
 use App\Http\Controllers\Admin\HeroStatsAdminController;
@@ -78,6 +79,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('collections', [CollectionAdminController::class, 'store'])->name('collections.store');
         Route::patch('collections/{collection}', [CollectionAdminController::class, 'update'])->name('collections.update');
         Route::delete('collections/{collection}', [CollectionAdminController::class, 'destroy'])->name('collections.destroy');
+
+        Route::get('beasts', [BeastAdminController::class, 'index'])->name('beasts.index');
+        Route::post('beasts', [BeastAdminController::class, 'store'])->name('beasts.store');
+        Route::patch('beasts/{beast}', [BeastAdminController::class, 'update'])->name('beasts.update');
+        Route::delete('beasts/{beast}', [BeastAdminController::class, 'destroy'])->name('beasts.destroy');
     });
 });
 

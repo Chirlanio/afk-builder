@@ -59,6 +59,7 @@ Acesse `http://127.0.0.1:8000`. Crie uma conta em `/register` (sem verificação
 | `php artisan heroes:sync-furniture` | Sincroniza habilidades de móveis (F3/F9) da página master Fandom |
 | `php artisan heroes:sync-types` | Popula só `heroes.type` (Strength/Intelligence/Agility) via Fandom |
 | `php artisan artifacts:sync` | Sincroniza catálogo de artefatos (Dura's + Class) da página Artifacts |
+| `php artisan beasts:sync` | Sincroniza nomes de beasts (pets) da página master Beasts |
 | `php artisan content:translate` | Traduz EN→PT-BR (lore, abilities, furniture, guides) via Google Translate |
 | `php artisan content:translate --type=lore --limit=10` | Limita escopo do translate por tipo e quantidade |
 | `php artisan heroes:resolve-images` | Resolve URLs reais da CDN (Special:Filepath → static.wikia.nocookie.net) |
@@ -116,6 +117,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 13c. Stats integradas ao optimizer (PowerCalculator soma contribution quando cadastradas) | ✅ |
 | 14a. Artefatos via wiki sync (Dura's + Class, atribuição por herói com star level) | ✅ |
 | 14b. Coleções da Galeria Tenebrosa (cadastro manual admin, mutex com artefato) | ✅ |
+| 14c. Beasts (pets — sync de nomes via wiki, buffs S/I/A admin, ativo por formação) | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

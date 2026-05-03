@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-03 (Fase 14b — Coleções da Galeria Tenebrosa)
+> **Última atualização:** 2026-05-03 (Fase 14c — Beasts/pets)
 
 ---
 
@@ -534,6 +534,27 @@ Wiki da Fandom não tem dados estruturados de Collections (apenas stub). CRUD to
   - `CollectionAdminTest`: 8 cenários (auth, list, create, validação slug único/pattern, update, delete).
   - `UserHeroArtifactTest`: 5 novos cenários (equipa coleção, coleção sobrescreve artifact no mesmo payload, artifact substitui coleção em update, validação FK, details inclui availableCollections filtrado por is_active).
   - **157 testes verdes** no projeto.
+
+---
+
+### ✅ Fase 14c — Beasts (pets)
+
+Beasts são os "pets" do AFK Arena. Cada beast aplica buffs aos heróis do tipo correspondente (Strength/Intelligence/Agility) na equipe ativa. Apenas 1 beast ativo por formação.
+
+- **Schema:** tabela `beasts` (slug, name, description, `strength_buff`, `intelligence_buff`, `agility_buff` unsigned smallint, portrait_url, source_url, is_active). `formations.beast_id` FK nullable.
+- **Sync via wiki:** comando `beasts:sync` faz fetch da página master `Beasts` e extrai a lista de nomes na seção `== Beast List ==`. Aceita `[[Name]]` (com link) e texto plano. **Wiki só tem nomes — buffs precisam ser cadastrados manualmente via admin.** Resultado: 27 beasts persistidos (Dreary Ball, Tufty Ears, Polar Beast, Nightfall Pegasus, etc).
+- **Admin CRUD** (`Admin\BeastAdminController`): index Inertia + JSON store/update/destroy. Página `/admin/beasts` com grid de cards mostrando portrait, badges de buffs (S/I/A com cores correspondentes), descrição. `BeastFormModal` para CRUD.
+- **Sidebar admin** ganhou item **Beasts** (ícone PawPrint).
+- **Atribuição em formação:** dropdown no header do `/formations/{id}/edit` permite escolher beast ativo. Mostra nome + buffs no formato `Beast · F+100 / I+50 / A+75`. Salva em `formations.beast_id` no PATCH. Validação inclui `Rule::exists('beasts')->where('is_active', true)`.
+- **Tipo TS:** `Beast` em `types/afk.ts` + `Formation.beast_id` / `Formation.beast?`.
+- **Testes:**
+  - `BeastAdminTest`: 7 cenários (auth, list, create, validação slug único, update, delete).
+  - `FormationBeastTest`: 5 cenários (carrega lista, atribui beast, remove com null, rejeita inexistente, rejeita inativo).
+  - **169 testes verdes** no projeto.
+
+**Não implementado** (escopo futuro):
+- Integração ao optimizer (`PowerCalculator` + `TeamScorer`) — Fase 14d.
+- Interface pra distinguir "Beast level" (1-18) vs buff fixo — atualmente armazenamos só o valor "max".
 
 ---
 

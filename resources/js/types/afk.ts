@@ -73,6 +73,19 @@ export interface HeroFurnitureAbility {
     f9_description: string | null;
 }
 
+export interface Beast {
+    id: number;
+    slug: string;
+    name: string;
+    description: string | null;
+    strength_buff: number;
+    intelligence_buff: number;
+    agility_buff: number;
+    portrait_url: string | null;
+    source_url: string | null;
+    is_active: boolean;
+}
+
 export interface Collection {
     id: number;
     slug: string;
@@ -199,6 +212,8 @@ export interface Formation {
     notes: string | null;
     total_score: number | null;
     share_token: string | null;
+    beast_id: number | null;
+    beast?: Beast | null;
     created_at: string;
     updated_at: string;
     challenge_type?: ChallengeType;

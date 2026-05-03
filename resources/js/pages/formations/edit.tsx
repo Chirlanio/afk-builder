@@ -1,7 +1,7 @@
 import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { Copy, History, Link2, Loader2, RotateCcw, Save, Share2, Sparkles, Target, Trash2 } from 'lucide-react';
+import { Copy, History, Link2, Loader2, PawPrint, RotateCcw, Save, Share2, Sparkles, Target, Trash2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
 import { HeroPool } from '@/components/formation-editor/hero-pool';
@@ -11,11 +11,13 @@ import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { FACTION_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type {
+    Beast,
     ChallengeType,
     ClassCode,
     Faction,
@@ -34,6 +36,7 @@ interface PageProps {
         teams: FormationTeam[];
     };
     heroPool: Hero[];
+    beasts: Beast[];
     factions: Faction[];
     heroClasses: HeroClass[];
     tiers: Tier[];
@@ -58,7 +61,7 @@ function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlo
     });
 }
 
-export default function FormationsEdit({ formation, heroPool, factions, heroClasses, tiers }: PageProps) {
+export default function FormationsEdit({ formation, heroPool, beasts, factions, heroClasses, tiers }: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Formações', href: '/formations' },
         { title: formation.name, href: `/formations/${formation.id}/edit` },
@@ -70,6 +73,7 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
     const tierById = useMemo(() => Object.fromEntries(tiers.map((t) => [t.id, t])) as Record<number, Tier>, [tiers]);
 
     const [name, setName] = useState(formation.name);
+    const [beastId, setBeastId] = useState<number | null>(formation.beast_id ?? null);
     const [teams, setTeams] = useState<TeamSlotsState[]>(() => teamsFromFormation(formation.teams, formation.teams_count));
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -337,6 +341,7 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
         const payload = {
             name,
             notes: formation.notes,
+            beast_id: beastId,
             teams: teams.map((team) => ({
                 position: team.position,
                 name: team.name,
@@ -397,6 +402,37 @@ export default function FormationsEdit({ formation, heroPool, factions, heroClas
                                         Heróis únicos por equipe
                                     </Badge>
                                 )}
+                            </div>
+
+                            {/* Beast ativo na formação */}
+                            <div className="flex items-center gap-2">
+                                <PawPrint className="size-4 text-muted-foreground" />
+                                <span className="text-xs uppercase tracking-wide text-muted-foreground">Beast:</span>
+                                <Select
+                                    value={beastId ? String(beastId) : 'none'}
+                                    onValueChange={(v) => {
+                                        setBeastId(v === 'none' ? null : Number(v));
+                                        setIsDirty(true);
+                                    }}
+                                >
+                                    <SelectTrigger className="h-8 w-auto min-w-[180px] text-xs">
+                                        <SelectValue placeholder="Nenhum" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">— nenhum —</SelectItem>
+                                        {beasts.map((b) => {
+                                            const buffs = [];
+                                            if (b.strength_buff > 0) buffs.push(`F+${b.strength_buff}`);
+                                            if (b.intelligence_buff > 0) buffs.push(`I+${b.intelligence_buff}`);
+                                            if (b.agility_buff > 0) buffs.push(`A+${b.agility_buff}`);
+                                            return (
+                                                <SelectItem key={b.id} value={String(b.id)}>
+                                                    {b.name}{buffs.length > 0 ? ` · ${buffs.join(' / ')}` : ''}
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
 
