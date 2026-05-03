@@ -488,7 +488,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                         <TabsTrigger value="historia">História</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="detalhes" className="flex flex-col gap-4">
+                    <TabsContent value="detalhes" className="flex min-w-0 flex-col gap-4">
                         {/* Stats */}
                         <SectionBlock icon={BarChart3} title="Estatísticas Base">
                             {stats ? <StatsGrid stats={stats} /> : <Empty>Estatísticas base ainda não cadastradas.</Empty>}
@@ -504,7 +504,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                                         const abilityName = localized(ability, 'name', locale) ?? ability.name;
                                         const abilityDesc = localized(ability, 'description', locale);
                                         return (
-                                            <div key={ability.id} className="rounded-lg border bg-card p-3 text-sm">
+                                            <div key={ability.id} className="min-w-0 overflow-hidden rounded-lg border bg-card p-3 text-sm">
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <span className="font-semibold">{abilityName}</span>
                                                     <Badge variant="secondary" className="text-[10px]">
@@ -593,7 +593,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                         )}
                     </TabsContent>
 
-                    <TabsContent value="historia" className="flex flex-col gap-2">
+                    <TabsContent value="historia" className="flex min-w-0 flex-col gap-2">
                         <SectionBlock icon={BookText} title="História">
                             {hasLore && localizedLore ? (
                                 <div className="rounded-lg border bg-card p-4">

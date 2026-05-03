@@ -13,7 +13,7 @@ interface MarkdownContentProps {
  */
 export function MarkdownContent({ children, className }: MarkdownContentProps) {
     return (
-        <div className={cn('text-sm leading-relaxed', className)}>
+        <div className={cn('min-w-0 break-words text-sm leading-relaxed [&_*]:max-w-full [&_pre]:overflow-x-auto', className)}>
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
