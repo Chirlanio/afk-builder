@@ -153,8 +153,10 @@ export function HeroDetailModal({ slug, open, onOpenChange, onNavigate }: HeroDe
     return (
         <>
             <Dialog open={open} onOpenChange={handleClose}>
-                <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto p-0">
-                    {/* Sempre presente para acessibilidade (radix exige). Visualmente o nome aparece dentro do header. */}
+                {/* grid-cols-[minmax(0,1fr)] força a coluna do DialogContent (display: grid)
+                    a respeitar o max-w-5xl. Sem isso, conteúdo com min-content maior que
+                    1024px expandiria o grid e criaria scroll horizontal. */}
+                <DialogContent className="max-h-[92vh] max-w-5xl grid-cols-[minmax(0,1fr)] overflow-y-auto p-0">
                     <DialogTitle className="sr-only">
                         {data?.hero.name ?? 'Detalhes do herói'}
                     </DialogTitle>
