@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, ShieldCheck, Swords, Users } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Library, ShieldCheck, Swords, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const baseNavItems: NavItem[] = [
@@ -22,6 +22,11 @@ const baseNavItems: NavItem[] = [
         title: 'Formações',
         url: '/formations',
         icon: Swords,
+    },
+    {
+        title: 'Guias',
+        url: '/guias',
+        icon: Library,
     },
 ];
 

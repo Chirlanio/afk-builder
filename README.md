@@ -101,6 +101,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 5. Algoritmo de otimização (sugerir formação automaticamente) | ✅ |
 | 6. Polimento (histórico, comparação, share) | 🚧 6.1-6.5 + 6.7 ✅ · 6.6 aberta sob demanda |
 | 7. Perfil completo de heróis (página de detalhe + skills + lore + tier dinâmico) | ✅ |
+| 8. Guias de mecânicas (Crítico Ressonante, Chifre de Dragão, Terreno das Bestas, Galeria Tenebrosa, Fenda Temporal) | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

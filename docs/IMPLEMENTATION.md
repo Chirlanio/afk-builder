@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 5 + 6.1-6.5/6.7 + 7.1-7.3 — perfil de herói com habilidades, lore e tag dinâmica)
+> **Última atualização:** 2026-05-02 (Fase 7 + Fase 8 — perfil de herói + guias de mecânicas)
 
 ---
 
@@ -268,6 +268,28 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
 - 5 testes adicionais no parser (parseLore extrai, retorna null quando ausente ou placeholder; parseAbilities extrai e agrupa por nome; retorna [] sem seção Skills). Validação manual: 6 heróis enriquecidos com sucesso (lore 2.9k-7.6k chars, 4 abilities cada). **94 testes verdes** no projeto.
 
 #### ✅ 7.3 — Tag de tier dinâmica por ascensão (concluído)
+
+---
+
+### ✅ Fase 8 — Guias de mecânicas
+
+- **Schema:** tabela `guides` (slug unique, title, category enum-like, summary, content longtext, source_url, display_order). Constantes em `Guide` model: `CATEGORY_MECANICAS / CATEGORY_MODOS / CATEGORY_EVENTOS`.
+- **Rotas:** `GET /guias` (index agrupado por categoria) e `GET /guias/{slug}` (show com regex `[a-z0-9-]+`).
+- **`GuideController`** index agrupa via `groupBy('category')` e mapeia categorias com seus labels e listas. Show usa `firstOrFail` no slug.
+- **UI:**
+  - `pages/guides/index.tsx` — header + seções por categoria com ícone (`Cog`/`Map`/`Sparkles`); cards com hover para detalhes.
+  - `pages/guides/show.tsx` — layout máx 3xl com header (badge categoria, título, summary, link Fandom) e body em `whitespace-pre-wrap`.
+  - Item **Guias** adicionado no sidebar.
+- **`GuideSeeder`** — busca conteúdo via `FandomWikiClient::fetchWikitext`, faz strip via `WikitextHeroParser::stripWikitext` (tornado público), trunca em 6k chars com indicador. Idempotente via `updateOrCreate(['slug'])`. 5 entradas iniciais:
+  - Crítico Ressonante → `Resonating Crystal` (mecânicas)
+  - Chifre de Dragão → `Dragon's Rest` (modos)
+  - Terreno das Bestas → `Beast Grounds` (mecânicas)
+  - Galeria Tenebrosa → `Ghoulish Gallery` (modos)
+  - Fenda Temporal → `Temporal Rift` (modos)
+- **Limitações conhecidas:**
+  - Tabelas wikitext (`{| class="wikitable" ... |}`) ficam com sintaxe crua dentro do conteúdo — `stripWikitext` não converte tabelas em texto. Aceitável pra v1; refinamento futuro.
+  - Mapeamento Português → Wiki em Inglês foi inferido (ver `GuideSeeder::ENTRIES`); pode precisar ajustes conforme o usuário valide os termos.
+- **Testes:** 4 cenários (`GuideTest`) — guest redireciona, index agrupa por categoria com counts, show renderiza com categoryLabel, 404 em slug inexistente. **98 testes verdes** no projeto.
 - Helper `tierFromAscension(ascensionValue)` em `lib/afk.ts`: 0-3 → `common`, 4-9 → `legendary`, 10+ → `ascended`.
 - `hero-card.tsx`: quando `userHero` está presente, badge mostra o tier ATINGIDO (estado real do user). Sem roster, mostra o max potencial do herói.
 - Mesma lógica aplicada na página `heroes/show.tsx`.

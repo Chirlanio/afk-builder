@@ -392,7 +392,7 @@ class WikitextHeroParser
     /**
      * Convert wikitext to plain-ish text: links → label, strip refs/templates/HTML/files.
      */
-    private function stripWikitext(string $value): string
+    public function stripWikitext(string $value): string
     {
         $value = preg_replace('/<ref\b[^>]*?\/>/i', '', $value) ?? $value;
         $value = preg_replace('/<ref\b.*?<\/ref>/is', '', $value) ?? $value;

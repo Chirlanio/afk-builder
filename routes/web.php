@@ -5,6 +5,7 @@ use App\Http\Controllers\FormationCompareController;
 use App\Http\Controllers\FormationController;
 use App\Http\Controllers\FormationShareController;
 use App\Http\Controllers\FormationVersionController;
+use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HeroController;
 use App\Http\Controllers\UserHeroController;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('heroes/{slug}', [HeroController::class, 'show'])
         ->where('slug', '[a-z0-9-]+')
         ->name('heroes.show');
+
+    Route::get('guias', [GuideController::class, 'index'])->name('guides.index');
+    Route::get('guias/{slug}', [GuideController::class, 'show'])
+        ->where('slug', '[a-z0-9-]+')
+        ->name('guides.show');
 
     Route::post('user/heroes', [UserHeroController::class, 'store'])->name('user-heroes.store');
     Route::patch('user/heroes/{userHero}', [UserHeroController::class, 'update'])->name('user-heroes.update');
