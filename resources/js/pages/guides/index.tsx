@@ -1,16 +1,19 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { BookOpen, ChevronRight, Cog, Map, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
+import { localized } from '@/lib/afk';
 import { cn } from '@/lib/utils';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, Locale, SharedData } from '@/types';
 
 interface GuideListItem {
     id: number;
     slug: string;
     title: string;
+    title_pt: string | null;
     category: string;
     summary: string | null;
+    summary_pt: string | null;
 }
 
 interface CategoryGroup {
@@ -32,6 +35,8 @@ const CATEGORY_ICON: Record<string, typeof Cog> = {
 };
 
 export default function GuidesIndex({ categories }: PageProps) {
+    const { auth } = usePage<SharedData>().props;
+    const locale = (auth.user?.locale ?? 'en') as Locale;
     const totalGuides = categories.reduce((acc, c) => acc + c.guides.length, 0);
 
     return (
@@ -64,7 +69,10 @@ export default function GuidesIndex({ categories }: PageProps) {
                             </h2>
 
                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                {category.guides.map((guide) => (
+                                {category.guides.map((guide) => {
+                                    const title = localized(guide, 'title', locale) ?? guide.title;
+                                    const summary = localized(guide, 'summary', locale);
+                                    return (
                                     <Link
                                         key={guide.id}
                                         href={`/guias/${guide.slug}`}
@@ -74,14 +82,15 @@ export default function GuidesIndex({ categories }: PageProps) {
                                         )}
                                     >
                                         <div className="flex items-start justify-between gap-2">
-                                            <h3 className="text-sm font-semibold leading-tight">{guide.title}</h3>
+                                            <h3 className="text-sm font-semibold leading-tight">{title}</h3>
                                             <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                                         </div>
-                                        {guide.summary && (
-                                            <p className="line-clamp-3 text-xs text-muted-foreground">{guide.summary}</p>
+                                        {summary && (
+                                            <p className="line-clamp-3 text-xs text-muted-foreground">{summary}</p>
                                         )}
                                     </Link>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </section>
                     );

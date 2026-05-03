@@ -1,17 +1,21 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowLeft, BookOpen, ExternalLink } from 'lucide-react';
 import { MarkdownContent } from '@/components/markdown-content';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem } from '@/types';
+import { localized } from '@/lib/afk';
+import type { BreadcrumbItem, Locale, SharedData } from '@/types';
 
 interface Guide {
     id: number;
     slug: string;
     title: string;
+    title_pt: string | null;
     category: string;
     summary: string | null;
+    summary_pt: string | null;
     content: string | null;
+    content_pt: string | null;
     source_url: string | null;
     updated_at: string;
 }
@@ -22,14 +26,20 @@ interface PageProps {
 }
 
 export default function GuideShow({ guide, categoryLabel }: PageProps) {
+    const { auth } = usePage<SharedData>().props;
+    const locale = (auth.user?.locale ?? 'en') as Locale;
+    const title = localized(guide, 'title', locale) ?? guide.title;
+    const summary = localized(guide, 'summary', locale);
+    const content = localized(guide, 'content', locale);
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Guias', href: '/guias' },
-        { title: guide.title, href: `/guias/${guide.slug}` },
+        { title, href: `/guias/${guide.slug}` },
     ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={guide.title} />
+            <Head title={title} />
 
             <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-4 p-4">
                 <div className="flex items-center gap-2">
@@ -46,8 +56,8 @@ export default function GuideShow({ guide, categoryLabel }: PageProps) {
                             {categoryLabel}
                         </Badge>
                     </div>
-                    <h1 className="text-2xl font-semibold">{guide.title}</h1>
-                    {guide.summary && <p className="text-sm text-muted-foreground">{guide.summary}</p>}
+                    <h1 className="text-2xl font-semibold">{title}</h1>
+                    {summary && <p className="text-sm text-muted-foreground">{summary}</p>}
                     {guide.source_url && (
                         <a
                             href={guide.source_url}
@@ -61,13 +71,15 @@ export default function GuideShow({ guide, categoryLabel }: PageProps) {
                     )}
                 </header>
 
-                {guide.content ? (
+                {content ? (
                     <article className="rounded-xl border bg-card p-5">
-                        <MarkdownContent>{guide.content}</MarkdownContent>
+                        <MarkdownContent>{content}</MarkdownContent>
                     </article>
                 ) : (
                     <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                        Conteúdo ainda não importado para este guia.
+                        {locale === 'pt' && guide.content
+                            ? 'Tradução ainda não disponível para este guia.'
+                            : 'Conteúdo ainda não importado para este guia.'}
                     </div>
                 )}
             </div>

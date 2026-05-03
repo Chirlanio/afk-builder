@@ -57,6 +57,8 @@ Acesse `http://127.0.0.1:8000`. Crie uma conta em `/register` (sem verificação
 | `php artisan heroes:enrich --slug=lucius` | Enriquece um herói específico |
 | `php artisan heroes:enrich --force` | Re-extrai mesmo se já populado |
 | `php artisan heroes:sync-furniture` | Sincroniza habilidades de móveis (F3/F9) da página master Fandom |
+| `php artisan content:translate` | Traduz EN→PT-BR (lore, abilities, furniture, guides) via Google Translate |
+| `php artisan content:translate --type=lore --limit=10` | Limita escopo do translate por tipo e quantidade |
 | `php artisan heroes:resolve-images` | Resolve URLs reais da CDN (Special:Filepath → static.wikia.nocookie.net) |
 | `php artisan heroes:resolve-images --force` | Re-resolve mesmo URLs já em CDN |
 | `php artisan migrate:fresh --seed` | Reset total do BD (apaga catálogo importado!) |
@@ -105,6 +107,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 8. Guias de mecânicas (Crítico Ressonante, Chifre de Dragão, Terreno das Bestas, Galeria Tenebrosa, Fenda Temporal) | ✅ |
 | 9. Guias adicionais (Hotel Oak, Móveis, Atributos) + Dragon Trial challenge type | ✅ |
 | 10. Hotel Furniture (habilidades F3/F9 per-hero, sync da Fandom, indicador no perfil) | ✅ |
+| 11. i18n EN/PT-BR (lore, abilities, furniture, guides) com seletor de idioma | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

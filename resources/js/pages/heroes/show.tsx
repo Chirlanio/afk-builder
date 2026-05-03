@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, BookText, ExternalLink, Flame, Hotel, ListChecks, Lock, Pencil, Plus, Sparkles, Unlock, Users } from 'lucide-react';
 import { useState } from 'react';
 import { MarkdownContent } from '@/components/markdown-content';
@@ -7,9 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import AppLayout from '@/layouts/app-layout';
-import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME, tierFromAscension } from '@/lib/afk';
+import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME, localized, tierFromAscension } from '@/lib/afk';
 import { cn } from '@/lib/utils';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, Locale, SharedData } from '@/types';
 import type {
     ClassCode,
     Faction,
@@ -52,6 +52,8 @@ const ABILITY_TYPE_LABEL: Record<string, string> = {
 export default function HeroShow({ hero, userHero, synergies, factions, heroClasses, tiers }: PageProps) {
     const [modalOpen, setModalOpen] = useState(false);
     const { confirm, dialog: confirmDialog } = useConfirm();
+    const { auth } = usePage<SharedData>().props;
+    const locale = (auth.user?.locale ?? 'en') as Locale;
 
     const factionTheme = FACTION_THEME[hero.faction.code as FactionCode];
     const ClassIcon = CLASS_ICON[hero.hero_class.code as ClassCode];
@@ -80,7 +82,8 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
     };
 
     const abilities = hero.abilities ?? [];
-    const hasLore = Boolean(hero.lore && hero.lore.trim().length > 0);
+    const localizedLore = localized(hero, 'lore', locale);
+    const hasLore = Boolean(localizedLore && localizedLore.trim().length > 0);
     const furnitureAbility = hero.furniture_ability;
     const userFurniture = userHero?.furniture ?? 0;
     const f3Unlocked = userFurniture >= 3;
@@ -212,10 +215,13 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                         </div>
                     ) : (
                         <div className="flex flex-col gap-2">
-                            {abilities.map((ability) => (
+                            {abilities.map((ability) => {
+                                const abilityName = localized(ability, 'name', locale) ?? ability.name;
+                                const abilityDesc = localized(ability, 'description', locale);
+                                return (
                                 <div key={ability.id} className="rounded-lg border bg-card p-3">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <span className="font-semibold">{ability.name}</span>
+                                        <span className="font-semibold">{abilityName}</span>
                                         <Badge variant="secondary" className="text-[10px]">
                                             {ABILITY_TYPE_LABEL[ability.type] ?? ability.type}
                                         </Badge>
@@ -225,13 +231,14 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                                             </Badge>
                                         )}
                                     </div>
-                                    {ability.description && (
+                                    {abilityDesc && (
                                         <div className="mt-2 text-muted-foreground">
-                                            <MarkdownContent>{ability.description}</MarkdownContent>
+                                            <MarkdownContent>{abilityDesc}</MarkdownContent>
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </section>
@@ -242,25 +249,31 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                         <BookText className="size-5 text-primary" />
                         História
                     </h2>
-                    {hasLore && hero.lore ? (
+                    {hasLore && localizedLore ? (
                         <div className="rounded-xl border bg-card p-4">
-                            <MarkdownContent>{hero.lore}</MarkdownContent>
+                            <MarkdownContent>{localizedLore}</MarkdownContent>
                         </div>
                     ) : (
                         <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-                            História ainda não importada para este herói.
+                            {locale === 'pt' && hero.lore
+                                ? 'Tradução ainda não disponível para este herói.'
+                                : 'História ainda não importada para este herói.'}
                         </div>
                     )}
                 </section>
 
                 {/* Furniture ability */}
-                {furnitureAbility && (
+                {furnitureAbility && (() => {
+                    const faName = localized(furnitureAbility, 'name', locale) ?? furnitureAbility.name;
+                    const faF3 = localized(furnitureAbility, 'f3_description', locale);
+                    const faF9 = localized(furnitureAbility, 'f9_description', locale);
+                    return (
                     <section className="flex flex-col gap-2">
                         <h2 className="flex items-center gap-2 text-lg font-semibold">
                             <Hotel className="size-5 text-primary" />
                             Habilidade de Móvel
                             <Badge variant="secondary" className="text-xs">
-                                {furnitureAbility.name}
+                                {faName}
                             </Badge>
                             {owned && (
                                 <Badge variant="outline" className="text-[10px]">
@@ -286,9 +299,9 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                                         </span>
                                     )}
                                 </div>
-                                {furnitureAbility.f3_description ? (
+                                {faF3 ? (
                                     <div className="text-muted-foreground">
-                                        <MarkdownContent>{furnitureAbility.f3_description}</MarkdownContent>
+                                        <MarkdownContent>{faF3}</MarkdownContent>
                                     </div>
                                 ) : (
                                     <p className="text-sm text-muted-foreground">Sem descrição.</p>
@@ -314,9 +327,9 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                                         </span>
                                     )}
                                 </div>
-                                {furnitureAbility.f9_description ? (
+                                {faF9 ? (
                                     <div className="text-muted-foreground">
-                                        <MarkdownContent>{furnitureAbility.f9_description}</MarkdownContent>
+                                        <MarkdownContent>{faF9}</MarkdownContent>
                                     </div>
                                 ) : (
                                     <p className="text-sm text-muted-foreground">Sem descrição.</p>
@@ -324,7 +337,8 @@ export default function HeroShow({ hero, userHero, synergies, factions, heroClas
                             </div>
                         </div>
                     </section>
-                )}
+                    );
+                })()}
 
                 {/* Synergies */}
                 {synergies.length > 0 && (

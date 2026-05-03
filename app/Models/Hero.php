@@ -24,6 +24,7 @@ class Hero extends Model
         'thumbnail_url',
         'source_url',
         'lore',
+        'lore_pt',
         'released_at',
         'is_active',
         'pending_review',

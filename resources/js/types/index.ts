@@ -28,12 +28,15 @@ export interface SharedData {
     [key: string]: unknown;
 }
 
+export type Locale = 'en' | 'pt';
+
 export interface User {
     id: number;
     name: string;
     email: string;
     avatar?: string;
     is_admin?: boolean;
+    locale?: Locale;
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;

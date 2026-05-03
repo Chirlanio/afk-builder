@@ -12,7 +12,7 @@ class GuideController extends Controller
     {
         $guides = Guide::orderBy('display_order')
             ->orderBy('title')
-            ->get(['id', 'slug', 'title', 'category', 'summary'])
+            ->get(['id', 'slug', 'title', 'title_pt', 'category', 'summary', 'summary_pt'])
             ->groupBy('category');
 
         $categories = collect(Guide::CATEGORY_LABELS)

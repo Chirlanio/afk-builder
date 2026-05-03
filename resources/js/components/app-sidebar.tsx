@@ -1,3 +1,4 @@
+import { LocaleSwitcher } from '@/components/locale-switcher';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -73,6 +74,9 @@ export function AppSidebar() {
 
             <SidebarFooter>
                 <NavFooter items={footerNavItems} className="mt-auto" />
+                <div className="flex items-center justify-end px-2">
+                    <LocaleSwitcher />
+                </div>
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

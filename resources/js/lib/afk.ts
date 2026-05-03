@@ -178,3 +178,23 @@ export function tierFromAscension(ascensionValue: number | null | undefined): Ti
     if (v >= 4) return 'legendary';
     return 'common';
 }
+
+/**
+ * Retorna o valor de um campo no idioma escolhido, com fallback para o original (EN).
+ * Para PT-BR, usa `field_pt` se preenchido; senão devolve o `field` original.
+ */
+export function localized<T extends Record<string, unknown>>(
+    item: T | null | undefined,
+    field: string,
+    locale: 'en' | 'pt' | undefined,
+): string | null {
+    if (!item) return null;
+    if (locale === 'pt') {
+        const ptValue = item[`${field}_pt`];
+        if (typeof ptValue === 'string' && ptValue.trim() !== '') {
+            return ptValue;
+        }
+    }
+    const value = item[field];
+    return typeof value === 'string' && value.trim() !== '' ? value : null;
+}

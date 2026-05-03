@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 10 — Hotel Furniture per-hero F3/F9 abilities)
+> **Última atualização:** 2026-05-02 (Fase 11 — i18n EN/PT-BR para conteúdo dos heróis e guias)
 
 ---
 
@@ -335,6 +335,31 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
   - Parser: novo cenário com 3 entradas exemplo (2 com F9, 1 só com F3); verifica nome, ability, descrições limpas (sem prefixo `[N/9 Mythic Pieces]`), F9 null quando ausente.
   - HeroShow: payload inclui `furniture_ability` quando existe; `null` quando não. **109 testes verdes** no projeto.
 - **Não implementado** (escopo futuro): bônus do Furniture aplicado ao optimizer (`TeamScorer`) — atualmente o `power_rating` do `user_heroes.furniture` (0-9) já entra na `PowerCalculator` como `furniture * 30`, mas as abilities específicas F3/F9 não influenciam o score (seria preciso modelar effects estruturados).
+
+---
+
+### ✅ Fase 11 — i18n EN/PT-BR para conteúdo
+
+- **Schema:** colunas `_pt` ao lado dos campos originais (mantém EN como fonte da verdade) + `users.locale` (string 2, default `en`):
+  - `heroes.lore_pt`
+  - `hero_abilities.name_pt`, `description_pt`
+  - `hero_furniture_abilities.name_pt`, `f3_description_pt`, `f9_description_pt`
+  - `guides.title_pt`, `summary_pt`, `content_pt`
+  - `users.locale` + `User::LOCALES = ['en', 'pt']`
+- **Endpoint:** `PATCH /settings/locale` (`locale.update`) valida via `Rule::in(User::LOCALES)` e atualiza o user.
+- **UI:**
+  - `components/locale-switcher.tsx` — `DropdownMenu` no rodapé do sidebar com bandeiras 🇺🇸/🇧🇷 e label "atual" no idioma corrente. Click → `router.patch('/settings/locale')` com `preserveState: false` pra refetch dos dados localizados.
+  - Helper `localized(item, field, locale)` em `lib/afk.ts` retorna `{field}_pt` se locale='pt' e preenchido; senão fallback pro `{field}` original.
+  - Aplicado em `pages/heroes/show.tsx` (lore, abilities, furniture name+f3+f9), `pages/guides/index.tsx` (title, summary), `pages/guides/show.tsx` (title, summary, content). Mensagens de fallback distinguem "ainda não traduzido" de "ainda não importado".
+  - `User` type ganhou `locale?: Locale`. Shared data `auth.user.locale` já fluía via Inertia.
+- **Comando `content:translate`** (`--type=lore|abilities|furniture|guides|all`, `--limit=N`, `--slug=X`, `--force`):
+  - Usa `stichoza/google-translate-php` (free, sem API key — scrapping do Google Translate).
+  - Throttle 200ms entre calls + try/catch por item (não interrompe batch em caso de bloqueio temporário).
+  - Idempotente — só traduz onde `_pt` está null (a menos que `--force`).
+  - SSL via `Composer\CaBundle` para WAMP.
+- **Validação:** lore + 4 abilities do Lucius + 3 furniture abilities + 1 guide traduzidos com qualidade aceitável (ex: "Heaven's Protection" → "Proteção do Céu", "Divine Strike" → "Golpe Divino"). Markdown preservado nas tabelas e formatação.
+- **Testes:** novo `LocaleTest` (4 cenários — default 'en', endpoint atualiza, rejeita locale inválido, guest redireciona). **113 testes verdes** no projeto.
+- **Para popular o resto:** `php artisan content:translate` (sem flags) pega tudo que falta. ~213 lores + ~850 abilities + 117 furniture + 8 guides → estimativa ~30-60 min com throttle, sem garantia (scraping pode bloquear).
 - **Testes:** 4 cenários (`GuideTest`) — guest redireciona, index agrupa por categoria com counts, show renderiza com categoryLabel, 404 em slug inexistente. **98 testes verdes** no projeto.
 - Helper `tierFromAscension(ascensionValue)` em `lib/afk.ts`: 0-3 → `common`, 4-9 → `legendary`, 10+ → `ascended`.
 - `hero-card.tsx`: quando `userHero` está presente, badge mostra o tier ATINGIDO (estado real do user). Sem roster, mostra o max potencial do herói.

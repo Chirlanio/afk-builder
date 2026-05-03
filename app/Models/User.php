@@ -28,11 +28,14 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    public const LOCALES = ['en', 'pt'];
+
     protected $fillable = [
         'name',
         'email',
         'password',
         'is_admin',
+        'locale',
     ];
 
     /**

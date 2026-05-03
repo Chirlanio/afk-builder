@@ -10,10 +10,12 @@ class HeroAbility extends Model
     protected $fillable = [
         'hero_id',
         'name',
+        'name_pt',
         'type',
         'display_order',
         'ascension_unlock',
         'description',
+        'description_pt',
         'effects',
     ];
 
