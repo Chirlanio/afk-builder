@@ -2,6 +2,9 @@
 
 namespace Tests\Unit\Optimization;
 
+use App\Models\Artifact;
+use App\Models\Beast;
+use App\Models\Collection;
 use App\Models\Hero;
 use App\Models\HeroStat;
 use App\Models\UserHero;
@@ -164,5 +167,101 @@ class PowerCalculatorTest extends TestCase
         // + stats: 200 + 300 + 140 = 640
         // total: 2080
         $this->assertEqualsWithDelta(2080.0, $this->calc->targetBaseline($hero), 0.001);
+    }
+
+    public function test_artifact_contribution_zero_quando_null(): void
+    {
+        $this->assertSame(0.0, $this->calc->artifactContribution(null, 1));
+    }
+
+    public function test_artifact_contribution_base_por_estrelas(): void
+    {
+        $artifact = new Artifact;
+        $artifact->attributes = []; // sem atributos extras
+
+        // 1★=50, 3★=150, 5★=250
+        $this->assertEqualsWithDelta(50.0, $this->calc->artifactContribution($artifact, 1), 0.001);
+        $this->assertEqualsWithDelta(150.0, $this->calc->artifactContribution($artifact, 3), 0.001);
+        $this->assertEqualsWithDelta(250.0, $this->calc->artifactContribution($artifact, 5), 0.001);
+    }
+
+    public function test_artifact_contribution_soma_atributos_numericos(): void
+    {
+        $artifact = new Artifact;
+        $artifact->attributes = [
+            ['stat' => 'HP', 'value' => '8.00%'],     // 8 * 2 = 16
+            ['stat' => 'CRIT', 'value' => '5.00'],    // 5 * 2 = 10
+            ['stat' => 'HASTE', 'value' => '10.00'],  // 10 * 2 = 20
+        ];
+
+        // 3★ base: 150 + 16 + 10 + 20 = 196
+        $this->assertEqualsWithDelta(196.0, $this->calc->artifactContribution($artifact, 3), 0.001);
+    }
+
+    public function test_collection_contribution_zero_quando_null(): void
+    {
+        $this->assertSame(0.0, $this->calc->collectionContribution(null));
+    }
+
+    public function test_collection_contribution_soma_bonus(): void
+    {
+        $collection = new Collection;
+        $collection->hp_bonus = 1000;       // *0.1 = 100
+        $collection->attack_bonus = 200;    // *1.0 = 200
+        $collection->defense_bonus = 100;   // *0.7 = 70
+        // total: 370
+        $this->assertEqualsWithDelta(370.0, $this->calc->collectionContribution($collection), 0.001);
+    }
+
+    public function test_beast_buff_for_type(): void
+    {
+        $beast = new Beast;
+        $beast->strength_buff = 100;
+        $beast->intelligence_buff = 80;
+        $beast->agility_buff = 120;
+
+        $this->assertSame(100.0, $this->calc->beastBuffForType($beast, 'strength'));
+        $this->assertSame(80.0, $this->calc->beastBuffForType($beast, 'intelligence'));
+        $this->assertSame(120.0, $this->calc->beastBuffForType($beast, 'agility'));
+        $this->assertSame(0.0, $this->calc->beastBuffForType($beast, null));
+        $this->assertSame(0.0, $this->calc->beastBuffForType(null, 'strength'));
+    }
+
+    public function test_for_user_hero_aplica_beast_buff_factor_50(): void
+    {
+        $uh = $this->makeUserHero([
+            'ascension_value' => 10, 'level' => 240, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 0,
+        ]);
+        // base = 10*100 + 240 = 1240
+
+        $hero = new Hero;
+        $hero->type = 'strength';
+
+        $beast = new Beast;
+        $beast->strength_buff = 200;     // 200 * 0.5 = 100
+        $beast->intelligence_buff = 0;
+        $beast->agility_buff = 0;
+
+        $this->assertEqualsWithDelta(1340.0, $this->calc->forUserHero($uh, $hero, $beast), 0.001);
+    }
+
+    public function test_for_user_hero_ignora_beast_quando_tipo_nao_bate(): void
+    {
+        $uh = $this->makeUserHero([
+            'ascension_value' => 10, 'level' => 240, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 0,
+        ]);
+
+        $hero = new Hero;
+        $hero->type = 'agility';
+
+        $beast = new Beast;
+        $beast->strength_buff = 1000;    // só Force, hero é Agility
+        $beast->intelligence_buff = 0;
+        $beast->agility_buff = 0;
+
+        // Sem buff aplicado: base = 1240
+        $this->assertEqualsWithDelta(1240.0, $this->calc->forUserHero($uh, $hero, $beast), 0.001);
     }
 }

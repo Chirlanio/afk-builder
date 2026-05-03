@@ -203,7 +203,10 @@ class FormationController extends Controller
     ): JsonResponse {
         abort_unless($formation->user_id === $request->user()->id, 403);
 
-        $formation->load('challengeType:id,scoring_profile,teams_must_be_unique');
+        $formation->load([
+            'challengeType:id,scoring_profile,teams_must_be_unique',
+            'beast:id,strength_buff,intelligence_buff,agility_buff',
+        ]);
 
         $teamsCount = $formation->teams_count;
         if ($position < 1 || $position > $teamsCount) {
@@ -252,6 +255,7 @@ class FormationController extends Controller
             $profile,
             array_values($lockedHeroIds),
             $blockedHeroIds,
+            $formation->beast,
         );
 
         $suggestedIds = $result['hero_ids'];
@@ -288,7 +292,10 @@ class FormationController extends Controller
     ): JsonResponse {
         abort_unless($formation->user_id === $request->user()->id, 403);
 
-        $formation->load('challengeType:id,scoring_profile,teams_must_be_unique');
+        $formation->load([
+            'challengeType:id,scoring_profile,teams_must_be_unique',
+            'beast:id,strength_buff,intelligence_buff,agility_buff',
+        ]);
 
         $teamsCount = $formation->teams_count;
 
@@ -327,6 +334,7 @@ class FormationController extends Controller
             $lockedByTeam,
             $teamsCount,
             (bool) $formation->challengeType->teams_must_be_unique,
+            $formation->beast,
         );
 
         $teamsResponse = [];
@@ -397,7 +405,14 @@ class FormationController extends Controller
      */
     private function loadUserHeroes(int $userId): array
     {
-        return UserHero::where('user_id', $userId)->get()->keyBy('hero_id')->all();
+        return UserHero::where('user_id', $userId)
+            ->with([
+                'artifact:id,attributes',
+                'collection:id,hp_bonus,attack_bonus,defense_bonus',
+            ])
+            ->get()
+            ->keyBy('hero_id')
+            ->all();
     }
 
     /**

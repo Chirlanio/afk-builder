@@ -2,6 +2,7 @@
 
 namespace App\Services\Optimization;
 
+use App\Models\Beast;
 use App\Models\Hero;
 use App\Models\UserHero;
 
@@ -23,6 +24,7 @@ class TeamScorer
         array $userHeroesById,
         array $synergyWeights,
         ScoringProfile $profile,
+        ?Beast $beast = null,
     ): ScoreBreakdown {
         $counts = $this->countByFaction($heroes);
 
@@ -32,7 +34,7 @@ class TeamScorer
 
         $classBalance = $this->classBalance($heroes);
         $synergy = $this->synergyScore($heroes, $synergyWeights);
-        $power = $this->powerScore($heroes, $userHeroesById);
+        $power = $this->powerScore($heroes, $userHeroesById, $beast);
 
         $total = $factionBonus * $profile->factionBonusWeight
             + $classBalance * $profile->classBalanceWeight
@@ -256,12 +258,12 @@ class TeamScorer
      * @param  Hero[]  $heroes
      * @param  array<int, UserHero>  $userHeroesById
      */
-    private function powerScore(array $heroes, array $userHeroesById): float
+    private function powerScore(array $heroes, array $userHeroesById, ?Beast $beast = null): float
     {
         $total = 0.0;
         foreach ($heroes as $hero) {
             $userHero = $userHeroesById[$hero->id] ?? null;
-            $total += $this->power->forHero($hero, $userHero);
+            $total += $this->power->forHero($hero, $userHero, $beast);
         }
 
         return $total / self::POWER_NORMALIZER;

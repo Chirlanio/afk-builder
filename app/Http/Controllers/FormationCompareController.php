@@ -28,8 +28,8 @@ class FormationCompareController extends Controller
         $userId = $request->user()->id;
         abort_unless($a->user_id === $userId && $b->user_id === $userId, 403);
 
-        $a->load(['challengeType', 'teams.teamHeroes']);
-        $b->load(['challengeType', 'teams.teamHeroes']);
+        $a->load(['challengeType', 'teams.teamHeroes', 'beast:id,strength_buff,intelligence_buff,agility_buff']);
+        $b->load(['challengeType', 'teams.teamHeroes', 'beast:id,strength_buff,intelligence_buff,agility_buff']);
 
         $allHeroIds = collect([$a, $b])
             ->flatMap(fn ($f) => $f->teams->flatMap(fn ($t) => $t->teamHeroes->pluck('hero_id')))
@@ -44,6 +44,10 @@ class FormationCompareController extends Controller
 
         $userHeroesById = UserHero::where('user_id', $userId)
             ->whereIn('hero_id', $allHeroIds)
+            ->with([
+                'artifact:id,attributes',
+                'collection:id,hp_bonus,attack_bonus,defense_bonus',
+            ])
             ->get()
             ->keyBy('hero_id')
             ->all();
@@ -94,7 +98,7 @@ class FormationCompareController extends Controller
                 ->filter()
                 ->all();
 
-            $score = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile);
+            $score = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $formation->beast);
             $totalScore += $score->total;
 
             $teams[] = [

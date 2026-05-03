@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-03 (Fase 14c — Beasts/pets)
+> **Última atualização:** 2026-05-03 (Fase 14d — integração ao optimizer)
 
 ---
 
@@ -552,9 +552,27 @@ Beasts são os "pets" do AFK Arena. Cada beast aplica buffs aos heróis do tipo 
   - `FormationBeastTest`: 5 cenários (carrega lista, atribui beast, remove com null, rejeita inexistente, rejeita inativo).
   - **169 testes verdes** no projeto.
 
-**Não implementado** (escopo futuro):
-- Integração ao optimizer (`PowerCalculator` + `TeamScorer`) — Fase 14d.
-- Interface pra distinguir "Beast level" (1-18) vs buff fixo — atualmente armazenamos só o valor "max".
+---
+
+### ✅ Fase 14d — Integração ao optimizer
+
+`PowerCalculator` agora soma contribuições de Artefato/Coleção/Beast quando dados disponíveis. `TeamScorer` e os optimizers propagam o beast através das chamadas.
+
+- **`PowerCalculator` ganhou 3 métodos novos:**
+  - `artifactContribution(?Artifact, ?int $stars)`: bônus base por estrelas (50 * stars; 1★=50, 5★=250) + somatório leve dos atributos numéricos (`HP%`, `CRIT`, `HASTE`, etc) com multiplicador 2.
+  - `collectionContribution(?Collection)`: usa os bônus HP/ATK/DEF da Coleção com a mesma escala da `statContribution` (HP*0.1, ATK*1.0, DEF*0.7).
+  - `beastBuffForType(?Beast, ?string $heroType)`: retorna o buff bruto do beast para o tipo do herói (Strength/Intelligence/Agility) ou 0 quando não bate.
+- **`forUserHero(UserHero, ?Hero, ?Beast)`** estendido: soma `artifactContribution` (via relação `artifact` carregada), `collectionContribution` (via relação `collection`), e `beastBuffForType * BEAST_BUFF_FACTOR (0.5)`. Acessos a relations protegidos por `relationLoaded` pra não disparar lazy load (importante pra testes unitários).
+- **`forHero(Hero, ?UserHero, ?Beast)`** também aplica beast no modo target (sem userHero), já que beast vem da formação não do roster.
+- **Helper privado `safeStats(?Hero)`**: blinda acesso a `$hero->stats` com `relationLoaded` check — evita N+1 queries em optimizers e falhas de unit test sem DB.
+- **`TeamScorer::score(...$profile, ?Beast $beast = null)`**: assinatura estendida; passa beast para `powerScore` que repassa ao `forHero` por hero. Backward-compat: chamadas existentes sem beast continuam funcionando.
+- **`SingleTeamOptimizer::optimize`** + helpers `exhaustive` e `greedyWithHillClimb` ganham param `?Beast` opcional, propagado em todas as chamadas internas a `scorer->score`.
+- **`MultiTeamPartitioner::optimize`** + `initialFill` + `swapOptimize` mesma extensão.
+- **Controllers atualizados:**
+  - `FormationController::suggestTeam` e `suggestAll` carregam `formation->beast` (select otimizado: id+buffs) e passam ao optimizer.
+  - `FormationCompareController` carrega `beast` em ambas formações e passa ao scorer no `buildFormationPayload`.
+  - `loadUserHeroes` e o eager-load no Compare agora incluem `artifact:id,attributes` e `collection:id,hp_bonus,attack_bonus,defense_bonus` pra que `PowerCalculator` veja as relações como carregadas.
+- **Testes:** 8 novos cenários no `PowerCalculatorTest` (artifact/collection/beast contributions, integração com forUserHero). **177 testes verdes** no projeto.
 
 ---
 

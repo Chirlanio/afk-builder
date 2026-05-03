@@ -2,6 +2,7 @@
 
 namespace App\Services\Optimization;
 
+use App\Models\Beast;
 use App\Models\Hero;
 use App\Models\UserHero;
 
@@ -30,6 +31,7 @@ class SingleTeamOptimizer
         ScoringProfile $profile,
         array $lockedHeroIds,
         array $blockedHeroIds,
+        ?Beast $beast = null,
     ): array {
         $emptyCount = self::TEAM_SIZE - count($lockedHeroIds);
         $lockedHeroes = $this->resolveHeroes($lockedHeroIds, $heroPoolById);
@@ -37,7 +39,7 @@ class SingleTeamOptimizer
         if ($emptyCount <= 0) {
             return [
                 'hero_ids' => $lockedHeroIds,
-                'score' => $this->scorer->score($lockedHeroes, $userHeroesById, $synergyWeights, $profile),
+                'score' => $this->scorer->score($lockedHeroes, $userHeroesById, $synergyWeights, $profile, $beast),
             ];
         }
 
@@ -52,17 +54,17 @@ class SingleTeamOptimizer
         if (count($candidates) === 0) {
             return [
                 'hero_ids' => $lockedHeroIds,
-                'score' => $this->scorer->score($lockedHeroes, $userHeroesById, $synergyWeights, $profile),
+                'score' => $this->scorer->score($lockedHeroes, $userHeroesById, $synergyWeights, $profile, $beast),
             ];
         }
 
         $emptyCount = min($emptyCount, count($candidates));
 
         if ($emptyCount <= 2) {
-            return $this->exhaustive($lockedHeroes, $candidates, $emptyCount, $userHeroesById, $synergyWeights, $profile);
+            return $this->exhaustive($lockedHeroes, $candidates, $emptyCount, $userHeroesById, $synergyWeights, $profile, $beast);
         }
 
-        return $this->greedyWithHillClimb($lockedHeroes, $candidates, $emptyCount, $userHeroesById, $synergyWeights, $profile);
+        return $this->greedyWithHillClimb($lockedHeroes, $candidates, $emptyCount, $userHeroesById, $synergyWeights, $profile, $beast);
     }
 
     /**
@@ -79,6 +81,7 @@ class SingleTeamOptimizer
         array $userHeroesById,
         array $synergyWeights,
         ScoringProfile $profile,
+        ?Beast $beast = null,
     ): array {
         $bestScore = null;
         $bestHeroes = [];
@@ -87,7 +90,7 @@ class SingleTeamOptimizer
         if ($emptyCount === 1) {
             for ($i = 0; $i < $n; $i++) {
                 $team = array_merge($locked, [$candidates[$i]]);
-                $score = $this->scorer->score($team, $userHeroesById, $synergyWeights, $profile);
+                $score = $this->scorer->score($team, $userHeroesById, $synergyWeights, $profile, $beast);
                 if ($bestScore === null || $score->total > $bestScore->total) {
                     $bestScore = $score;
                     $bestHeroes = $team;
@@ -97,7 +100,7 @@ class SingleTeamOptimizer
             for ($i = 0; $i < $n - 1; $i++) {
                 for ($j = $i + 1; $j < $n; $j++) {
                     $team = array_merge($locked, [$candidates[$i], $candidates[$j]]);
-                    $score = $this->scorer->score($team, $userHeroesById, $synergyWeights, $profile);
+                    $score = $this->scorer->score($team, $userHeroesById, $synergyWeights, $profile, $beast);
                     if ($bestScore === null || $score->total > $bestScore->total) {
                         $bestScore = $score;
                         $bestHeroes = $team;
@@ -128,6 +131,7 @@ class SingleTeamOptimizer
         array $userHeroesById,
         array $synergyWeights,
         ScoringProfile $profile,
+        ?Beast $beast = null,
     ): array {
         $team = $locked;
         $usedIds = array_flip(array_map(fn (Hero $h) => $h->id, $locked));
@@ -145,6 +149,7 @@ class SingleTeamOptimizer
                     $userHeroesById,
                     $synergyWeights,
                     $profile,
+                    $beast,
                 );
                 if ($bestScore === null || $score->total > $bestScore->total) {
                     $bestScore = $score;
@@ -160,7 +165,7 @@ class SingleTeamOptimizer
             $usedIds[$bestHero->id] = true;
         }
 
-        $currentScore = $this->scorer->score($team, $userHeroesById, $synergyWeights, $profile);
+        $currentScore = $this->scorer->score($team, $userHeroesById, $synergyWeights, $profile, $beast);
         $lockedCount = count($locked);
 
         for ($iter = 0; $iter < self::HILL_CLIMB_ITERATIONS; $iter++) {
@@ -174,7 +179,7 @@ class SingleTeamOptimizer
 
                     $oldHero = $team[$i];
                     $team[$i] = $candidate;
-                    $newScore = $this->scorer->score($team, $userHeroesById, $synergyWeights, $profile);
+                    $newScore = $this->scorer->score($team, $userHeroesById, $synergyWeights, $profile, $beast);
 
                     if ($newScore->total > $currentScore->total) {
                         unset($usedIds[$oldHero->id]);
