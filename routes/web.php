@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\HeroAdminController;
 use App\Http\Controllers\FormationController;
 use App\Http\Controllers\HeroController;
 use App\Http\Controllers\UserHeroController;
@@ -32,6 +33,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('formations/{formation}/suggest-all', [FormationController::class, 'suggestAll'])
         ->name('formations.suggest-all');
     Route::delete('formations/{formation}', [FormationController::class, 'destroy'])->name('formations.destroy');
+
+    Route::middleware('can:manage-heroes')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('heroes/pending', [HeroAdminController::class, 'pendingIndex'])->name('heroes.pending');
+        Route::patch('heroes/{hero}/approve', [HeroAdminController::class, 'approve'])->name('heroes.approve');
+        Route::patch('heroes/{hero}/reject', [HeroAdminController::class, 'reject'])->name('heroes.reject');
+    });
 });
 
 require __DIR__.'/settings.php';

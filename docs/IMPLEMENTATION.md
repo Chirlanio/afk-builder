@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 5 completa — scoring + auto-preencher 1 + auto-distribuir todas)
+> **Última atualização:** 2026-05-02 (Fase 5 completa + Fase 6.1 — UI de aprovação de heróis pendentes)
 
 ---
 
@@ -185,15 +185,26 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
 
 - **Testes:** 5 cenários em `tests/Feature/Optimization/MultiTeamPartitionerTest.php` — 3 equipes unique sem sobreposição, preserva locked, locked em uma bloqueia em outras, pool insuficiente, modo não-unique repete heróis. Total **20 testes verdes em `Optimization/`** e **46 testes verdes** no projeto.
 
-### ⏭️ Fase 6 — Polimento (pendente)
+### 🚧 Fase 6 — Polimento (em progresso)
 
-- Histórico/versionamento de formações
-- Comparação lado a lado de duas formações
-- Share via link público read-only
-- Refinamento visual com base em uso real
-- Importação manual de heróis (UI, complementar ao sync)
-- Tela admin pra aprovar `pending_review` heróis novos (hoje só via SQL/tinker)
-- Refinar tradução: investigar 10 heróis ignorados na wiki (Bronn, Daimon, Angelo, etc.)
+#### ✅ 6.1 — UI de aprovação de heróis pendentes (concluído)
+
+- **Schema:** migration `add_is_admin_to_users_table` (boolean, default false). Primeiro usuário do app é promovido a admin automaticamente.
+- **Gate** `manage-heroes` registrada em `AppServiceProvider::boot()` checando `$user->is_admin`.
+- **`HeroAdminController`** (`app/Http/Controllers/Admin/`) com `pendingIndex` (lista heróis com `pending_review=true`), `approve` (`pending_review=false, is_active=true`) e `reject` (`pending_review=false, is_active=false` — mantém o registro pra histórico).
+- **Rotas** com prefixo `admin/` e middleware `can:manage-heroes`:
+  - `GET /admin/heroes/pending` (admin.heroes.pending)
+  - `PATCH /admin/heroes/{hero}/approve` (admin.heroes.approve)
+  - `PATCH /admin/heroes/{hero}/reject` (admin.heroes.reject)
+- **UI:** página `pages/admin/heroes/pending.tsx` com cards (portrait + facção/classe/tier + link Fandom + botões aprovar/rejeitar). Item **Aprovar heróis** aparece no sidebar só pra admins (via `auth.user.is_admin` no shared data).
+- **Testes:** 6 cenários — guest redireciona, não-admin recebe 403 (index e action), admin lista, admin aprova, admin rejeita.
+
+#### ⏭️ 6.2 — Importação manual de heróis (pendente)
+#### ⏭️ 6.3 — Share via link público read-only (pendente)
+#### ⏭️ 6.4 — Comparação lado a lado de 2 formações (pendente)
+#### ⏭️ 6.5 — Histórico/versionamento de formações (pendente)
+#### ⏭️ 6.6 — Refinamentos visuais (pendente)
+#### ⏭️ 6.7 — Investigar heróis ignorados na wiki (Saveas, Daimon, Arden, etc.) (pendente)
 
 ---
 
