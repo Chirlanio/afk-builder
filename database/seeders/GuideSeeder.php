@@ -55,6 +55,30 @@ class GuideSeeder extends Seeder
             'summary' => 'Modo de andares infinitos com batalhas e recompensas progressivas — Hall of Fame, Fountain of Time, Sanctioned Realm.',
             'display_order' => 50,
         ],
+        [
+            'slug' => 'hotel-oak',
+            'title' => 'Hotel Oak (The Oak Inn)',
+            'category' => Guide::CATEGORY_MECANICAS,
+            'wiki_page' => 'The Oak Inn',
+            'summary' => 'Sistema de hotel onde heróis Ascendidos ganham bônus de móveis. Desbloqueia ao zerar o Capítulo 4 (visitar) ou Capítulo 17 (próprio).',
+            'display_order' => 60,
+        ],
+        [
+            'slug' => 'moveis-oak-inn',
+            'title' => 'Móveis do Hotel (Oak Inn Furniture)',
+            'category' => Guide::CATEGORY_MECANICAS,
+            'wiki_page' => 'Oak Inn Furniture',
+            'summary' => '16 conjuntos × 9 peças, 4 raridades (Comum/Elite/Lendário/Mítico). Móveis Míticos exclusivos por herói desbloqueiam habilidades.',
+            'display_order' => 70,
+        ],
+        [
+            'slug' => 'atributos',
+            'title' => 'Atributos e bônus de formação',
+            'category' => Guide::CATEGORY_MECANICAS,
+            'wiki_page' => 'Attributes',
+            'summary' => 'Stats que os heróis possuem (ATK/HP/Defesa/Crit/etc.), como aumentá-los e os bônus que formações ativam (3+2, 4-stack, 5-stack).',
+            'display_order' => 80,
+        ],
     ];
 
     private const CONTENT_MAX_CHARS = 6000;

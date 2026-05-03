@@ -188,6 +188,24 @@ class ChallengeTypeSeeder extends Seeder
                 ],
                 'display_order' => 100,
             ],
+            [
+                'code' => 'dragon_trial',
+                'name' => 'Dragon Trial',
+                'name_pt' => 'Testes da Força Dracônica',
+                'description' => 'Combate PvE focado em DPS contra alvo dracônico — 1 equipe, prioriza poder bruto e bônus de Draconis.',
+                'min_teams' => 1,
+                'max_teams' => 1,
+                'is_pvp' => false,
+                'teams_must_be_unique' => false,
+                'scoring_profile' => [
+                    'faction_bonus_weight' => 1.0,
+                    'class_balance_weight' => 0.7,
+                    'synergy_weight' => 1.2,
+                    'power_weight' => 1.5,
+                    'dps_focus' => true,
+                ],
+                'display_order' => 110,
+            ],
         ];
 
         foreach ($types as $data) {

@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-02 (Fase 7 + Fase 8 — perfil de herói + guias de mecânicas)
+> **Última atualização:** 2026-05-02 (Fase 8 + Fase 9 — guias adicionais + Dragon Trial challenge type)
 
 ---
 
@@ -292,6 +292,22 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
   - Mapeamento Português → Wiki em Inglês foi inferido (ver `GuideSeeder::ENTRIES`); pode precisar ajustes conforme o usuário valide os termos.
 
 **Refinamento:** novo método `WikitextHeroParser::wikitextToMarkdown()` converte wikitext em Markdown (CommonMark + GFM tables) — substitui o `stripWikitext` cru em guias, lore de heróis e descrição de habilidades. Tabelas `{|...|}` viram tabelas markdown, headers `==X==` viram `## X`, listas `*` e `**` viram `-` e `  -`, formatação `'''bold'''`/`''italic''` vira `**bold**`/`*italic*`, links `[[X|Y]]` viram `Y`. Renderização frontend via `react-markdown` + `remark-gfm` no novo `components/markdown-content.tsx`. Aplicado em `pages/guides/show.tsx`, `pages/heroes/show.tsx` (lore + abilities). 7 testes adicionais no parser. Re-executados: re-seed dos guides + `heroes:enrich --force` em todos os 213 heróis.
+
+---
+
+### ✅ Fase 9 — Guias adicionais e Dragon Trial
+
+- **3 guias novos** populados via `GuideSeeder`:
+  - `hotel-oak` (mecânicas) — feature do Oak Inn (hotel) onde heróis Ascendidos ganham bônus de móveis.
+  - `moveis-oak-inn` (mecânicas) — sistema de furniture (16 sets × 9 peças × 4 raridades; Mítico exclusivo desbloqueia abilities).
+  - `atributos` (mecânicas) — stats dos heróis e bônus de formação (3+2, 4-stack, 5-stack).
+- **Novo `ChallengeType` `dragon_trial`** (display_order 110) — "Testes da Força Dracônica":
+  - Single team, PvE, sem unicidade.
+  - Scoring profile com `power_weight=1.5`, `class_balance_weight=0.7` (foco DPS, classes menos críticas), `dps_focus=true`.
+  - User cria formação desse tipo no editor e usa optimizer existente (Sugerir todas / Sugerir esta equipe) — sugestões priorizam heróis de maior power e bônus de Draconis quando aplicável.
+- **Hotel Furniture per-user (rastreamento, bônus aplicados ao optimizer):** NÃO implementado — escopo grande (schema com 144 peças possíveis, UI de cadastro, integração com TeamScorer). Reservado para fase futura caso seja prioridade.
+
+8 guias totais publicados em `/guias`. 11 challenge types disponíveis ao criar formação. **106 testes verdes** mantidos.
 - **Testes:** 4 cenários (`GuideTest`) — guest redireciona, index agrupa por categoria com counts, show renderiza com categoryLabel, 404 em slug inexistente. **98 testes verdes** no projeto.
 - Helper `tierFromAscension(ascensionValue)` em `lib/afk.ts`: 0-3 → `common`, 4-9 → `legendary`, 10+ → `ascended`.
 - `hero-card.tsx`: quando `userHero` está presente, badge mostra o tier ATINGIDO (estado real do user). Sem roster, mostra o max potencial do herói.
