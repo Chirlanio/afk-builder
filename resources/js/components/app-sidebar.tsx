@@ -5,7 +5,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Library, Package, PawPrint, ShieldCheck, Swords, Users } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Library, Package, PawPrint, RefreshCw, ShieldCheck, Swords, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const baseNavItems: NavItem[] = [
@@ -46,6 +46,11 @@ const adminNavItems: NavItem[] = [
         title: 'Beasts',
         url: '/admin/beasts',
         icon: PawPrint,
+    },
+    {
+        title: 'Sincronizações',
+        url: '/admin/sync',
+        icon: RefreshCw,
     },
 ];
 

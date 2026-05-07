@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\BeastAdminController;
 use App\Http\Controllers\Admin\CollectionAdminController;
 use App\Http\Controllers\Admin\HeroAdminController;
 use App\Http\Controllers\Admin\HeroStatsAdminController;
+use App\Http\Controllers\Admin\SyncCommandController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FormationCompareController;
 use App\Http\Controllers\FormationController;
@@ -82,6 +83,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('beasts', [BeastAdminController::class, 'store'])->name('beasts.store');
         Route::patch('beasts/{beast}', [BeastAdminController::class, 'update'])->name('beasts.update');
         Route::delete('beasts/{beast}', [BeastAdminController::class, 'destroy'])->name('beasts.destroy');
+
+        Route::get('sync', [SyncCommandController::class, 'index'])->name('sync.index');
+        Route::get('sync/runs', [SyncCommandController::class, 'runs'])->name('sync.runs');
+        Route::get('sync/runs/{run}', [SyncCommandController::class, 'show'])->name('sync.runs.show');
+        Route::post('sync', [SyncCommandController::class, 'store'])->name('sync.store');
     });
 });
 
