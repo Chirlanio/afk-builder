@@ -3,11 +3,14 @@ import AppLogoIcon from './app-logo-icon';
 export default function AppLogo() {
     return (
         <>
-            <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-md">
-                <AppLogoIcon className="size-5 fill-current text-white dark:text-black" />
+            <div className="flex aspect-square size-8 shrink-0 items-center justify-center">
+                <AppLogoIcon className="size-8 drop-shadow-[0_0_6px_rgba(251,191,36,0.35)]" />
             </div>
-            <div className="ml-1 grid flex-1 text-left text-sm">
-                <span className="mb-0.5 truncate leading-none font-semibold">Laravel Starter Kit</span>
+            <div className="ml-1 grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold tracking-wide">AFK Builder</span>
+                <span className="truncate text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
+                    Companion App
+                </span>
             </div>
         </>
     );
