@@ -1,7 +1,7 @@
 import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { Copy, History, Link2, Loader2, PawPrint, RotateCcw, Save, Share2, Sparkles, Target, Trash2 } from 'lucide-react';
+import { Copy, History, Link2, Loader2, MoreHorizontal, PawPrint, RotateCcw, Save, Share2, Sparkles, Target, Trash2, Users } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
 import { HeroPool } from '@/components/formation-editor/hero-pool';
@@ -10,8 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/app-layout';
 import { FACTION_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
@@ -86,6 +88,7 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
     const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
     const [versions, setVersions] = useState<Array<{ id: number; created_at: string | null; team_count: number; hero_count: number; name: string | null }>>([]);
     const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+    const [poolSheetOpen, setPoolSheetOpen] = useState(false);
     const { confirm, dialog: confirmDialog } = useConfirm();
     const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
 
@@ -128,6 +131,9 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
     const handleDragStart = (event: DragStartEvent) => {
         const data = event.active.data.current as { kind: string; heroId: number | null } | undefined;
         setActiveDragHeroId(data?.heroId ?? null);
+        // Em mobile, fechar o sheet do pool ao começar drag — assim o usuário vê
+        // os slots-alvo enquanto arrasta o herói pra cima deles.
+        setPoolSheetOpen(false);
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
@@ -372,71 +378,21 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
             <Head title={`Editar ${formation.name}`} />
 
             <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-1 items-center gap-2">
-                            <Input
-                                value={name}
-                                onChange={(e) => {
-                                    setName(e.target.value);
-                                    setIsDirty(true);
-                                }}
-                                maxLength={100}
-                                className="h-9 max-w-md text-base font-semibold"
-                            />
-                            <div className="flex flex-wrap items-center gap-1.5">
-                                <Badge variant="secondary">{formation.challenge_type.name_pt}</Badge>
-                                {formation.mode === 'target' && (
-                                    <Badge variant="outline" className="gap-1">
-                                        <Target className="size-3" />
-                                        Alvo
-                                    </Badge>
-                                )}
-                                {formation.challenge_type.is_pvp && (
-                                    <Badge variant="outline" className="border-rose-500/40 text-rose-600 dark:text-rose-400">
-                                        PvP
-                                    </Badge>
-                                )}
-                                {enforceUnique && (
-                                    <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
-                                        Heróis únicos por equipe
-                                    </Badge>
-                                )}
-                            </div>
+                <div className="flex h-full flex-1 flex-col gap-4 p-3 sm:gap-6 sm:p-4 md:p-6">
+                    {/* Linha 1: nome + ações primárias */}
+                    <div className="flex items-start gap-2">
+                        <Input
+                            value={name}
+                            onChange={(e) => {
+                                setName(e.target.value);
+                                setIsDirty(true);
+                            }}
+                            maxLength={100}
+                            className="h-9 flex-1 max-w-md text-base font-semibold"
+                        />
 
-                            {/* Beast ativo na formação */}
-                            <div className="flex items-center gap-2">
-                                <PawPrint className="size-4 text-muted-foreground" />
-                                <span className="text-xs uppercase tracking-wide text-muted-foreground">Beast:</span>
-                                <Select
-                                    value={beastId ? String(beastId) : 'none'}
-                                    onValueChange={(v) => {
-                                        setBeastId(v === 'none' ? null : Number(v));
-                                        setIsDirty(true);
-                                    }}
-                                >
-                                    <SelectTrigger className="h-8 w-auto min-w-[180px] text-xs">
-                                        <SelectValue placeholder="Nenhum" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">— nenhum —</SelectItem>
-                                        {beasts.map((b) => {
-                                            const buffs = [];
-                                            if (b.strength_buff > 0) buffs.push(`F+${b.strength_buff}`);
-                                            if (b.intelligence_buff > 0) buffs.push(`I+${b.intelligence_buff}`);
-                                            if (b.agility_buff > 0) buffs.push(`A+${b.agility_buff}`);
-                                            return (
-                                                <SelectItem key={b.id} value={String(b.id)}>
-                                                    {b.name}{buffs.length > 0 ? ` · ${buffs.join(' / ')}` : ''}
-                                                </SelectItem>
-                                            );
-                                        })}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
+                        {/* Ações desktop (md+) */}
+                        <div className="hidden items-center gap-2 md:flex">
                             {isDirty && <span className="text-xs text-amber-600 dark:text-amber-400">Alterações não salvas</span>}
                             <Button
                                 variant="outline"
@@ -467,10 +423,98 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
                                 {isSaving ? 'Salvando...' : 'Salvar'}
                             </Button>
                         </div>
+
+                        {/* Ações mobile: Salvar + dropdown menu */}
+                        <div className="flex shrink-0 items-center gap-2 md:hidden">
+                            <Button onClick={save} disabled={!isDirty || isSaving} size="sm" className="h-9">
+                                <Save className="size-4" />
+                                {isSaving ? '...' : 'Salvar'}
+                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="icon" className="size-9 shrink-0" aria-label="Mais opções">
+                                        <MoreHorizontal className="size-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={openHistory} disabled={isSaving}>
+                                        <History className="size-4" />
+                                        Histórico
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setShareDialogOpen(true)} disabled={isSaving}>
+                                        <Share2 className="size-4" />
+                                        {shareToken ? 'Compartilhada' : 'Compartilhar'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={suggestAll} disabled={isSuggestingAll || isSaving}>
+                                        {isSuggestingAll ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                                        Sugerir todas
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </div>
+
+                    {/* Indicador "alterações não salvas" mobile */}
+                    {isDirty && (
+                        <p className="-mt-2 text-xs text-amber-600 dark:text-amber-400 md:hidden">
+                            Alterações não salvas
+                        </p>
+                    )}
+
+                    {/* Linha 2: badges + beast selector */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary">{formation.challenge_type.name_pt}</Badge>
+                        {formation.mode === 'target' && (
+                            <Badge variant="outline" className="gap-1">
+                                <Target className="size-3" />
+                                Alvo
+                            </Badge>
+                        )}
+                        {formation.challenge_type.is_pvp && (
+                            <Badge variant="outline" className="border-rose-500/40 text-rose-600 dark:text-rose-400">
+                                PvP
+                            </Badge>
+                        )}
+                        {enforceUnique && (
+                            <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
+                                Heróis únicos por equipe
+                            </Badge>
+                        )}
+
+                        {/* Beast ativo — vai pro fim da row em qualquer largura */}
+                        <div className="ml-auto flex items-center gap-2">
+                            <PawPrint className="size-4 text-muted-foreground" />
+                            <span className="hidden text-xs uppercase tracking-wide text-muted-foreground sm:inline">Beast:</span>
+                            <Select
+                                value={beastId ? String(beastId) : 'none'}
+                                onValueChange={(v) => {
+                                    setBeastId(v === 'none' ? null : Number(v));
+                                    setIsDirty(true);
+                                }}
+                            >
+                                <SelectTrigger className="h-8 w-auto min-w-[140px] text-xs sm:min-w-[180px]">
+                                    <SelectValue placeholder="Nenhum" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">— nenhum —</SelectItem>
+                                    {beasts.map((b) => {
+                                        const buffs = [];
+                                        if (b.strength_buff > 0) buffs.push(`F+${b.strength_buff}`);
+                                        if (b.intelligence_buff > 0) buffs.push(`I+${b.intelligence_buff}`);
+                                        if (b.agility_buff > 0) buffs.push(`A+${b.agility_buff}`);
+                                        return (
+                                            <SelectItem key={b.id} value={String(b.id)}>
+                                                {b.name}{buffs.length > 0 ? ` · ${buffs.join(' / ')}` : ''}
+                                            </SelectItem>
+                                        );
+                                    })}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     <div className="grid flex-1 gap-3 lg:grid-cols-[1fr_320px]">
-                        <div className="flex flex-col gap-3 overflow-y-auto pr-1">
+                        <div className="flex flex-col gap-3 overflow-y-auto pr-1 pb-20 lg:pb-0">
                             {teams.map((team) => (
                                 <TeamRow
                                     key={team.position}
@@ -486,6 +530,7 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
                             ))}
                         </div>
 
+                        {/* Pool lateral (desktop) */}
                         <div className="hidden h-[calc(100vh-180px)] lg:block">
                             <HeroPool
                                 heroes={heroPool}
@@ -500,6 +545,40 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
                         </div>
                     </div>
                 </div>
+
+                {/* Pool em bottom sheet (mobile/tablet) */}
+                <Sheet open={poolSheetOpen} onOpenChange={setPoolSheetOpen}>
+                    <SheetContent side="bottom" className="flex h-[80dvh] flex-col gap-2 p-3 lg:hidden">
+                        <SheetHeader className="text-left">
+                            <SheetTitle className="flex items-center gap-2 text-sm">
+                                <Users className="size-4" />
+                                Heróis disponíveis
+                            </SheetTitle>
+                        </SheetHeader>
+                        <div className="min-h-0 flex-1 overflow-hidden">
+                            <HeroPool
+                                heroes={heroPool}
+                                factions={factions}
+                                heroClasses={heroClasses}
+                                factionById={factionById}
+                                classById={classById}
+                                tierById={tierById}
+                                placedHeroIds={placedHeroIds}
+                                enforceUnique={enforceUnique}
+                            />
+                        </div>
+                    </SheetContent>
+                </Sheet>
+
+                {/* FAB pra abrir o pool em mobile */}
+                <button
+                    type="button"
+                    onClick={() => setPoolSheetOpen(true)}
+                    className="fixed bottom-4 right-4 z-40 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-400 text-zinc-900 shadow-[0_0_24px_-4px_rgba(251,191,36,0.7)] transition-transform hover:scale-105 active:scale-95 lg:hidden"
+                    aria-label="Abrir lista de heróis"
+                >
+                    <Users className="size-6" />
+                </button>
 
                 <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
                     <DialogContent>
