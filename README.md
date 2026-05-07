@@ -142,6 +142,8 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 15. Equipamentos por herói (4 slots: Arma/Capacete/Peitoral/Bota com tier T1-T6 + level 1-20) | ✅ |
 | 16. Auth + Dashboard com tema AFK (login como tela inicial, redesign de auth, dashboard com stats, i18n PT-BR via lib) | ✅ |
 | 17. Sidebar customizado (logo AFK + nome) + PageShell padrão + dark global (paleta AFK) + 12 páginas migradas | ✅ |
+| 18. Mobile-first responsive (DialogContent + PageShell + editor de formações com Pool em bottom sheet) | ✅ |
+| 19. Admin de sincronizações (/admin/sync com 8 comandos via queue) + script start.ps1/start.cmd | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

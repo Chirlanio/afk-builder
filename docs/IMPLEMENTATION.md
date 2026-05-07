@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-06 (Fase 17 — sidebar customizado, PageShell padrão, dark global)
+> **Última atualização:** 2026-05-06 (Fases 18 e 19 — mobile-first responsive + admin de sincronizações)
 
 ---
 
@@ -723,6 +723,135 @@ Padronização visual da aplicação inteira: sidebar com identidade própria, l
   - Build Vite: 3.87s. PageShell isolado em `page-shell` chunk pequeno.
   - **187 testes verdes** (sem regressão).
   - Type-check: zero novos erros nos arquivos tocados (os pré-existentes em `useForm<X>` e `localized()` continuam fora de escopo).
+
+---
+
+### ✅ Fase 18 — Mobile-first responsive (Etapas 1 e 2)
+
+Adaptação da app pra funcionar bem em telas estreitas (375px+, iPhone SE como baseline). Dividida em duas etapas commitadas separadamente.
+
+#### ✅ 18.1 — Quick wins (DialogContent + PageShell)
+
+Mudanças globais que afetam todos os modais e todas as páginas migradas pra PageShell:
+
+- **`DialogContent`** (`components/ui/dialog.tsx`):
+  - `w-[calc(100vw-1rem)]` em mobile (8px gutter cada lado em vez de quase grudado), `sm:w-full`
+  - `max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)]` + `overflow-y-auto` — modal alto não vaza, scroll interno garantido. Usa `100dvh` (dynamic viewport) que respeita a barra do Safari iOS aparecendo/sumindo.
+  - Padding `p-4 sm:p-6` (mobile economiza largura útil)
+  - Botão close 36×36px (`size-9`) — touch-friendly em vez de área diminuta
+
+- **`PageShell`** (afeta as 12 páginas migradas):
+  - Padding/gap responsivos: `p-3 sm:p-4 md:p-6`, `gap-4 sm:gap-6`
+  - Header empilha em mobile (`flex-col`), vira row em `md:` (≥768px)
+  - Ícone escala `size-10 sm:size-11` (40px → 44px)
+  - Title escala `text-xl sm:text-2xl md:text-3xl`
+  - Description `text-xs sm:text-sm`
+  - **Actions full-width inteligente em mobile**: `[&>*]:flex-1` faz cada filho crescer ao quebrar linha. Em `sm:` vira `flex-initial` (tamanho natural); `md:flex-nowrap` evita quebra desnecessária.
+
+#### ✅ 18.2 — Editor de formações mobile
+
+`formations/edit.tsx` é o lugar mais doloroso em mobile (DnD com pool lateral 320px). Refatorado:
+
+- **Header em 2 linhas:**
+  - Linha 1 — nome (Input editável) + ações.
+    - Desktop (`md+`): 4 botões inline (Histórico/Compartilhar/Sugerir/Salvar)
+    - Mobile: só `Salvar` (CTA) + ícone `MoreHorizontal` → `DropdownMenu` com as outras 3 ações
+  - Linha 2 — badges (challenge type, modo, PvP, único) + beast selector
+  - Indicador "Alterações não salvas" migra pra linha própria em mobile
+
+- **Pool de heróis:**
+  - **Desktop (`lg+`):** coluna lateral 320px, como antes
+  - **Mobile/tablet:** Sheet bottom (`h-[80dvh]`) acessível via FAB fixo no bottom-right (gradient âmbar com glow `shadow-[0_0_24px_-4px_rgba(251,191,36,0.7)]`)
+  - Sheet **fecha automaticamente em `onDragStart`** (`setPoolSheetOpen(false)` dentro do `handleDragStart`) — usuário revela os slots-alvo enquanto arrasta o herói flutuante
+  - `pb-20 lg:pb-0` nas equipes evita que o último time fique escondido atrás do FAB
+
+- **Touch ergonomia:** FAB 56×56px (`size-14`), botão close de modal 36×36px, dropdown items com gap-2.
+
+- **Não testado em device físico** (você precisa) — validado em DevTools mobile emulation.
+
+- **Validação:** Build Vite 3.96s. **187 testes verdes** (sem regressão).
+
+---
+
+### ✅ Fase 19 — Admin de sincronizações (`/admin/sync`) + dev script
+
+Permite que admins disparem comandos artisan de sync via UI sem precisar de SSH. Substitui o caminho atual de "abrir terminal e rodar `php artisan heroes:sync --initial`".
+
+- **Migration `command_runs`:** id, command (varchar 64), args (json nullable), status (varchar 16, default 'pending'), started_at, finished_at, exit_code (smallint), output (mediumText, capacity ~16MB mas truncado em 64KB pelo job), user_id (FK nullable), timestamps. Index composto `(status, created_at)` + index `command`.
+
+- **`App\Models\CommandRun`:**
+  - Constants: `STATUS_PENDING`, `STATUS_RUNNING`, `STATUS_COMPLETED`, `STATUS_FAILED`; `ACTIVE_STATUSES = [pending, running]`; `OUTPUT_MAX_BYTES = 65536`
+  - Casts `args => array` (JSON), `started_at`/`finished_at` => datetime
+  - Helpers `isActive()`, `durationSeconds()`
+  - Relação `user()`
+
+- **`config/sync_commands.php` — whitelist com 8 comandos:**
+  - `heroes:sync` (initial bool, dry-run bool, limit int 1-500, page string regex)
+  - `heroes:resolve-images` (force bool, dry-run bool, size int 100-1200)
+  - `heroes:enrich` (force bool, limit int, slug string)
+  - `heroes:sync-furniture` (dry-run)
+  - `heroes:sync-types` (force, limit, slug)
+  - `artifacts:sync` (dry-run)
+  - `beasts:sync` (dry-run)
+  - `content:translate` (type enum: all/lore/abilities/furniture/guides; limit; slug; force)
+  - Cada entrada tem label PT-BR, descrição, ícone (mapeado pra Lucide no frontend) e options tipadas com validações.
+
+- **`App\Jobs\RunArtisanCommandJob`** (queueable, timeout 1800s, tries 1):
+  - Recebe `commandRunId`. Busca o CommandRun, atualiza status `running` + `started_at`.
+  - Captura stdout via `Symfony\Component\Console\Output\BufferedOutput`.
+  - `Artisan::call($command, $args, $output)` retorna exit code.
+  - Atualiza status `completed` (exit=0) ou `failed` (exit≠0), `finished_at`, `exit_code`, `output` (truncado em 64KB com sufixo `[...output truncado]`).
+  - Captura exception, persiste stderr + traço, loga no Laravel logger e re-throw (job vai pra `failed_jobs`).
+
+- **`App\Http\Controllers\Admin\SyncCommandController`:**
+  - `index` — Inertia render com whitelist (já mapeada com options expandidas), últimas 50 execuções e `queueDriver` (alerta se ≠ database).
+  - `runs` (GET JSON) — para polling do frontend
+  - `show` (GET JSON) — detalhes do run incluindo `output` completo
+  - `store` (POST 202) — valida command está na whitelist, valida args via `validateArgs()` que despacha por type:
+    - `bool`: presença = true
+    - `int`: numeric + min/max do schema
+    - `string`: trim + regex se schema tem `pattern`
+    - `enum`: in array de keys do `options`
+    - Retorna args já formatados como `['--key' => value]` pra `Artisan::call`
+    - Cria CommandRun em transação, dispatcha `RunArtisanCommandJob` async
+  - 4 rotas em `/admin/sync*` sob `can:manage-heroes`
+
+- **Frontend `pages/admin/sync/index.tsx`:**
+  - Cards dos 8 comandos: ícone (mapping `Users → Image → BookOpen → Sofa → Dumbbell → Sparkles → PawPrint → Languages → Terminal`), label, signature em `font-mono`, descrição, expand pra options (Checkbox/Input/Select por tipo)
+  - Tabela responsiva (com `overflow-x-auto min-w-[700px]`) das últimas 50 execuções: comando + args formatados (`key=value`, `bool=✓`), badge de status colorido (pending/running/completed/failed), iniciado, duração, executor, botão "Ver"
+  - Modal com output em `<pre>` estilo terminal (`bg-black/60 text-emerald-200 max-h-[60vh]`)
+  - **Polling automático:** `useEffect` cria `setInterval` de 3s enquanto há run ativo (`pending` ou `running`), faz GET `/admin/sync/runs` e atualiza state. Para automaticamente quando todos os runs estão done.
+  - Banner amarelo se `queueDriver !== 'database'` ou de qualquer forma alertando que `php artisan queue:work` precisa estar rodando.
+
+- **Sidebar admin:** novo item "Sincronizações" com ícone `RefreshCw` apontando para `/admin/sync`.
+
+#### ✅ 19.1 — Script `start.ps1`/`start.cmd` para orquestrar dev
+
+Para resolver "quais terminais preciso abrir e quais comandos rodar pra começar a desenvolver":
+
+- **`start.ps1`** (raiz do projeto):
+  - Valida pré-requisitos (PHP/Composer/Node/npm no PATH, `.env` existe, `vendor/` + `node_modules/` presentes, banco acessível via `migrate:status`, número de migrations Pending)
+  - Flags: `-SkipChecks` (pula validação em re-runs), `-Migrate` (aplica migrations pendentes antes de subir)
+  - Chama `composer dev` que orquestra 4 processos via `concurrently` (já existia no `composer.json` do starter, agora documentado):
+    - `php artisan serve` (backend Laravel)
+    - `php artisan queue:listen --tries=1` (worker da fila — necessário para `/admin/sync`)
+    - `php artisan pail` (logs em tempo real)
+    - `npm run dev` (Vite dev server com HMR)
+  - Saída colorida: `Write-Step` cyan, `Write-Ok` green, `Write-Warn` yellow, `Write-Fail` red
+
+- **`start.cmd`** — wrapper batch para clique-duplo no Explorer (passa `-NoProfile -ExecutionPolicy Bypass` ao PowerShell). Aceita os mesmos argumentos.
+
+- **README atualizado:** nova seção "Rodar em desenvolvimento" com o atalho do `start.ps1` recomendado e fallback de "terminais separados" (3 terminais: serve + queue:work + npm run dev).
+
+#### Validação Fase 19
+
+- ✅ Build Vite 3.94s
+- ✅ 187 testes verdes (sem regressão)
+- ✅ Migration aplicada
+- ✅ 4 rotas registradas em `/admin/sync*`
+- ✅ Sintaxe PowerShell do `start.ps1` validada
+- ✅ Todos os 11 checks do script passam no estado atual do projeto
+- ❌ **Pipeline completo (`composer dev`) não foi rodado** — fica em foreground, requer terminal interativo. Validado em partes: `migrate:status` ok, sintaxe PowerShell ok, 187 testes ok.
 
 ---
 
