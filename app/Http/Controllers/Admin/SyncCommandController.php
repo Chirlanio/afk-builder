@@ -75,6 +75,18 @@ class SyncCommandController extends Controller
 
         RunArtisanCommandJob::dispatch($run->id);
 
+        // Captura o id do job recém-enfileirado pra suportar cancelamento.
+        // Não é atômico (race com outro dispatch concorrente), mas como /admin/sync
+        // é admin-only e dispatch é raro, é tolerável. Best-effort.
+        $jobId = DB::table('jobs')
+            ->where('queue', config('queue.connections.database.queue', 'default'))
+            ->latest('id')
+            ->value('id');
+
+        if ($jobId) {
+            $run->update(['job_id' => $jobId]);
+        }
+
         return response()->json([
             'run' => [
                 'id' => $run->id,
@@ -84,6 +96,45 @@ class SyncCommandController extends Controller
                 'created_at' => $run->created_at?->toIso8601String(),
             ],
         ], 202);
+    }
+
+    public function cancel(CommandRun $run): JsonResponse
+    {
+        if ($run->status !== CommandRun::STATUS_PENDING) {
+            throw ValidationException::withMessages([
+                'status' => "Apenas execuções pendentes podem ser canceladas. Esta está em '{$run->status}'.",
+            ]);
+        }
+
+        DB::transaction(function () use ($run) {
+            // Lock pra evitar race com o worker pegando o job entre o select e o update.
+            $locked = CommandRun::lockForUpdate()->find($run->id);
+
+            if ($locked->status !== CommandRun::STATUS_PENDING) {
+                throw ValidationException::withMessages([
+                    'status' => "Execução saiu do estado pendente durante o cancelamento (agora está em '{$locked->status}').",
+                ]);
+            }
+
+            $locked->update([
+                'status' => CommandRun::STATUS_CANCELLED,
+                'finished_at' => now(),
+            ]);
+
+            // Remove o job da fila se ainda estiver lá. Best-effort: se o worker já
+            // pegou, a row foi deletada de jobs, e o handle() vai pular ao ver status
+            // cancelled (safeguard em RunArtisanCommandJob::handle).
+            if ($locked->job_id) {
+                DB::table('jobs')->where('id', $locked->job_id)->delete();
+            }
+        });
+
+        return response()->json([
+            'run' => [
+                'id' => $run->id,
+                'status' => CommandRun::STATUS_CANCELLED,
+            ],
+        ]);
     }
 
     /**

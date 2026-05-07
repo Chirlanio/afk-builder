@@ -35,6 +35,15 @@ class RunArtisanCommandJob implements ShouldQueue
             return;
         }
 
+        // Race condition: o usuário pode ter pedido cancelamento entre dispatch e o
+        // worker pegar o job. Como o controller deleta a row em `jobs` ao cancelar,
+        // chegar aqui significa que o job vazou — apenas respeita o cancelamento.
+        if ($run->status === CommandRun::STATUS_CANCELLED) {
+            Log::info('RunArtisanCommandJob: pulando job já cancelado', ['id' => $this->commandRunId]);
+
+            return;
+        }
+
         $run->update([
             'status' => CommandRun::STATUS_RUNNING,
             'started_at' => now(),

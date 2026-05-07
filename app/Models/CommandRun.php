@@ -15,6 +15,8 @@ class CommandRun extends Model
 
     public const STATUS_FAILED = 'failed';
 
+    public const STATUS_CANCELLED = 'cancelled';
+
     public const ACTIVE_STATUSES = [self::STATUS_PENDING, self::STATUS_RUNNING];
 
     public const OUTPUT_MAX_BYTES = 65536;
@@ -23,6 +25,7 @@ class CommandRun extends Model
         'command',
         'args',
         'status',
+        'job_id',
         'started_at',
         'finished_at',
         'exit_code',
@@ -35,6 +38,7 @@ class CommandRun extends Model
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
         'exit_code' => 'integer',
+        'job_id' => 'integer',
     ];
 
     public function user(): BelongsTo

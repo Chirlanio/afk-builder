@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import {
     BookOpen,
+    Ban,
     CheckCircle2,
     ChevronDown,
     ChevronUp,
@@ -25,6 +26,7 @@ import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,7 +35,7 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 
-type CommandStatus = 'pending' | 'running' | 'completed' | 'failed';
+type CommandStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 interface CommandOption {
     name: string;
@@ -90,6 +92,7 @@ const STATUS_LABEL: Record<CommandStatus, string> = {
     running: 'Executando',
     completed: 'Concluído',
     failed: 'Falhou',
+    cancelled: 'Cancelado',
 };
 
 const STATUS_BADGE: Record<CommandStatus, string> = {
@@ -97,6 +100,7 @@ const STATUS_BADGE: Record<CommandStatus, string> = {
     running: 'border-sky-400/40 bg-sky-400/10 text-sky-300',
     completed: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300',
     failed: 'border-red-400/40 bg-red-400/10 text-red-300',
+    cancelled: 'border-zinc-400/40 bg-zinc-400/10 text-zinc-300',
 };
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Sincronizações', href: '/admin/sync' }];
@@ -106,11 +110,39 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
     const [openRunId, setOpenRunId] = useState<number | null>(null);
     const [openRunDetail, setOpenRunDetail] = useState<(CommandRun & { output: string }) | null>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
+    const [cancellingId, setCancellingId] = useState<number | null>(null);
+    const { confirm, dialog: confirmDialog } = useConfirm();
 
     const hasActive = useMemo(
         () => runs.some((r) => r.status === 'pending' || r.status === 'running'),
         [runs],
     );
+
+    const cancelRun = async (run: CommandRun) => {
+        const ok = await confirm({
+            title: `Cancelar execução de "${run.command}"?`,
+            description: 'O job é removido da fila antes do worker pegar. Se já tiver pegado, a execução continua.',
+            confirmLabel: 'Cancelar execução',
+            variant: 'destructive',
+        });
+        if (!ok) return;
+
+        setCancellingId(run.id);
+        try {
+            await axios.delete(`/admin/sync/runs/${run.id}`);
+            setRuns((prev) => prev.map((r) => (r.id === run.id ? { ...r, status: 'cancelled', finished_at: new Date().toISOString() } : r)));
+        } catch (e) {
+            const err = e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
+            const msg = err.response?.data?.message
+                ?? Object.values(err.response?.data?.errors ?? {}).flat().join(' · ')
+                ?? 'Erro ao cancelar';
+            alert(msg);
+            // Refetch real status pra UI ficar consistente.
+            axios.get('/admin/sync/runs').then((r) => setRuns(r.data.runs)).catch(() => {});
+        } finally {
+            setCancellingId(null);
+        }
+    };
 
     useEffect(() => {
         if (!hasActive) return;
@@ -134,6 +166,7 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
+            {confirmDialog}
             <Head title="Sincronizações" />
 
             <PageShell
@@ -224,9 +257,23 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                                             </td>
                                             <td className="px-3 py-2 text-xs text-muted-foreground">{run.user_name ?? '—'}</td>
                                             <td className="px-3 py-2 text-right">
-                                                <Button size="sm" variant="ghost" onClick={() => setOpenRunId(run.id)}>
-                                                    Ver
-                                                </Button>
+                                                <div className="flex justify-end gap-1">
+                                                    {run.status === 'pending' && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => cancelRun(run)}
+                                                            disabled={cancellingId === run.id}
+                                                            className="text-zinc-400 hover:bg-red-500/10 hover:text-red-300"
+                                                        >
+                                                            {cancellingId === run.id ? <Loader2 className="size-3.5 animate-spin" /> : <Ban className="size-3.5" />}
+                                                            Cancelar
+                                                        </Button>
+                                                    )}
+                                                    <Button size="sm" variant="ghost" onClick={() => setOpenRunId(run.id)}>
+                                                        Ver
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

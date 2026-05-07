@@ -88,6 +88,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('sync/runs', [SyncCommandController::class, 'runs'])->name('sync.runs');
         Route::get('sync/runs/{run}', [SyncCommandController::class, 'show'])->name('sync.runs.show');
         Route::post('sync', [SyncCommandController::class, 'store'])->name('sync.store');
+        Route::delete('sync/runs/{run}', [SyncCommandController::class, 'cancel'])->name('sync.cancel');
     });
 });
 
