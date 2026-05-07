@@ -1,6 +1,5 @@
-// Components
 import { Head, useForm } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, Mail } from 'lucide-react';
 import { FormEventHandler } from 'react';
 
 import InputError from '@/components/input-error';
@@ -17,47 +16,63 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-
         post(route('password.email'));
     };
 
     return (
-        <AuthLayout title="Forgot password" description="Enter your email to receive a password reset link">
-            <Head title="Forgot password" />
+        <AuthLayout
+            title="Esqueci minha senha"
+            description="Informe seu e-mail e enviaremos um link de redefinição"
+        >
+            <Head title="Recuperar senha" />
 
-            {status && <div className="mb-4 text-center text-sm font-medium text-green-600">{status}</div>}
-
-            <div className="space-y-6">
-                <form onSubmit={submit}>
-                    <div className="grid gap-2">
-                        <Label htmlFor="email">Email address</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            name="email"
-                            autoComplete="off"
-                            value={data.email}
-                            autoFocus
-                            onChange={(e) => setData('email', e.target.value)}
-                            placeholder="email@example.com"
-                        />
-
-                        <InputError message={errors.email} />
-                    </div>
-
-                    <div className="my-6 flex items-center justify-start">
-                        <Button className="w-full" disabled={processing}>
-                            {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                            Email password reset link
-                        </Button>
-                    </div>
-                </form>
-
-                <div className="text-muted-foreground space-x-1 text-center text-sm">
-                    <span>Or, return to</span>
-                    <TextLink href={route('login')}>log in</TextLink>
+            {status && (
+                <div className="mb-4 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-center text-sm font-medium text-emerald-300">
+                    {status}
                 </div>
-            </div>
+            )}
+
+            <form onSubmit={submit} className="flex flex-col gap-5">
+                <div className="grid gap-2">
+                    <Label htmlFor="email" className="text-amber-100/80">
+                        E-mail
+                    </Label>
+                    <Input
+                        id="email"
+                        type="email"
+                        name="email"
+                        autoComplete="email"
+                        value={data.email}
+                        autoFocus
+                        onChange={(e) => setData('email', e.target.value)}
+                        placeholder="seu@email.com"
+                        className="border-amber-400/20 bg-black/40 text-amber-50 placeholder:text-amber-100/30 focus-visible:border-amber-400/60 focus-visible:ring-amber-400/30"
+                    />
+                    <InputError message={errors.email} />
+                </div>
+
+                <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 font-semibold text-zinc-900 shadow-[0_0_20px_-5px_rgba(251,191,36,0.6)] transition-all hover:from-amber-400 hover:to-yellow-300 hover:shadow-[0_0_25px_-5px_rgba(251,191,36,0.85)]"
+                    disabled={processing}
+                >
+                    {processing ? (
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <Mail className="h-4 w-4" />
+                    )}
+                    Enviar link de redefinição
+                </Button>
+
+                <div className="text-center text-sm text-amber-100/60">
+                    <TextLink
+                        href={route('login')}
+                        className="font-semibold text-amber-300 hover:text-amber-200"
+                    >
+                        Voltar para o login
+                    </TextLink>
+                </div>
+            </form>
         </AuthLayout>
     );
 }

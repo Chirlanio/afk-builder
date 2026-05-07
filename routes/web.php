@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\BeastAdminController;
 use App\Http\Controllers\Admin\CollectionAdminController;
 use App\Http\Controllers\Admin\HeroAdminController;
 use App\Http\Controllers\Admin\HeroStatsAdminController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FormationCompareController;
 use App\Http\Controllers\FormationController;
 use App\Http\Controllers\FormationShareController;
@@ -12,10 +13,9 @@ use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HeroController;
 use App\Http\Controllers\UserHeroController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('welcome');
+    return redirect()->route(auth()->check() ? 'dashboard' : 'login');
 })->name('home');
 
 Route::get('/f/{token}', [FormationShareController::class, 'publicShow'])
@@ -23,9 +23,7 @@ Route::get('/f/{token}', [FormationShareController::class, 'publicShow'])
     ->name('formations.public');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('heroes', [HeroController::class, 'index'])->name('heroes.index');
     Route::get('heroes/{slug}/details', [HeroController::class, 'details'])
