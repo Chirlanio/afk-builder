@@ -39,9 +39,29 @@ php artisan heroes:resolve-images
 
 ## Rodar em desenvolvimento
 
+**Atalho recomendado** — sobe tudo (backend + Vite + queue worker + logs) num único terminal:
+
+```powershell
+.\start.ps1            # Windows / PowerShell
+.\start.cmd            # idem (clique-duplo no Explorer também funciona)
+.\start.ps1 -Migrate   # aplica migrations pendentes antes de subir
+```
+
+O script valida pré-requisitos (`.env`, `vendor/`, `node_modules/`, banco acessível) e dispara `composer dev`, que orquestra 4 processos via `concurrently`:
+
+- `php artisan serve` — backend Laravel em `http://127.0.0.1:8000`
+- `php artisan queue:listen` — worker da fila (necessário para `/admin/sync`)
+- `php artisan pail` — logs em tempo real
+- `npm run dev` — Vite dev server com HMR
+
+`Ctrl+C` interrompe todos os processos.
+
+**Se preferir terminais separados:**
+
 ```bash
 php artisan serve --host=127.0.0.1 --port=8000   # backend (terminal 1)
-npm run dev                                       # vite dev server (terminal 2)
+php artisan queue:work                            # worker da fila (terminal 2)
+npm run dev                                       # vite dev server (terminal 3)
 ```
 
 Acesse `http://127.0.0.1:8000`. Crie uma conta em `/register` (sem verificação de email exigida no dev).
