@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-06 (Fase 16 — auth + dashboard com tema AFK, login como tela inicial, i18n PT-BR)
+> **Última atualização:** 2026-05-06 (Fase 17 — sidebar customizado, PageShell padrão, dark global)
 
 ---
 
@@ -665,6 +665,64 @@ Redesign completo do entry point da aplicação para refletir a identidade visua
   - **187 testes verdes** no projeto (era 186, +1 — `DashboardTest` continua passando contra o controller real).
   - Smoke test curl: `GET /` → 302 → `/login`, `GET /login` → 200, `GET /dashboard` (guest) → 302 → `/login`.
   - Type-check: zero novos erros em arquivos tocados (os ~14 erros pré-existentes do starter kit em `useForm<X>` constraint seguem fora de escopo).
+
+---
+
+### ✅ Fase 17 — Sidebar customizado, PageShell padrão, dark global
+
+Padronização visual da aplicação inteira: sidebar com identidade própria, layout reutilizável para páginas internas, e tema escuro AFK global.
+
+- **Sidebar com identidade AFK:**
+  - **`app-logo-icon.tsx`** reescrito como SVG: escudo hexagonal com fundo `#0a0613`, borda gradient dourada (amarelo→âmbar→bronze), letra **A** central com gradient claro→âmbar e gema dourada no topo. Estilo RPG/fantasy.
+  - **`app-logo.tsx`** atualizado: texto **"AFK Builder"** com tracking-wide, subtítulo **"COMPANION APP"** em letter-spacing largo. Removido `bg-sidebar-primary` (ícone tem fundo escuro próprio). Drop-shadow âmbar discreto.
+  - **Footer items** em `app-sidebar.tsx` e `app-header.tsx`: trocados links Repository/Documentation do starter kit Laravel por **Repositório/Documentação** apontando para `github.com/Chirlanio/afk-builder` e `docs/IMPLEMENTATION.md`.
+
+- **`<PageShell>` (`resources/js/components/page-shell.tsx`)** — componente reutilizável de layout de página:
+  - **Props:** `title` (obrigatório), `description?`, `icon?` (LucideIcon), `actions?`, `children`, `width?: 'full' | 'narrow'` (default `full`), `contentClassName?`.
+  - **Header:** ícone em quadrado âmbar com border âmbar e shadow glow dourado (`shadow-[0_0_18px_-4px_rgba(251,191,36,0.4)]`), título 2xl/3xl âmbar `text-amber-50 font-bold tracking-tight`, descrição muted `text-amber-100/60`, ações alinhadas à direita.
+  - **Container:** `flex flex-1 flex-col gap-6 p-4 md:p-6`. Width `narrow` aplica `mx-auto w-full max-w-3xl`.
+
+- **Dark global (tema AFK forçado):**
+  - **`use-appearance.tsx` simplificado:** `initializeTheme()` sempre adiciona `dark` ao `<html>`. `useAppearance()` mantém shape compatível mas é no-op. Removido `localStorage` lookup, `prefers-color-scheme` listener.
+  - **`app.css` `.dark` rebrand:** trocada paleta cinza shadcn por **paleta AFK**:
+    - `--background: hsl(258, 56%, 5%)` (preto-roxo profundo, próximo ao `#0a0613` do auth)
+    - `--foreground: hsl(48, 96%, 95%)` (âmbar warm em vez de branco neutro)
+    - `--primary` / `--ring: hsl(43, 96%, 56%)` (âmbar dourado)
+    - `--card`, `--popover`, `--secondary`, `--muted`, `--accent`, `--border`, `--input`: tons coerentes em `hsl(258, ...)`
+    - `--sidebar-*`: paleta sidebar coerente com background mais profundo `hsl(258, 40%, 6%)`
+    - `--chart-1` agora é âmbar dourado (em vez de azul)
+
+- **12 páginas migradas para PageShell:**
+  | Página | Width | Notas |
+  |---|---|---|
+  | `guides/index` | full | título "Guias do jogo" |
+  | `guides/show` | narrow | título dinâmico do guia, action "Voltar" |
+  | `heroes/index` | full | "Catálogo de Heróis", search/filtros como children |
+  | `formations/index` | full | actions: "Comparar selecionadas" + "Nova formação" |
+  | `formations/create` | narrow | form em card |
+  | `formations/compare` | full | action "Voltar" |
+  | `admin/heroes/pending` | full | action "Adicionar manualmente" |
+  | `admin/collections/index` | full | action "Nova coleção" |
+  | `admin/beasts/index` | full | action "Novo beast" |
+  | `settings/profile` | (via SettingsLayout) | traduzido PT-BR |
+  | `settings/password` | (via SettingsLayout) | traduzido PT-BR |
+  | `settings/appearance` | (via SettingsLayout) | virou página informativa "Tema AFK fixo" |
+
+- **Não migrado (intencional):**
+  - `dashboard.tsx` — mantém hero card customizado de boas-vindas (visual estrela da home com saudação personalizada)
+  - `formations/edit.tsx` — header customizado complexo (Input editável + badges + beast selector + 4 botões); só ajustado padding/gap pra `p-4 md:p-6 gap-6` consistente com PageShell
+
+- **`SettingsLayout` refatorado:** agora usa PageShell internamente como wrapper externo (`title: "Configurações"`, `icon: Settings`). Sidebar interno mantém nav lateral mas com labels PT-BR (Perfil/Senha). Item "Aparência" removido do nav (tema é fixo).
+
+- **Traduções extras PT-BR:**
+  - `delete-user.tsx`: "Delete account" → "Apagar conta", "Warning" → "Atenção", etc.
+  - Breadcrumbs settings: "Profile settings" → "Perfil", "Password settings" → "Senha".
+  - `settings/appearance.tsx` virou página informativa: "O AFK Builder usa um tema escuro fixo, inspirado nas noites de Esperia" com badge "Tema AFK ativo".
+
+- **Validação:**
+  - Build Vite: 3.87s. PageShell isolado em `page-shell` chunk pequeno.
+  - **187 testes verdes** (sem regressão).
+  - Type-check: zero novos erros nos arquivos tocados (os pré-existentes em `useForm<X>` e `localized()` continuam fora de escopo).
 
 ---
 

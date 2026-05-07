@@ -121,6 +121,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 14d. Integração ao optimizer (PowerCalculator soma art/col/beast; scorer/optimizers propagam beast) | ✅ |
 | 15. Equipamentos por herói (4 slots: Arma/Capacete/Peitoral/Bota com tier T1-T6 + level 1-20) | ✅ |
 | 16. Auth + Dashboard com tema AFK (login como tela inicial, redesign de auth, dashboard com stats, i18n PT-BR via lib) | ✅ |
+| 17. Sidebar customizado (logo AFK + nome) + PageShell padrão + dark global (paleta AFK) + 12 páginas migradas | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 
