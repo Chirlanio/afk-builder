@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-06 (Fases 18 e 19 — mobile-first responsive + admin de sincronizações)
+> **Última atualização:** 2026-05-06 (Fases 18 e 19 — mobile-first responsive + admin de sincronizações com cancelamento)
 
 ---
 
@@ -842,6 +842,31 @@ Para resolver "quais terminais preciso abrir e quais comandos rodar pra começar
 - **`start.cmd`** — wrapper batch para clique-duplo no Explorer (passa `-NoProfile -ExecutionPolicy Bypass` ao PowerShell). Aceita os mesmos argumentos.
 
 - **README atualizado:** nova seção "Rodar em desenvolvimento" com o atalho do `start.ps1` recomendado e fallback de "terminais separados" (3 terminais: serve + queue:work + npm run dev).
+
+#### ✅ 19.2 — Cancelar execuções pendentes
+
+Cobre o caso comum de "admin disparou comando errado, percebeu antes do worker pegar". Cancela apenas runs `pending` — runs `running` exigiriam cooperação dos comandos artisan (ficou fora de escopo).
+
+- **Migration `add_job_id_to_command_runs`:** adiciona coluna `job_id` (`unsigned bigint nullable`, sem FK pra `jobs.id` porque a tabela `jobs` é volátil — Laravel apaga ao processar). Permite mapear `command_run` → linha em `jobs` sem parsear o payload serializado.
+
+- **`CommandRun`:** novo `STATUS_CANCELLED = 'cancelled'`; `fillable` inclui `job_id`; cast `'job_id' => 'integer'`.
+
+- **`SyncCommandController::store`** estendido: após `RunArtisanCommandJob::dispatch($run->id)`, busca o `id` mais recente em `jobs` (`->where('queue', config('queue.connections.database.queue', 'default'))->latest('id')->value('id')`) e salva no `command_run`. Best-effort — race com dispatch concorrente é tolerável porque `/admin/sync` é admin-only e baixa concorrência.
+
+- **`SyncCommandController::cancel`** (novo, `DELETE /admin/sync/runs/{run}`):
+  - Valida `run->status === 'pending'` antes de entrar na transação. Se já está em outro estado, retorna 422 com mensagem clara.
+  - Dentro de `DB::transaction`: `lockForUpdate` na linha do `command_run` (evita race com worker pegando o job entre o select e o update), re-valida status (pode ter mudado em ms), atualiza pra `cancelled` + `finished_at = now()`, executa `DELETE FROM jobs WHERE id = job_id`.
+  - Retorna `{run: {id, status: 'cancelled'}}`.
+
+- **`RunArtisanCommandJob::handle` ganhou safeguard:** se chegar e `$run->status === STATUS_CANCELLED`, loga `'pulando job já cancelado'` e retorna sem marcar `running` ou rodar Artisan. Fecha o race em que o worker já tinha "reservado" o job antes do `DELETE FROM jobs` chegar — quando ele chama `handle()`, a flag de cancelamento já está visível.
+
+- **Frontend:**
+  - Status `'cancelled'` adicionado ao type `CommandStatus` + `STATUS_LABEL` ("Cancelado") + `STATUS_BADGE` (zinc neutro)
+  - Botão "Cancelar" aparece **só quando `run.status === 'pending'`** — em `running`, `completed`, `failed` ou `cancelled` não aparece (honesto: não promete o que não cumpre)
+  - `cancelRun()` usa `useConfirm` com mensagem que explica o limite ("O job é removido da fila antes do worker pegar. Se já tiver pegado, a execução continua.")
+  - Loading state com `Loader2` durante o DELETE; em erro mostra alert + refetch automático pra ressincronizar UI com servidor
+
+- **Validação:** Build Vite 4.05s. 187 testes verdes. 5 rotas em `/admin/sync*` (DELETE adicionada). Não testei o flow E2E porque precisaria do worker rodando + timing manual.
 
 #### Validação Fase 19
 
