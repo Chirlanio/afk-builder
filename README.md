@@ -120,6 +120,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 14c. Beasts (pets — sync de nomes via wiki, buffs S/I/A admin, ativo por formação) | ✅ |
 | 14d. Integração ao optimizer (PowerCalculator soma art/col/beast; scorer/optimizers propagam beast) | ✅ |
 | 15. Equipamentos por herói (4 slots: Arma/Capacete/Peitoral/Bota com tier T1-T6 + level 1-20) | ✅ |
+| 16. Auth + Dashboard com tema AFK (login como tela inicial, redesign de auth, dashboard com stats, i18n PT-BR via lib) | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

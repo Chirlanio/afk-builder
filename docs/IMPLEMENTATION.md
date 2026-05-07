@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-03 (Fase 15 — equipamentos por herói)
+> **Última atualização:** 2026-05-06 (Fase 16 — auth + dashboard com tema AFK, login como tela inicial, i18n PT-BR)
 
 ---
 
@@ -608,6 +608,63 @@ Cada herói no roster pode ter 4 peças de equipamento equipadas. Cada peça tem
   - `PowerCalculatorTest`: 5 novos cenários (zero quando null, fórmula T1-T6 Lv1-20, clamp acima de 20, soma 4 slots, integração forUserHero).
   - `UserHeroArtifactTest`: 4 novos cenários (equipa 4 peças, valida tier inválido, valida level >20, normaliza tier sem level).
   - **186 testes verdes** no projeto (era 177, +9).
+
+---
+
+### ✅ Fase 16 — Auth + Dashboard com tema AFK, login como tela inicial, i18n PT-BR
+
+Redesign completo do entry point da aplicação para refletir a identidade visual do jogo, e instalação de pacote de localização PT-BR para mensagens nativas do Laravel (validação, auth, reset).
+
+- **Rota raiz redireciona** (`routes/web.php`):
+  - `GET /` → `redirect()->route(auth()->check() ? 'dashboard' : 'login')`
+  - Nome `home` preservado (referenciado em layouts e links)
+  - Removido import `Inertia` (rota não renderiza mais closure)
+
+- **Imagens oficiais** baixadas para `public/images/auth/`:
+  - `athalia-teaser.png` (1623×2087, ~500KB) — Athalia Awakened, key art oficial
+  - `afk-arena-logo.png` (941×429, ~78KB) — logo oficial AFK Arena
+  - Fonte: Fandom Wiki via API MediaWiki (mesma CDN `static.wikia.nocookie.net` já usada para portraits)
+
+- **`layouts/auth/auth-afk-layout.tsx` (novo):**
+  - Split 2 colunas (mobile: 1 col; lg+: split 1.1fr / 1fr)
+  - **Painel esquerdo:** Athalia teaser de fundo com overlay gradient escuro. Logo no topo com glow âmbar. Tagline "Domine cada formação, em todos os modos.". Badges coloridos das 8 facções via `FACTION_THEME`.
+  - **Painel direito:** card central border âmbar, gradient zinc-900/950/black, shadow dourado glow. Título com `bg-clip-text` gradient âmbar. Footer "AFK Builder · Não-oficial · Arte © Lilith Games".
+  - Background ambient: 3 radial gradients (âmbar/roxo/rosa) com `blur-3xl` + `opacity-40` — clima místico in-game.
+
+- **`auth-layout.tsx`** (alias): trocou template interno de `auth-simple-layout` para `auth-afk-layout`. Todas as páginas que usam `@/layouts/auth-layout` herdam o novo visual.
+
+- **Páginas reescritas em PT-BR** (4):
+  - `login.tsx` — "Entre na sua conta" / "Acesse seu roster e suas formações". Inputs com tema (border âmbar, fundo black/40, focus dourado). Botão "Entrar" com gradient âmbar/yellow + glow + ícone `Sparkles`. Links "Esqueci a senha" e "Crie a sua".
+  - `register.tsx` — "Crie sua conta" / "Comece a montar suas formações em segundos".
+  - `forgot-password.tsx` — "Esqueci minha senha". Ícone `Mail`.
+  - `reset-password.tsx` — "Redefinir senha". Ícone `ShieldCheck`. E-mail readonly em opacity-60.
+
+- **`DashboardController` (novo, `app/Http/Controllers/`):**
+  - `index(Request)` retorna:
+    - `stats`: `roster_total`, `roster_ascended` (asc≥10), `roster_awakened` (SQL: `LOWER(REPLACE(heroes.name, ' ', '-')) <> heroes.slug`), `catalog_total` (ativos não-pending), `factions_count`, `formations_total`
+    - `rosterByFaction`: `GROUP BY` facção do roster com `code`, `name_pt`, `total` (8 entradas)
+    - `recentFormations`: 3 últimas formações ordenadas por `updated_at DESC` com challenge label e `diffForHumans`
+  - `dashboard` migrou de closure pra `[DashboardController::class, 'index']` em `routes/web.php`.
+
+- **`pages/dashboard.tsx` redesenhado:**
+  - **Hero card:** gradient zinc-900 → black com radial overlay âmbar/roxo. Badge "Bem-vindo de volta", saudação `auth.user.name.split(' ')[0]`. CTAs "Nova formação" (gradient dourado) e "Meu roster" (outline).
+  - **4 stat cards:** Roster (com `% do catálogo` derivado), Ascendidos, Despertos, Formações. Cores temáticas âmbar/yellow/purple/rose.
+  - **Roster por facção:** grid 2×4 (sm: 4 cols) com 8 facções usando `FACTION_THEME[code]` para cores coerentes (cardGradient, cardBorder, headerText). Total + label "herói/heróis".
+  - **3 atalhos em coluna:** Catálogo de heróis, Minhas formações, Guias — cada um com ícone temático e seta animada no hover.
+  - **Formações recentes:** grid 1-3 cols com badges Real/Alvo (emerald/sky), challenge type + nº equipes, "Editado há X". Empty state com ícone `Sword` e CTA pra criar a primeira.
+
+- **i18n PT-BR via lib `lucascudo/laravel-pt-br-localization v3.0.4`:**
+  - `composer require --dev lucascudo/laravel-pt-br-localization`
+  - `php artisan lang:publish` (cria estrutura `lang/`)
+  - `php artisan vendor:publish --tag=laravel-pt-br-localization` (publica `lang/pt_BR/{auth,validation,passwords,pagination}.php` + `lang/pt_BR.json`)
+  - `APP_LOCALE=pt_BR` já estava no `.env` — Laravel passa a usar essas traduções automaticamente em validação, auth e reset
+  - Sem mudanças de código: mensagens como "Estas credenciais não correspondem aos nossos registros." aparecem nativamente
+
+- **Validação:**
+  - Build Vite: `dashboard-FIQK23h-.js` 9.79KB / `auth-layout-DsTfHbyB.js` 4.16KB / `login-CMaVS9dK.js` 3.42KB. Build em **4.45s**.
+  - **187 testes verdes** no projeto (era 186, +1 — `DashboardTest` continua passando contra o controller real).
+  - Smoke test curl: `GET /` → 302 → `/login`, `GET /login` → 200, `GET /dashboard` (guest) → 302 → `/login`.
+  - Type-check: zero novos erros em arquivos tocados (os ~14 erros pré-existentes do starter kit em `useForm<X>` constraint seguem fora de escopo).
 
 ---
 
