@@ -23,29 +23,33 @@ export function PageShell({
     contentClassName,
 }: PageShellProps) {
     return (
-        <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-            <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                <div className="flex items-start gap-3">
+        <div className="flex flex-1 flex-col gap-4 p-3 sm:gap-6 sm:p-4 md:p-6">
+            <header className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-end md:justify-between">
+                <div className="flex items-start gap-2.5 sm:gap-3">
                     {Icon && (
-                        <div className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-lg border border-amber-400/20 bg-gradient-to-br from-amber-500/15 to-amber-500/0 text-amber-300 shadow-[0_0_18px_-4px_rgba(251,191,36,0.4)]">
+                        <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg border border-amber-400/20 bg-gradient-to-br from-amber-500/15 to-amber-500/0 text-amber-300 shadow-[0_0_18px_-4px_rgba(251,191,36,0.4)] sm:size-11">
                             <Icon className="size-5" />
                         </div>
                     )}
-                    <div className="min-w-0">
-                        <h1 className="text-2xl font-bold tracking-tight text-amber-50 md:text-3xl">
+                    <div className="min-w-0 flex-1">
+                        <h1 className="text-xl font-bold tracking-tight text-amber-50 sm:text-2xl md:text-3xl">
                             {title}
                         </h1>
                         {description && (
-                            <p className="mt-1 max-w-2xl text-sm text-amber-100/60">{description}</p>
+                            <p className="mt-1 max-w-2xl text-xs text-amber-100/60 sm:text-sm">{description}</p>
                         )}
                     </div>
                 </div>
-                {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+                {actions && (
+                    <div className="flex flex-wrap items-center gap-2 [&>*]:flex-1 sm:[&>*]:flex-initial md:flex-nowrap">
+                        {actions}
+                    </div>
+                )}
             </header>
 
             <div
                 className={cn(
-                    'flex flex-1 flex-col gap-6',
+                    'flex flex-1 flex-col gap-4 sm:gap-6',
                     width === 'narrow' && 'mx-auto w-full max-w-3xl',
                     contentClassName,
                 )}
