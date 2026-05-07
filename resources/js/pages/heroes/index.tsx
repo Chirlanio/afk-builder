@@ -1,8 +1,9 @@
 import { Head } from '@inertiajs/react';
-import { Search, X } from 'lucide-react';
+import { Search, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { HeroCard } from '@/components/hero-card';
 import { HeroDetailModal } from '@/components/hero-detail-modal';
+import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -111,16 +112,11 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Heróis" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                        <h1 className="text-2xl font-semibold">Catálogo de Heróis</h1>
-                        <p className="text-sm text-muted-foreground">
-                            {heroes.length} heróis no catálogo · {ownedCount} no seu roster · {totalShown} exibidos
-                        </p>
-                    </div>
-                </div>
-
+            <PageShell
+                title="Catálogo de Heróis"
+                icon={Users}
+                description={`${heroes.length} heróis no catálogo · ${ownedCount} no seu roster · ${totalShown} exibidos`}
+            >
                 <div className="sticky top-0 z-10 flex flex-col gap-3 rounded-xl border bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
                     <div className="flex flex-wrap items-center gap-2">
                         <div className="relative min-w-[220px] flex-1">
@@ -246,7 +242,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                         </div>
                     )}
                 </div>
-            </div>
+            </PageShell>
 
             <HeroDetailModal
                 slug={openSlug}

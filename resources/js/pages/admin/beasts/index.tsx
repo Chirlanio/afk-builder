@@ -3,6 +3,7 @@ import axios from 'axios';
 import { PawPrint, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { BeastFormModal } from '@/components/beast-form-modal';
+import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -38,23 +39,17 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
             {confirmDialog}
             <Head title="Beasts (admin)" />
 
-            <div className="flex flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                        <h1 className="flex items-center gap-2 text-2xl font-semibold">
-                            <PawPrint className="size-6 text-primary" />
-                            Beasts (Pets)
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Catálogo de beasts (sync de nomes via wiki, buffs cadastrados manualmente). Cada beast aplica buffs de Força/Inteligência/Agilidade aos heróis do tipo correspondente.
-                        </p>
-                    </div>
+            <PageShell
+                title="Beasts (Pets)"
+                icon={PawPrint}
+                description="Catálogo de beasts (sync de nomes via wiki, buffs cadastrados manualmente). Cada beast aplica buffs de Força/Inteligência/Agilidade aos heróis do tipo correspondente."
+                actions={
                     <Button size="sm" onClick={() => setCreateOpen(true)}>
                         <Plus className="size-4" />
                         Novo beast
                     </Button>
-                </div>
-
+                }
+            >
                 {beasts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
                         <PawPrint className="size-10 text-muted-foreground" />
@@ -106,7 +101,7 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
                         })}
                     </div>
                 )}
-            </div>
+            </PageShell>
 
             <BeastFormModal
                 open={createOpen || editing !== null}

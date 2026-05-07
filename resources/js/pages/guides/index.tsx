@@ -1,5 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { BookOpen, ChevronRight, Cog, Map, Sparkles } from 'lucide-react';
+import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
 import { localized } from '@/lib/afk';
@@ -43,17 +44,15 @@ export default function GuidesIndex({ categories }: PageProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Guias" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div>
-                    <h1 className="flex items-center gap-2 text-2xl font-semibold">
-                        <BookOpen className="size-6 text-primary" />
-                        Guias do jogo
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
+            <PageShell
+                title="Guias do jogo"
+                icon={BookOpen}
+                description={
+                    <>
                         {totalGuides === 0 ? 'Sem guias publicados ainda.' : `${totalGuides} guias disponíveis.`} Conteúdo extraído da Fandom Wiki — sempre confira o link da fonte para a versão mais atualizada.
-                    </p>
-                </div>
-
+                    </>
+                }
+            >
                 {categories.map((category) => {
                     const Icon = CATEGORY_ICON[category.code] ?? BookOpen;
                     if (category.guides.length === 0) return null;
@@ -104,7 +103,7 @@ export default function GuidesIndex({ categories }: PageProps) {
                         </p>
                     </div>
                 )}
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

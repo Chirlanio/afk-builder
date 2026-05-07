@@ -372,7 +372,7 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
             <Head title={`Editar ${formation.name}`} />
 
             <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                <div className="flex h-full flex-1 flex-col gap-3 p-4">
+                <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-1 items-center gap-2">
                             <Input

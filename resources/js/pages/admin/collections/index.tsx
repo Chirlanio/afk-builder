@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Package, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { CollectionFormModal } from '@/components/collection-form-modal';
+import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -38,23 +39,17 @@ export default function CollectionsAdminIndex({ collections }: PageProps) {
             {confirmDialog}
             <Head title="Coleções (admin)" />
 
-            <div className="flex flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                        <h1 className="flex items-center gap-2 text-2xl font-semibold">
-                            <Package className="size-6 text-primary" />
-                            Coleções da Galeria Tenebrosa
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Catálogo de coleções (manual, dado que a Fandom não tem dados estruturados). Cada coleção fornece bônus de HP/ATK/DEF e ocupa o slot de artefato do herói.
-                        </p>
-                    </div>
+            <PageShell
+                title="Coleções da Galeria Tenebrosa"
+                icon={Package}
+                description="Catálogo de coleções (manual, dado que a Fandom não tem dados estruturados). Cada coleção fornece bônus de HP/ATK/DEF e ocupa o slot de artefato do herói."
+                actions={
                     <Button size="sm" onClick={() => setCreateOpen(true)}>
                         <Plus className="size-4" />
                         Nova coleção
                     </Button>
-                </div>
-
+                }
+            >
                 {collections.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
                         <Package className="size-10 text-muted-foreground" />
@@ -100,7 +95,7 @@ export default function CollectionsAdminIndex({ collections }: PageProps) {
                         ))}
                     </div>
                 )}
-            </div>
+            </PageShell>
 
             <CollectionFormModal
                 open={createOpen || editing !== null}

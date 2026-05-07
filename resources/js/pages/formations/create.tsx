@@ -1,6 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Swords, Target, Users } from 'lucide-react';
+import { Plus, Swords, Target, Users } from 'lucide-react';
 import { useMemo } from 'react';
+import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,15 +53,13 @@ export default function FormationsCreate({ challengeTypes }: PageProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nova formação" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div>
-                    <h1 className="text-2xl font-semibold">Nova formação</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Escolha o tipo de desafio e o modo. Você poderá montar as equipes na próxima tela.
-                    </p>
-                </div>
-
-                <form onSubmit={submit} className="grid max-w-2xl gap-4 rounded-xl border bg-card p-4">
+            <PageShell
+                title="Nova formação"
+                icon={Plus}
+                description="Escolha o tipo de desafio e o modo. Você poderá montar as equipes na próxima tela."
+                width="narrow"
+            >
+                <form onSubmit={submit} className="grid gap-4 rounded-xl border bg-card p-4">
                     <div className="space-y-1.5">
                         <Label htmlFor="name">Nome</Label>
                         <Input
@@ -192,7 +191,7 @@ export default function FormationsCreate({ challengeTypes }: PageProps) {
                         </Button>
                     </div>
                 </form>
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

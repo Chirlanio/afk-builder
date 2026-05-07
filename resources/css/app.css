@@ -113,38 +113,39 @@
 }
 
 .dark {
-    --background: hsl(0, 0%, 3.9%);
-    --foreground: hsl(0, 0%, 98%);
-    --card: hsl(0, 0%, 3.9%);
-    --card-foreground: hsl(0, 0%, 98%);
-    --popover: hsl(0, 0%, 3.9%);
-    --popover-foreground: hsl(0, 0%, 98%);
-    --primary: hsl(0, 0%, 98%);
-    --primary-foreground: hsl(0, 0%, 9%);
-    --secondary: hsl(0, 0%, 14.9%);
-    --secondary-foreground: hsl(0, 0%, 98%);
-    --muted: hsl(0, 0%, 6.9%);
-    --muted-foreground: hsl(0, 0%, 63.9%);
-    --accent: hsl(0, 0%, 14.9%);
-    --accent-foreground: hsl(0, 0%, 98%);
+    /* Tema AFK Builder — preto profundo com fundo levemente roxo + accent âmbar */
+    --background: hsl(258, 56%, 5%);
+    --foreground: hsl(48, 96%, 95%);
+    --card: hsl(258, 25%, 8%);
+    --card-foreground: hsl(48, 96%, 95%);
+    --popover: hsl(258, 30%, 7%);
+    --popover-foreground: hsl(48, 96%, 95%);
+    --primary: hsl(43, 96%, 56%);
+    --primary-foreground: hsl(258, 56%, 8%);
+    --secondary: hsl(258, 15%, 14%);
+    --secondary-foreground: hsl(48, 96%, 95%);
+    --muted: hsl(258, 15%, 11%);
+    --muted-foreground: hsl(48, 30%, 70%);
+    --accent: hsl(258, 20%, 16%);
+    --accent-foreground: hsl(48, 96%, 95%);
     --destructive: hsl(0, 84%, 60%);
     --destructive-foreground: hsl(0, 0%, 98%);
-    --border: hsl(0, 0%, 14.9%);
-    --input: hsl(0, 0%, 14.9%);
-    --ring: hsl(0, 0%, 83.1%);
-    --chart-1: hsl(220, 70%, 50%);
+    --border: hsl(258, 20%, 16%);
+    --input: hsl(258, 20%, 14%);
+    --ring: hsl(43, 96%, 56%);
+    --chart-1: hsl(43, 96%, 56%);
     --chart-2: hsl(160, 60%, 45%);
-    --chart-3: hsl(30, 80%, 55%);
-    --chart-4: hsl(280, 65%, 60%);
-    --chart-5: hsl(340, 75%, 55%);
-    --sidebar-background: hsl(0, 0%, 7%);
-    --sidebar-foreground: hsl(0, 0%, 80%);
-    --sidebar-primary: hsl(360, 100%, 100%);
-    --sidebar-primary-foreground: hsl(0, 0%, 100%);
-    --sidebar-accent: hsl(0, 0%, 15.9%);
-    --sidebar-accent-foreground: hsl(240, 4.8%, 95.9%);
-    --sidebar-border: hsl(0, 0%, 15.9%);
-    --sidebar-ring: hsl(217.2, 91.2%, 59.8%);
+    --chart-3: hsl(280, 65%, 60%);
+    --chart-4: hsl(340, 75%, 55%);
+    --chart-5: hsl(220, 70%, 50%);
+    --sidebar-background: hsl(258, 40%, 6%);
+    --sidebar-foreground: hsl(48, 30%, 78%);
+    --sidebar-primary: hsl(43, 96%, 56%);
+    --sidebar-primary-foreground: hsl(258, 56%, 8%);
+    --sidebar-accent: hsl(258, 20%, 14%);
+    --sidebar-accent-foreground: hsl(48, 96%, 95%);
+    --sidebar-border: hsl(258, 20%, 14%);
+    --sidebar-ring: hsl(43, 96%, 56%);
 }
 
 @layer base {

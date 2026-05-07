@@ -2,7 +2,9 @@ import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, GitCompareArrows, Target } from 'lucide-react';
 import { useMemo } from 'react';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
+import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
@@ -162,15 +164,19 @@ export default function FormationsCompare({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Comparar: ${formationA.name} vs ${formationB.name}`} />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex items-center gap-2">
-                    <Link href="/formations" className="text-muted-foreground hover:text-foreground">
-                        <ArrowLeft className="size-4" />
-                    </Link>
-                    <GitCompareArrows className="size-5 text-primary" />
-                    <h1 className="text-xl font-semibold">Comparação</h1>
-                </div>
-
+            <PageShell
+                title="Comparação"
+                icon={GitCompareArrows}
+                description="Veja lado a lado a pontuação e a composição das duas formações selecionadas."
+                actions={
+                    <Button asChild variant="outline" size="sm">
+                        <Link href="/formations">
+                            <ArrowLeft className="size-4" />
+                            Voltar
+                        </Link>
+                    </Button>
+                }
+            >
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     {[formationA, formationB].map((f) => (
                         <div key={f.id} className="rounded-xl border bg-card p-3">
@@ -243,7 +249,7 @@ export default function FormationsCompare({
                         </div>
                     ))}
                 </div>
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

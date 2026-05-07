@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { Check, ExternalLink, Plus, ShieldCheck, X } from 'lucide-react';
 import { useState } from 'react';
 import { CreateHeroModal } from '@/components/create-hero-modal';
+import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
@@ -55,23 +56,17 @@ export default function HeroesPendingReview({ heroes, factions, heroClasses, tie
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Aprovar heróis" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                        <h1 className="flex items-center gap-2 text-2xl font-semibold">
-                            <ShieldCheck className="size-6 text-primary" />
-                            Heróis aguardando aprovação
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Heróis novos sincronizados da wiki entram aqui antes de aparecer no catálogo. Aprove pra ativar, rejeite pra ocultar.
-                        </p>
-                    </div>
+            <PageShell
+                title="Heróis aguardando aprovação"
+                icon={ShieldCheck}
+                description="Heróis novos sincronizados da wiki entram aqui antes de aparecer no catálogo. Aprove pra ativar, rejeite pra ocultar."
+                actions={
                     <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
                         <Plus className="size-4" />
                         Adicionar manualmente
                     </Button>
-                </div>
-
+                }
+            >
                 {heroes.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
                         <ShieldCheck className="size-10 text-muted-foreground" />
@@ -162,7 +157,7 @@ export default function HeroesPendingReview({ heroes, factions, heroClasses, tie
                         })}
                     </div>
                 )}
-            </div>
+            </PageShell>
 
             <CreateHeroModal
                 open={createOpen}

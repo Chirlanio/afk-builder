@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { GitCompareArrows, Plus, Swords, Target, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -52,17 +53,16 @@ export default function FormationsIndex({ formations }: PageProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Formações" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold">Formações</h1>
-                        <p className="text-sm text-muted-foreground">
-                            {formations.length === 0
-                                ? 'Você ainda não criou nenhuma formação.'
-                                : `${formations.length} ${formations.length === 1 ? 'formação' : 'formações'}.`}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
+            <PageShell
+                title="Formações"
+                icon={Swords}
+                description={
+                    formations.length === 0
+                        ? 'Você ainda não criou nenhuma formação.'
+                        : `${formations.length} ${formations.length === 1 ? 'formação' : 'formações'}.`
+                }
+                actions={
+                    <>
                         {selected.length === 2 && (
                             <Button variant="outline" onClick={compareNow}>
                                 <GitCompareArrows className="size-4" />
@@ -75,9 +75,9 @@ export default function FormationsIndex({ formations }: PageProps) {
                                 Nova formação
                             </Link>
                         </Button>
-                    </div>
-                </div>
-
+                    </>
+                }
+            >
                 {selected.length > 0 && (
                     <p className="text-xs text-muted-foreground">
                         {selected.length === 1
@@ -166,7 +166,7 @@ export default function FormationsIndex({ formations }: PageProps) {
                         })}
                     </div>
                 )}
-            </div>
+            </PageShell>
             {confirmDialog}
         </AppLayout>
     );

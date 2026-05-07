@@ -1,7 +1,9 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowLeft, BookOpen, ExternalLink } from 'lucide-react';
 import { MarkdownContent } from '@/components/markdown-content';
+import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { localized } from '@/lib/afk';
 import type { BreadcrumbItem, Locale, SharedData } from '@/types';
@@ -41,23 +43,25 @@ export default function GuideShow({ guide, categoryLabel }: PageProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={title} />
 
-            <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-4 p-4">
-                <div className="flex items-center gap-2">
-                    <Link href="/guias" className="text-muted-foreground hover:text-foreground">
-                        <ArrowLeft className="size-4" />
-                    </Link>
-                    <span className="text-xs text-muted-foreground">Guias</span>
-                </div>
-
-                <header className="flex flex-col gap-2 rounded-xl border bg-card p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary" className="gap-1">
-                            <BookOpen className="size-3" />
-                            {categoryLabel}
-                        </Badge>
-                    </div>
-                    <h1 className="text-2xl font-semibold">{title}</h1>
-                    {summary && <p className="text-sm text-muted-foreground">{summary}</p>}
+            <PageShell
+                title={title}
+                icon={BookOpen}
+                description={summary ?? undefined}
+                width="narrow"
+                actions={
+                    <Button asChild variant="outline" size="sm">
+                        <Link href="/guias">
+                            <ArrowLeft className="size-4" />
+                            Voltar
+                        </Link>
+                    </Button>
+                }
+            >
+                <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary" className="gap-1">
+                        <BookOpen className="size-3" />
+                        {categoryLabel}
+                    </Badge>
                     {guide.source_url && (
                         <a
                             href={guide.source_url}
@@ -69,7 +73,7 @@ export default function GuideShow({ guide, categoryLabel }: PageProps) {
                             Fonte: Fandom Wiki
                         </a>
                     )}
-                </header>
+                </div>
 
                 {content ? (
                     <article className="rounded-xl border bg-card p-5">
@@ -82,7 +86,7 @@ export default function GuideShow({ guide, categoryLabel }: PageProps) {
                             : 'Conteúdo ainda não importado para este guia.'}
                     </div>
                 )}
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }
