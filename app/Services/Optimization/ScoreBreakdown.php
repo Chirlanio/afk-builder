@@ -9,6 +9,8 @@ class ScoreBreakdown
         public readonly float $classBalance,
         public readonly float $synergy,
         public readonly float $power,
+        public readonly float $tierRating,
+        public readonly float $featureBonus,
         public readonly float $total,
         public readonly array $details = [],
     ) {
@@ -21,6 +23,8 @@ class ScoreBreakdown
             'class_balance' => round($this->classBalance, 3),
             'synergy' => round($this->synergy, 3),
             'power' => round($this->power, 3),
+            'tier_rating' => round($this->tierRating, 3),
+            'feature_bonus' => round($this->featureBonus, 3),
             'total' => round($this->total, 3),
             'details' => $this->details,
         ];

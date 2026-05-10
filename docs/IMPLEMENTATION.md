@@ -1087,6 +1087,87 @@ Source label `afk.guide / Whitesushii` distingue do `afk.guide / Best Teams`. Se
 
 ---
 
+### ✅ Fase 24 — Algoritmo de scoring usa tier rating + features + beast tier + comps recomendados
+
+Aproveitamento dos datasets coletados nas Fases 21-22 para enriquecer o `TeamScorer`. Antes desta fase, o algoritmo só considerava: faction bonus, class balance, synergy de pares, power (ascension+SI+furniture+stats+equip+art+col+beast). Agora, **tier rating modo-específico** e **bônus contextual por feature** entram no cálculo, beasts ganham peso por tier, e comps recomendados aparecem como sugestão informativa na UI.
+
+#### 24.1 — Helpers de contexto
+
+- **`ChallengeTypeMode::forCode(?string)`:** mapeia o `code` do `ChallengeType` para o `mode` do HeroRating. Mapping completo:
+  - `arena_of_heroes` / `legends_championship` / `heroes_of_esperia` → `pvp`
+  - `dream_realm` → `twisted_realm` (nome moderno)
+  - `arcane_labyrinth` → `labyrinth`
+  - `abyssal_expedition` → `abyssal_expedition`
+  - `campaign` / `kings_tower` / `cursed_realm` / `bountiful_trials` / `dragon_trial` → `pve`
+  - Helpers `isPvp()` e `isTwistedRealm()` para checks rápidos
+- **`RosterStageInferrer::inferFromRoster(iterable<UserHero>)`:** calcula avg de `ascension_value` e retorna `early` (<5), `mid` (5-10) ou `end` (≥10). Default `end` para roster vazio. Cortes alinhados ao `tierFromAscension` do frontend (Fase 6).
+
+#### 24.2 — `TierRatingScorer` (P1) + integração
+
+- **Componente novo:** `TierRatingScorer::score(Hero[], ratingsByHeroId, mode, stage)` retorna `0..1` (média de pontos / 10).
+- **Tabela de pontos por tier:** S+ → 10, S → 8, A+ → 7, A → 6, B+ → 5, B → 4, C+ → 3, C → 2, D+ → 1, D → 0.5, F → 0.
+- **Estratégia de fonte (cascata):**
+  1. afk.guide com `mode` + `stage` exatos
+  2. afk.guide com mesmo `mode`, qualquer `stage` (preferência: end > mid > early)
+  3. afk.guide com `mode=overall`
+  4. allclash (`stage=all`, `mode=overall`)
+  5. Fallback: 0.0 (não penaliza, não diferencia)
+- **Heróis sem rating** retornam 0 — não puxam o time pra baixo, mas também não dão vantagem.
+- **`ScoringContext`** novo bundle data class (em `app/Services/Optimization/ScoringContext.php`) carrega `ratingsByHeroId`, `featuresByHeroId`, `mode`, `stage`. É o objeto que viaja pelo loop de scoring nas hot paths (SingleTeamOptimizer/MultiTeamPartitioner).
+- **`TeamScorer::score()` ganha parâmetro `?ScoringContext $ctx = null`** — backward-compat preservada (sem ctx → tier_rating + feature_bonus = 0). `SingleTeamOptimizer::optimize()` e `MultiTeamPartitioner::optimize()` propagam o ctx adiante até cada chamada do scorer.
+- **`ScoringProfile` ganhou** `tierRatingWeight` (default 1.0) e `featureWeight` (default 0.5). `ScoreBreakdown` ganhou `tierRating` e `featureBonus`.
+
+#### 24.3 — `FeatureBonusCalculator` (P2)
+
+Bônus contextual baseado nas tags `HeroFeature`:
+- **Mode PvP** → `+0.15` por herói com `pvp_top`
+- **Mode Twisted Realm** → `+0.15` por herói com `twisted_realm_top`
+- **Stage `early`** (qualquer mode) → `+0.05` por herói com qualquer tag `early_*` (early_carry/support/tank/utility)
+
+Bônus se acumulam: um herói `early_carry` + `pvp_top` em comp PvP early ganha os dois (`+0.20`).
+
+#### 24.4 — Beast tier afeta scoring (P3)
+
+`PowerCalculator` agora multiplica o buff de beast pelo factor do tier:
+
+| Tier | Factor | Era | Δ |
+|------|--------|-----|---|
+| S+   | 1.0    | 0.5 | +100% |
+| S    | 0.8    | 0.5 | +60% |
+| A    | 0.6    | 0.5 | +20% |
+| B    | 0.5    | 0.5 | igual |
+| C    | 0.4    | 0.5 | -20% |
+| D    | 0.3    | 0.5 | -40% |
+| F    | 0.2    | 0.5 | -60% |
+| (sem tier) | 0.5 | 0.5 | igual (default) |
+
+Slumber Seal (S+) agora vale **2x mais** que beasts sem tier; tier C/D ficam significativamente abaixo.
+
+#### 24.5 — Match com comps recomendados (P4, info-only)
+
+- **`RecommendedFormationMatcher::match(Hero[], mode, minOverlap=2, limit=3)`** retorna top 3 comps com maior overlap de heróis. Mapeia mode do HeroRating → modes do RecommendedFormation (PvE engloba campaign/labyrinth/abyssal).
+- **Resposta:** `{ slug, name, mode, tier, core_overlap, total_overlap, total_core, percent, missing_core[] }` por match.
+- **Ordena por:** `core_overlap` desc, depois `total_overlap` desc.
+- **`FormationController::edit`** agora retorna `recommendedMatches` (Map por team position) no payload Inertia. Usuário pode ver "Sua equipe está 4/5 do core do Thoran Cheese — falta `kelthur`". UI não consume isso ainda — payload pronto para a próxima iteração de UX.
+- **Não afeta scoring** — é só sugestão visual.
+
+#### 24.6 — Integração nos controllers
+
+- **`FormationController::suggestTeam` e `suggestAll`:** carregam ratings + features dos heróis do pool, inferem stage do roster e mode do challenge_type, montam `ScoringContext` e passam adiante. Helper privado `loadScoringContext()`.
+- **`FormationCompareController::buildFormationPayload`:** mesma técnica, garante que score retroativo das formations comparadas usa o mesmo algoritmo.
+- **Eager loads atualizados:** `challengeType:id,code,...` (antes não carregava `code`); `beast:...,tier` (antes não carregava `tier`).
+
+#### Validação Fase 24
+
+- ✅ Build Vite 4.13s
+- ✅ **199 testes verdes** (era 187, +12 novos: 4 ChallengeTypeMode + 5 RosterStageInferrer + 3 PowerCalculator beast tier)
+- ✅ Backward compat: testes de optimization existentes (TeamScorer, SingleTeamOptimizer, MultiTeamPartitioner) seguem passando sem alteração — quando ctx é null/empty, novos componentes retornam 0
+- ✅ Sem regressões nos algoritmos existentes — pesos novos somam ao total existente
+- ⚠️ **UI dos `recommendedMatches` ainda não consome o payload** — backend pronto, frontend fica para próxima iteração
+- ⚠️ **Não implementado:** sliders na UI para ajustar `tierRatingWeight` / `featureWeight` por formation (hoje vêm do `ScoringProfile` do challenge_type, fixo)
+
+---
+
 ### ✅ Fase 23 — Tier Lists customizadas com drag-and-drop
 
 Permite que cada user crie suas próprias tier lists e ranqueie heróis arrastando-os entre tiers customizáveis. Compartilhamento público via share_token (mesmo padrão das formations da Fase 6.4).

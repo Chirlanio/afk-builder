@@ -11,7 +11,10 @@ use App\Models\HeroSynergy;
 use App\Models\Tier;
 use App\Models\UserHero;
 use App\Services\Formations\FormationVersioning;
+use App\Services\Optimization\ChallengeTypeMode;
 use App\Services\Optimization\MultiTeamPartitioner;
+use App\Services\Optimization\RosterStageInferrer;
+use App\Services\Optimization\ScoringContext;
 use App\Services\Optimization\ScoringProfile;
 use App\Services\Optimization\SingleTeamOptimizer;
 use App\Services\Optimization\TeamScorer;
@@ -98,11 +101,15 @@ class FormationController extends Controller
             ->orderBy('name')
             ->get(['id', 'slug', 'name', 'strength_buff', 'intelligence_buff', 'agility_buff', 'portrait_url']);
 
+        // P4 Fase 24: matches com comps recomendados, por time da formation
+        $matchesByTeam = $this->buildRecommendedMatches($formation);
+
         return Inertia::render('formations/edit', [
             'formation' => $formation,
             'heroPool' => $heroPool['heroes'],
             'rosterByHeroId' => $heroPool['roster'],
             'beasts' => $beasts,
+            'recommendedMatches' => $matchesByTeam,
             'factions' => Faction::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'color_hex', 'display_order']),
             'heroClasses' => HeroClass::orderBy('display_order')
@@ -110,6 +117,36 @@ class FormationController extends Controller
             'tiers' => Tier::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'max_level', 'display_order']),
         ]);
+    }
+
+    /**
+     * Calcula os top matches de comps recomendados por team da formation.
+     *
+     * @return array<int, array<int, array<string, mixed>>>  position => matches[]
+     */
+    private function buildRecommendedMatches(Formation $formation): array
+    {
+        $mode = ChallengeTypeMode::forCode($formation->challengeType->code ?? null);
+
+        $allHeroIds = $formation->teams->flatMap(fn ($t) => $t->teamHeroes->pluck('hero_id'))->unique()->values()->all();
+        if (empty($allHeroIds)) {
+            return [];
+        }
+
+        $heroesById = Hero::whereIn('id', $allHeroIds)->get(['id', 'slug', 'name'])->keyBy('id');
+        $matcher = new \App\Services\Optimization\RecommendedFormationMatcher;
+
+        $matchesByTeam = [];
+        foreach ($formation->teams as $team) {
+            $heroes = $team->teamHeroes
+                ->map(fn ($th) => $heroesById->get($th->hero_id))
+                ->filter()
+                ->values()
+                ->all();
+            $matchesByTeam[$team->position] = $matcher->match($heroes, $mode);
+        }
+
+        return $matchesByTeam;
     }
 
     public function update(
@@ -204,8 +241,8 @@ class FormationController extends Controller
         abort_unless($formation->user_id === $request->user()->id, 403);
 
         $formation->load([
-            'challengeType:id,scoring_profile,teams_must_be_unique',
-            'beast:id,strength_buff,intelligence_buff,agility_buff',
+            'challengeType:id,code,scoring_profile,teams_must_be_unique',
+            'beast:id,strength_buff,intelligence_buff,agility_buff,tier',
         ]);
 
         $teamsCount = $formation->teams_count;
@@ -247,6 +284,7 @@ class FormationController extends Controller
         $userHeroesById = $this->loadUserHeroes($request->user()->id);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
+        $ctx = $this->loadScoringContext($formation, $heroPoolById, $userHeroesById);
 
         $result = $optimizer->optimize(
             $heroPoolById,
@@ -256,6 +294,7 @@ class FormationController extends Controller
             array_values($lockedHeroIds),
             $blockedHeroIds,
             $formation->beast,
+            $ctx,
         );
 
         $suggestedIds = $result['hero_ids'];
@@ -293,8 +332,8 @@ class FormationController extends Controller
         abort_unless($formation->user_id === $request->user()->id, 403);
 
         $formation->load([
-            'challengeType:id,scoring_profile,teams_must_be_unique',
-            'beast:id,strength_buff,intelligence_buff,agility_buff',
+            'challengeType:id,code,scoring_profile,teams_must_be_unique',
+            'beast:id,strength_buff,intelligence_buff,agility_buff,tier',
         ]);
 
         $teamsCount = $formation->teams_count;
@@ -325,6 +364,7 @@ class FormationController extends Controller
         $userHeroesById = $this->loadUserHeroes($request->user()->id);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
+        $ctx = $this->loadScoringContext($formation, $heroPoolById, $userHeroesById);
 
         $result = $partitioner->optimize(
             $heroPoolById,
@@ -335,6 +375,7 @@ class FormationController extends Controller
             $teamsCount,
             (bool) $formation->challengeType->teams_must_be_unique,
             $formation->beast,
+            $ctx,
         );
 
         $teamsResponse = [];
@@ -426,6 +467,41 @@ class FormationController extends Controller
         }
 
         return $map;
+    }
+
+    /**
+     * Constrói o ScoringContext (P1+P2 da Fase 24): pré-carrega ratings e features
+     * dos heróis do pool, infere stage do roster do user e mapeia challenge_type → mode.
+     *
+     * @param  array<int, \App\Models\Hero>  $heroPoolById
+     * @param  array<int, UserHero>  $userHeroesById
+     */
+    private function loadScoringContext(Formation $formation, array $heroPoolById, array $userHeroesById): ScoringContext
+    {
+        $heroIds = array_keys($heroPoolById);
+        if (empty($heroIds)) {
+            return new ScoringContext;
+        }
+
+        $ratingsByHeroId = \App\Models\HeroRating::whereIn('hero_id', $heroIds)
+            ->get(['id', 'hero_id', 'mode', 'stage', 'tier', 'source'])
+            ->groupBy('hero_id')
+            ->all();
+
+        $featuresByHeroId = \App\Models\HeroFeature::whereIn('hero_id', $heroIds)
+            ->get(['id', 'hero_id', 'tag'])
+            ->groupBy('hero_id')
+            ->all();
+
+        $mode = ChallengeTypeMode::forCode($formation->challengeType->code ?? null);
+        $stage = (new RosterStageInferrer)->inferFromRoster($userHeroesById);
+
+        return new ScoringContext(
+            ratingsByHeroId: $ratingsByHeroId,
+            featuresByHeroId: $featuresByHeroId,
+            mode: $mode,
+            stage: $stage,
+        );
     }
 
     /**

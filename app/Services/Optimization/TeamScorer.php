@@ -4,14 +4,20 @@ namespace App\Services\Optimization;
 
 use App\Models\Beast;
 use App\Models\Hero;
+use App\Models\HeroFeature;
+use App\Models\HeroRating;
 use App\Models\UserHero;
+use Illuminate\Support\Collection;
 
 class TeamScorer
 {
     private const POWER_NORMALIZER = 2000.0;
 
-    public function __construct(private readonly PowerCalculator $power)
-    {
+    public function __construct(
+        private readonly PowerCalculator $power,
+        private readonly TierRatingScorer $tierRatingScorer = new TierRatingScorer,
+        private readonly FeatureBonusCalculator $featureBonus = new FeatureBonusCalculator,
+    ) {
     }
 
     /**
@@ -25,7 +31,10 @@ class TeamScorer
         array $synergyWeights,
         ScoringProfile $profile,
         ?Beast $beast = null,
+        ?ScoringContext $ctx = null,
     ): ScoreBreakdown {
+        $ctx ??= new ScoringContext;
+
         $counts = $this->countByFaction($heroes);
 
         $baseFaction = $this->baseFactionBonus($counts);
@@ -36,21 +45,35 @@ class TeamScorer
         $synergy = $this->synergyScore($heroes, $synergyWeights);
         $power = $this->powerScore($heroes, $userHeroesById, $beast);
 
+        $tierRating = ! empty($ctx->ratingsByHeroId)
+            ? $this->tierRatingScorer->score($heroes, $ctx->ratingsByHeroId, $ctx->mode, $ctx->stage)
+            : 0.0;
+
+        $featureBonus = ! empty($ctx->featuresByHeroId)
+            ? $this->featureBonus->score($heroes, $ctx->featuresByHeroId, $ctx->mode, $ctx->stage)
+            : 0.0;
+
         $total = $factionBonus * $profile->factionBonusWeight
             + $classBalance * $profile->classBalanceWeight
             + $synergy * $profile->synergyWeight
-            + $power * $profile->powerWeight;
+            + $power * $profile->powerWeight
+            + $tierRating * $profile->tierRatingWeight
+            + $featureBonus * $profile->featureWeight;
 
         return new ScoreBreakdown(
             factionBonus: $factionBonus,
             classBalance: $classBalance,
             synergy: $synergy,
             power: $power,
+            tierRating: $tierRating,
+            featureBonus: $featureBonus,
             total: $total,
             details: [
                 'faction_counts' => $counts,
                 'faction_pattern' => $baseFaction['pattern'],
                 'special_faction' => $specialFaction['notes'],
+                'mode' => $ctx->mode,
+                'stage' => $ctx->stage,
             ],
         );
     }

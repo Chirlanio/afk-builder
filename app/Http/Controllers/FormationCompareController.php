@@ -9,7 +9,10 @@ use App\Models\HeroClass;
 use App\Models\HeroSynergy;
 use App\Models\Tier;
 use App\Models\UserHero;
+use App\Services\Optimization\ChallengeTypeMode;
 use App\Services\Optimization\PowerCalculator;
+use App\Services\Optimization\RosterStageInferrer;
+use App\Services\Optimization\ScoringContext;
 use App\Services\Optimization\ScoringProfile;
 use App\Services\Optimization\TeamScorer;
 use Illuminate\Http\Request;
@@ -89,6 +92,24 @@ class FormationCompareController extends Controller
     ): array {
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
 
+        // Carrega ratings + features só dos heróis envolvidos nas duas formations
+        $heroIdsAll = $heroesById->keys()->all();
+        $ratingsByHeroId = \App\Models\HeroRating::whereIn('hero_id', $heroIdsAll)
+            ->get(['id', 'hero_id', 'mode', 'stage', 'tier', 'source'])
+            ->groupBy('hero_id')
+            ->all();
+        $featuresByHeroId = \App\Models\HeroFeature::whereIn('hero_id', $heroIdsAll)
+            ->get(['id', 'hero_id', 'tag'])
+            ->groupBy('hero_id')
+            ->all();
+
+        $ctx = new ScoringContext(
+            ratingsByHeroId: $ratingsByHeroId,
+            featuresByHeroId: $featuresByHeroId,
+            mode: ChallengeTypeMode::forCode($formation->challengeType->code ?? null),
+            stage: (new RosterStageInferrer)->inferFromRoster($userHeroesById),
+        );
+
         $teams = [];
         $totalScore = 0.0;
         foreach ($formation->teams as $team) {
@@ -98,7 +119,7 @@ class FormationCompareController extends Controller
                 ->filter()
                 ->all();
 
-            $score = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $formation->beast);
+            $score = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $formation->beast, $ctx);
             $totalScore += $score->total;
 
             $teams[] = [

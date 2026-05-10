@@ -32,22 +32,23 @@ class MultiTeamPartitioner
         int $teamsCount,
         bool $enforceUnique,
         ?Beast $beast = null,
+        ?ScoringContext $ctx = null,
     ): array {
         $teams = $this->initialFill(
             $heroPoolById, $userHeroesById, $synergyWeights, $profile,
-            $lockedByTeam, $teamsCount, $enforceUnique, $beast,
+            $lockedByTeam, $teamsCount, $enforceUnique, $beast, $ctx,
         );
 
         if ($enforceUnique && $teamsCount > 1) {
             $teams = $this->swapOptimize(
-                $teams, $heroPoolById, $userHeroesById, $synergyWeights, $profile, $lockedByTeam, $beast,
+                $teams, $heroPoolById, $userHeroesById, $synergyWeights, $profile, $lockedByTeam, $beast, $ctx,
             );
         }
 
         $totalScore = 0.0;
         foreach ($teams as $heroIds) {
             $heroes = $this->resolveHeroes($heroIds, $heroPoolById);
-            $totalScore += $this->scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $beast)->total;
+            $totalScore += $this->scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $beast, $ctx)->total;
         }
 
         return [
@@ -72,6 +73,7 @@ class MultiTeamPartitioner
         int $teamsCount,
         bool $enforceUnique,
         ?Beast $beast = null,
+        ?ScoringContext $ctx = null,
     ): array {
         $usedIds = [];
         if ($enforceUnique) {
@@ -93,7 +95,7 @@ class MultiTeamPartitioner
 
             $result = $this->singleOptimizer->optimize(
                 $heroPoolById, $userHeroesById, $synergyWeights, $profile,
-                $locked, $blocked, $beast,
+                $locked, $blocked, $beast, $ctx,
             );
 
             $teams[$pos] = $result['hero_ids'];
@@ -126,6 +128,7 @@ class MultiTeamPartitioner
         ScoringProfile $profile,
         array $lockedByTeam,
         ?Beast $beast = null,
+        ?ScoringContext $ctx = null,
     ): array {
         $positions = array_keys($teams);
 
@@ -143,8 +146,8 @@ class MultiTeamPartitioner
                     $heroesA = $this->resolveHeroes($teams[$posA], $heroPoolById);
                     $heroesB = $this->resolveHeroes($teams[$posB], $heroPoolById);
 
-                    $scoreA = $this->scorer->score($heroesA, $userHeroesById, $synergyWeights, $profile, $beast)->total;
-                    $scoreB = $this->scorer->score($heroesB, $userHeroesById, $synergyWeights, $profile, $beast)->total;
+                    $scoreA = $this->scorer->score($heroesA, $userHeroesById, $synergyWeights, $profile, $beast, $ctx)->total;
+                    $scoreB = $this->scorer->score($heroesB, $userHeroesById, $synergyWeights, $profile, $beast, $ctx)->total;
                     $baseline = $scoreA + $scoreB;
 
                     foreach ($teams[$posA] as $iA => $idA) {
@@ -163,8 +166,8 @@ class MultiTeamPartitioner
 
                             $newHeroesA = $this->resolveHeroes($candidateA, $heroPoolById);
                             $newHeroesB = $this->resolveHeroes($candidateB, $heroPoolById);
-                            $newSum = $this->scorer->score($newHeroesA, $userHeroesById, $synergyWeights, $profile, $beast)->total
-                                + $this->scorer->score($newHeroesB, $userHeroesById, $synergyWeights, $profile, $beast)->total;
+                            $newSum = $this->scorer->score($newHeroesA, $userHeroesById, $synergyWeights, $profile, $beast, $ctx)->total
+                                + $this->scorer->score($newHeroesB, $userHeroesById, $synergyWeights, $profile, $beast, $ctx)->total;
 
                             if ($newSum > $baseline + 1e-9) {
                                 $teams[$posA] = $candidateA;

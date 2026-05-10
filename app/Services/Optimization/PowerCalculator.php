@@ -17,8 +17,22 @@ class PowerCalculator
         'ascended' => ['ascension' => 12, 'level' => 240],
     ];
 
-    /** Multiplicador aplicado ao buff de beast (que é por-tipo). Ajustável. */
+    /** Multiplicador default aplicado ao buff de beast (sem tier cadastrado). */
     private const BEAST_BUFF_FACTOR = 0.5;
+
+    /**
+     * Multiplicador por tier do beast (afk.guide). Beasts S+ valem mais que tier C/D.
+     * Aplicado em vez de BEAST_BUFF_FACTOR quando o beast tem `tier` cadastrado.
+     */
+    private const BEAST_TIER_FACTOR = [
+        'S+' => 1.0,
+        'S' => 0.8,
+        'A' => 0.6,
+        'B' => 0.5,
+        'C' => 0.4,
+        'D' => 0.3,
+        'F' => 0.2,
+    ];
 
     /** Mapa de tier de equipamento → "valor numérico" para PowerCalculator. */
     private const EQUIPMENT_TIER_VALUE = [
@@ -61,10 +75,22 @@ class PowerCalculator
 
         // Buff do beast ativo na formação (aplicado apenas se hero tem type compatível).
         if ($beast && $hero?->type) {
-            $base += $this->beastBuffForType($beast, $hero->type) * self::BEAST_BUFF_FACTOR;
+            $base += $this->beastBuffForType($beast, $hero->type) * $this->beastFactor($beast);
         }
 
         return $base;
+    }
+
+    /**
+     * Multiplicador do buff de beast baseado no tier (afk.guide). Cai pro default 0.5
+     * se o beast não tem tier cadastrado.
+     */
+    private function beastFactor(Beast $beast): float
+    {
+        if ($beast->tier !== null && isset(self::BEAST_TIER_FACTOR[$beast->tier])) {
+            return self::BEAST_TIER_FACTOR[$beast->tier];
+        }
+        return self::BEAST_BUFF_FACTOR;
     }
 
     public function targetBaseline(Hero $hero): float
@@ -99,7 +125,7 @@ class PowerCalculator
         $base = $this->targetBaseline($hero);
         // No modo target, beast ainda contribui (depende da formação, não do roster).
         if ($beast && $hero->type) {
-            $base += $this->beastBuffForType($beast, $hero->type) * self::BEAST_BUFF_FACTOR;
+            $base += $this->beastBuffForType($beast, $hero->type) * $this->beastFactor($beast);
         }
         return $base;
     }

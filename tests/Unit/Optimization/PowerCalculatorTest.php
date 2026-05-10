@@ -313,4 +313,61 @@ class PowerCalculatorTest extends TestCase
         // total: 1390
         $this->assertEqualsWithDelta(1390.0, $this->calc->forUserHero($uh), 0.001);
     }
+
+    public function test_for_user_hero_aplica_beast_tier_factor_s_plus(): void
+    {
+        $uh = $this->makeUserHero([
+            'ascension_value' => 10, 'level' => 240, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 0,
+        ]);
+        $hero = new Hero;
+        $hero->type = 'strength';
+
+        $beast = new Beast;
+        $beast->strength_buff = 200;
+        $beast->intelligence_buff = 0;
+        $beast->agility_buff = 0;
+        $beast->tier = 'S+';   // factor 1.0 (em vez do default 0.5)
+
+        // base 1240 + 200 * 1.0 = 1440
+        $this->assertEqualsWithDelta(1440.0, $this->calc->forUserHero($uh, $hero, $beast), 0.001);
+    }
+
+    public function test_for_user_hero_aplica_beast_tier_factor_c(): void
+    {
+        $uh = $this->makeUserHero([
+            'ascension_value' => 10, 'level' => 240, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 0,
+        ]);
+        $hero = new Hero;
+        $hero->type = 'strength';
+
+        $beast = new Beast;
+        $beast->strength_buff = 200;
+        $beast->intelligence_buff = 0;
+        $beast->agility_buff = 0;
+        $beast->tier = 'C';    // factor 0.4
+
+        // base 1240 + 200 * 0.4 = 1320
+        $this->assertEqualsWithDelta(1320.0, $this->calc->forUserHero($uh, $hero, $beast), 0.001);
+    }
+
+    public function test_beast_sem_tier_usa_factor_default_50(): void
+    {
+        $uh = $this->makeUserHero([
+            'ascension_value' => 10, 'level' => 240, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 0,
+        ]);
+        $hero = new Hero;
+        $hero->type = 'strength';
+
+        $beast = new Beast;
+        $beast->strength_buff = 200;
+        $beast->intelligence_buff = 0;
+        $beast->agility_buff = 0;
+        $beast->tier = null;   // sem tier → factor default 0.5
+
+        // base 1240 + 200 * 0.5 = 1340
+        $this->assertEqualsWithDelta(1340.0, $this->calc->forUserHero($uh, $hero, $beast), 0.001);
+    }
 }
