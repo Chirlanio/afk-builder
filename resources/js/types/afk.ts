@@ -87,8 +87,8 @@ export interface Beast {
 }
 
 export type HeroRatingMode = 'overall' | 'pvp' | 'pve' | 'labyrinth' | 'twisted_realm' | 'temporal_rift' | 'abyssal_expedition';
-export type HeroRatingStage = 'early' | 'mid' | 'end';
-export type HeroRatingTier = 'S+' | 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
+export type HeroRatingStage = 'early' | 'mid' | 'end' | 'all';
+export type HeroRatingTier = 'S+' | 'S' | 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D+' | 'D' | 'F';
 
 export interface HeroRating {
     id: number;
@@ -107,8 +107,13 @@ export interface RecommendedFormation {
     slug: string;
     name: string;
     mode: RecommendedFormationMode;
+    tier: string | null;
+    level_deficit: string | null;
     description: string | null;
+    notes: string | null;
     hero_slugs: string[];
+    core_count: number;
+    artifacts: string[] | null;
     source_url: string | null;
     source_label: string | null;
 }

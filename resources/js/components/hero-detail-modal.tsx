@@ -101,16 +101,26 @@ const RATING_STAGE_LABEL: Record<HeroRatingStage, string> = {
     early: 'Cap. 1-30',
     mid: 'Cap. 30-35',
     end: 'Cap. 35+',
+    all: 'Geral',
 };
 
 const RATING_TIER_BADGE: Record<HeroRatingTier, string> = {
     'S+': 'bg-gradient-to-br from-rose-500 to-amber-400 text-white border-rose-400/60',
     S: 'bg-rose-500/90 text-white border-rose-400/60',
+    'A+': 'bg-gradient-to-br from-orange-500 to-amber-500 text-white border-orange-400/60',
     A: 'bg-orange-500/90 text-white border-orange-400/60',
+    'B+': 'bg-gradient-to-br from-amber-500 to-yellow-500 text-stone-900 border-amber-400/60',
     B: 'bg-amber-500/90 text-stone-900 border-amber-400/60',
+    'C+': 'bg-gradient-to-br from-zinc-500 to-zinc-400 text-white border-zinc-400/60',
     C: 'bg-zinc-500/80 text-white border-zinc-400/60',
-    D: 'bg-zinc-700/80 text-white border-zinc-600/60',
+    'D+': 'bg-zinc-700/80 text-white border-zinc-600/60',
+    D: 'bg-zinc-800/80 text-white border-zinc-700/60',
     F: 'bg-zinc-900/80 text-zinc-300 border-zinc-700/60',
+};
+
+const SOURCE_LABEL: Record<string, string> = {
+    'afk.guide': 'afk.guide',
+    allclash: 'allclash.com',
 };
 
 interface HeroDetailModalProps {
@@ -526,14 +536,10 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                             {stats ? <StatsGrid stats={stats} /> : <Empty>Estatísticas base ainda não cadastradas.</Empty>}
                         </SectionBlock>
 
-                        {/* Tier Ratings (afk.guide) */}
+                        {/* Tier Ratings (multi-source) */}
                         {ratings && ratings.length > 0 && (
-                            <SectionBlock
-                                icon={Trophy}
-                                title="Tier Rating"
-                                extra={<span className="text-[10px] text-muted-foreground">Fonte: afk.guide</span>}
-                            >
-                                <RatingsGrid ratings={ratings} />
+                            <SectionBlock icon={Trophy} title="Tier Rating">
+                                <RatingsBySource ratings={ratings} />
                             </SectionBlock>
                         )}
 
@@ -748,8 +754,54 @@ function StatsGrid({ stats }: { stats: HeroStats }) {
     );
 }
 
+function RatingsBySource({ ratings }: { ratings: HeroRating[] }) {
+    const bySource = new Map<string, HeroRating[]>();
+    for (const r of ratings) {
+        const arr = bySource.get(r.source) ?? [];
+        arr.push(r);
+        bySource.set(r.source, arr);
+    }
+
+    const sourceOrder = ['afk.guide', 'allclash'];
+    const sortedSources = Array.from(bySource.keys()).sort((a, b) => {
+        const ai = sourceOrder.indexOf(a);
+        const bi = sourceOrder.indexOf(b);
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
+
+    return (
+        <div className="flex flex-col gap-3">
+            {sortedSources.map((source) => {
+                const sourceRatings = bySource.get(source) ?? [];
+                const url = sourceRatings.find((r) => r.source_url)?.source_url ?? null;
+                return (
+                    <div key={source} className="rounded-lg border bg-card/50 p-2">
+                        <div className="mb-1.5 flex items-center justify-between">
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                {SOURCE_LABEL[source] ?? source}
+                            </span>
+                            {url && (
+                                <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                                >
+                                    <ExternalLink className="size-3" />
+                                    fonte
+                                </a>
+                            )}
+                        </div>
+                        <RatingsGrid ratings={sourceRatings} />
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
 function RatingsGrid({ ratings }: { ratings: HeroRating[] }) {
-    const stages: HeroRatingStage[] = ['early', 'mid', 'end'];
+    const stagesAll: HeroRatingStage[] = ['early', 'mid', 'end', 'all'];
     const modes: HeroRatingMode[] = ['overall', 'pvp', 'pve', 'labyrinth', 'twisted_realm', 'temporal_rift', 'abyssal_expedition'];
 
     const lookup: Partial<Record<`${HeroRatingMode}|${HeroRatingStage}`, HeroRatingTier>> = {};
@@ -757,6 +809,7 @@ function RatingsGrid({ ratings }: { ratings: HeroRating[] }) {
         lookup[`${r.mode}|${r.stage}`] = r.tier;
     }
 
+    const stages = stagesAll.filter((s) => modes.some((m) => lookup[`${m}|${s}`] !== undefined));
     const visibleModes = modes.filter((m) => stages.some((s) => lookup[`${m}|${s}`] !== undefined));
 
     return (

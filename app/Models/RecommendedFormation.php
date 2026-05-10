@@ -17,8 +17,13 @@ class RecommendedFormation extends Model
         'slug',
         'name',
         'mode',
+        'tier',
+        'level_deficit',
         'description',
+        'notes',
         'hero_slugs',
+        'core_count',
+        'artifacts',
         'source_url',
         'source_label',
         'sort_order',
@@ -27,8 +32,10 @@ class RecommendedFormation extends Model
 
     protected $casts = [
         'hero_slugs' => 'array',
+        'artifacts' => 'array',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+        'core_count' => 'integer',
     ];
 
     public function getRouteKeyName(): string

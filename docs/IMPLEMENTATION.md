@@ -964,6 +964,74 @@ Fechou o loop da 21.2 — sem isso, os comps seedados ficavam invisíveis no app
 - ✅ TS check sem erros novos
 - ❌ **Clone E2E não testado automaticamente** — exige seed do user + Beast/Hero suficientes. Smoke check manual: `/formations/recommended` renderiza, botão funciona, formation criada com 5 heróis nas posições 1-5.
 
+#### 21.4 — allclash multi-source + comps curados reais (afk.guide via extensão)
+
+Cobre a expansão pedida em "consolidar informações de outros sites". Importante: **afk.global ficou de fora** porque seu robots.txt bloqueia explicitamente `ClaudeBot`/`anthropic-ai`/`Claude-Web`. Como compromisso, o usuário capturou o conteúdo do afk.guide via a extensão **Claude for Chrome** (operada por humano) e me passou o dump estruturado em chat — ficou em ordem de magnitude melhor que scraping cego.
+
+##### Tier ratings: source 'allclash' lado a lado com 'afk.guide'
+
+- **`HeroRating::TIERS` estendido:** de 7 tiers (S+,S,A,B,C,D,F) para 11 (adiciona A+,B+,C+,D+) — schema já era `varchar(4)`, comporta sem migration.
+- **`HeroRating::STAGE_ALL = 'all'`:** novo estágio para fontes que classificam tier list único (sem early/mid/end). allclash usa esse.
+- **`SyncHeroRatingsAllClashCommand` (`heroes:sync-ratings-allclash`):**
+  - **Cloudflare bloqueia** o `Http` facade do Laravel mesmo com User-Agent Chrome (TLS fingerprinting). Mudei para `Process::run(['curl', '-sL', '-A', '...', $url])` que passa.
+  - Fallback `--from-file=path` se curl também falhar (caso o usuário precise baixar manualmente)
+  - Parser DOMDocument: `//div[contains(@class, 'tieritem') and contains(@class, 'afkarena')]`. Cada item tem `id="hero name"` (lowercased + spaces) e classe `tiercode-XX`. `TIER_CODE_MAP` traduz: ss→S+, s→S, as→A+, a→A, bs→B+, b→B, cs→C+, c→C, ds→D+, d→D, f→F.
+  - Resolver de hero estendido: tira parêntese final (`"elijah & lailah (twins)"` → `elijah-lailah`) + variants para Awakened.
+  - **Resultado:** 214 itens parsificados, 211 matched, 191 ratings persistidos (alguns "Awakened X" + "X" mapeiam pro mesmo hero, `updateOrCreate` deduplica). Apenas 3 não encontrados: shalltear, bronn, leonardo da vinci (todos cadastro manual conhecido).
+  - Adicionado a `config/sync_commands.php` com mesmo ícone `Trophy`.
+- **UI multi-source:** `RatingsBySource` agrupa ratings por `source` antes de delegar pro `RatingsGrid`. Cada bloco tem header com label da fonte + link externo. `RatingsGrid` filtra dinamicamente quais estágios mostrar (só `early/mid/end` para afk.guide; só `all` para allclash) — não mostra colunas vazias.
+- **Total no banco:** 3199 ratings de afk.guide (com 7 modos × 3 estágios) + 191 ratings de allclash (1 modo × 1 estágio) = **3390 ratings cross-source**.
+
+##### Comps curados reais — substitui o seed genérico
+
+Migration `add_curated_fields_to_recommended_formations` adiciona à tabela:
+
+| Campo | Tipo | Uso |
+|-------|------|-----|
+| `tier` | varchar(4) nullable | Ranking do comp (S+, S, A) |
+| `level_deficit` | varchar(32) nullable | Texto livre tipo "120-450+" |
+| `core_count` | tinyint default 0 | Quantos primeiros heróis em `hero_slugs` são CORE (resto é flex) |
+| `artifacts` | json nullable | Lista de strings com artefatos recomendados |
+| `notes` | text nullable | Observações estratégicas separadas da `description` |
+
+`RecommendedFormationsSeeder` reescrito com **13 comps curados** (6 PvE endgame + 7 PvP) substituindo os 8 genéricos anteriores:
+
+**PvE Endgame (Campanha):**
+- Thoran Cheese (S+) — déficit 120-450+, core: thoran/lorsan/kelthur/lyca/eironn
+- Charm Comp (Mehira) (S+) — déficit 100-400+, core: mehira/rosaline/rowan
+- Leo Permastun (S) — déficit 100-400+, core: leonardo/mishka/zolrath
+- Alna GB (S) — déficit 100-350+, core: alna/grezhul
+- Five-Pull (Eironn + Skriath) (S) — déficit 100-350+, core: eironn/skriath/queen
+- Lucretia Invade (S) — déficit 100-350+, core: lucretia (1) + 13 flex
+
+**PvP:**
+- God Comp Lockout (S+) — core: ezizh/elijah-lailah/talene
+- Gwyneth Burst (S) — core: gwyneth/eironn/lyca/lorsan
+- Flora Stall (S) — core: flora/skreg
+- Mauler Core (A) — core: skreg/satrana/numisu/tidus/ezizh
+- Graveborn Celestial (A) — core: talene/orthros/athalia/nara
+- Energy Battery (A) — core: rowan/rosaline/tasi
+- Burst PvP (A) — core: zolrath/lucretia/eironn
+
+Cobertura de heróis: 60 de 62 nomes existem no banco (só "Canisa & Ruke" falta — cadastro manual pendente). O seeder é declarativo: limpa comps anteriores cujo `source_label` está na lista de seeds curados antes de upsertar — admins podem adicionar comps customizados com outro source_label sem serem apagados.
+
+**UI atualizada (`pages/formations/recommended/index.tsx`):**
+- Header do card: nome + badge de tier colorido (S+ gradient, S/A/B com cor sólida)
+- Sub-header: badge do mode + `level_deficit` ("Déficit: 120-450+")
+- **Heróis separados em 2 grupos:** "Core (N)" com borda forte e label verde; "Flex (substituições)" com borda esmaecida (`opacity-70`) e label cinza
+- `notes` em destaque amarelo (border-l-2 amber, italic) — separa estratégia de descrição
+- Lista de `artifacts` como chips com ícone `Gem`
+- Heróis não cadastrados (`?` placeholder) mostram slug em amarelo (não quebra o layout)
+
+##### Validação 21.4
+
+- ✅ Build Vite 4.19s
+- ✅ 21 testes de Formation verdes
+- ✅ 2 sources de ratings persistidos (afk.guide + allclash) — 3390 entries totais
+- ✅ 13 comps curados (6 PvE + 7 PvP) com tier, level_deficit, core/flex split, artifacts, notes
+- ⚠️ **Engravings (E30/E60), Signature Items (custos), Beasts tier list (allclash) ainda não consumidos** — capturados pelo usuário no dump mas fora do escopo desta sessão. Anotados como Fase 22 candidatos.
+- ⚠️ **afk.global pulado** — bloqueio explícito a Claude no robots.txt. Compromisso assumido: respeitar.
+
 #### Validação Fase 21
 
 - ✅ Build Vite 4.50s

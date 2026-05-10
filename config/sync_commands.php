@@ -97,6 +97,15 @@ return [
         ],
     ],
 
+    'heroes:sync-ratings-allclash' => [
+        'label' => 'Sincronizar tier ratings (allclash)',
+        'description' => 'Importa tier list único do allclash.com (S+/S/A+/A/B+/B/C+/C/D+/D/F). Usa source="allclash" e stage="all". Convive lado a lado com afk.guide.',
+        'icon' => 'Trophy',
+        'options' => [
+            'dry-run' => ['type' => 'bool', 'label' => 'Dry run (não persiste)'],
+        ],
+    ],
+
     'content:translate' => [
         'label' => 'Traduzir conteúdo (EN→PT-BR)',
         'description' => 'Traduz lore, abilities, furniture e guides via Google Translate (sem API key). Sem flags processa tudo o que ainda não tem tradução.',

@@ -18,8 +18,9 @@ class HeroRating extends Model
     public const STAGE_EARLY = 'early';
     public const STAGE_MID = 'mid';
     public const STAGE_END = 'end';
+    public const STAGE_ALL = 'all';
 
-    public const TIERS = ['S+', 'S', 'A', 'B', 'C', 'D', 'F'];
+    public const TIERS = ['S+', 'S', 'A+', 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F'];
 
     protected $fillable = [
         'hero_id',
