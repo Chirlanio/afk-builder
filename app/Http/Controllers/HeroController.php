@@ -25,6 +25,7 @@ class HeroController extends Controller
             ->where('is_active', true)
             ->where('pending_review', false)
             ->orderBy('name')
+            ->with('features:id,hero_id,tag,note')
             ->get([
                 'id', 'slug', 'name', 'title',
                 'faction_id', 'hero_class_id', 'tier_id',
@@ -88,6 +89,7 @@ class HeroController extends Controller
                 'stats',
                 'ratings:id,hero_id,mode,stage,tier,source,source_url',
                 'engravings:id,hero_id,level,label,description,source,source_url',
+                'features:id,hero_id,tag,note,source_url',
             ])
             ->firstOrFail();
 
@@ -180,6 +182,7 @@ class HeroController extends Controller
             'availableCollections' => $availableCollections,
             'ratings' => $hero->ratings,
             'engravings' => $hero->engravings,
+            'features' => $hero->features,
         ]);
     }
 }

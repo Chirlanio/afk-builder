@@ -63,6 +63,7 @@ export interface Hero {
     faction?: Faction;
     hero_class?: HeroClass;
     tier?: Tier;
+    features?: HeroFeature[];
 }
 
 export interface HeroFurnitureAbility {
@@ -112,6 +113,22 @@ export interface HeroEngraving {
     description: string;
     source: string;
     source_url: string | null;
+}
+
+export type HeroFeatureTag =
+    | 'early_carry'
+    | 'early_support'
+    | 'early_tank'
+    | 'early_utility'
+    | 'pvp_top'
+    | 'twisted_realm_top';
+
+export interface HeroFeature {
+    id: number;
+    hero_id: number;
+    tag: HeroFeatureTag;
+    note: string | null;
+    source_url?: string | null;
 }
 
 export type RecommendedFormationMode = 'pvp' | 'pve' | 'twisted_realm' | 'labyrinth' | 'king_tower' | 'arcane_labyrinth';

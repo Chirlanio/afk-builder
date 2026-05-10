@@ -63,6 +63,8 @@ import type {
     Hero,
     HeroClass,
     HeroEngraving,
+    HeroFeature,
+    HeroFeatureTag,
     HeroRating,
     HeroRatingMode,
     HeroRatingStage,
@@ -87,7 +89,26 @@ interface DetailsPayload {
     availableCollections: Collection[];
     ratings: HeroRating[];
     engravings: HeroEngraving[];
+    features: HeroFeature[];
 }
+
+const FEATURE_TAG_LABEL: Record<HeroFeatureTag, string> = {
+    early_carry: 'Carry Early Game',
+    early_support: 'Suporte Early Game',
+    early_tank: 'Tank Early Game',
+    early_utility: 'Utilidade Early Game',
+    pvp_top: 'Top PvP',
+    twisted_realm_top: 'Top Realidade Distorcida',
+};
+
+const FEATURE_TAG_BADGE: Record<HeroFeatureTag, string> = {
+    early_carry: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    early_support: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+    early_tank: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    early_utility: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    pvp_top: 'border-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-300',
+    twisted_realm_top: 'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300',
+};
 
 const RATING_MODE_LABEL: Record<HeroRatingMode, string> = {
     overall: 'Geral',
@@ -259,7 +280,7 @@ interface ContentProps {
 }
 
 function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, onMutation, onNavigate }: ContentProps) {
-    const { hero, userHero, synergies, availableArtifacts, availableCollections: _, ratings, engravings } = data;
+    const { hero, userHero, synergies, availableArtifacts, availableCollections: _, ratings, engravings, features } = data;
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     const factionTheme = FACTION_THEME[hero.faction.code as FactionCode];
@@ -533,6 +554,23 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     </TabsList>
 
                     <TabsContent value="detalhes" className="flex min-w-0 flex-col gap-4">
+                        {/* Features (destaques) */}
+                        {features && features.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                                {features.map((f) => (
+                                    <Badge
+                                        key={f.id}
+                                        variant="outline"
+                                        className={cn('text-[10px]', FEATURE_TAG_BADGE[f.tag])}
+                                        title={f.note ?? undefined}
+                                    >
+                                        {FEATURE_TAG_LABEL[f.tag]}
+                                        {f.note && <span className="ml-1 opacity-70">· {f.note}</span>}
+                                    </Badge>
+                                ))}
+                            </div>
+                        )}
+
                         {/* Stats */}
                         <SectionBlock icon={BarChart3} title="Estatísticas Base">
                             {stats ? <StatsGrid stats={stats} /> : <Empty>Estatísticas base ainda não cadastradas.</Empty>}

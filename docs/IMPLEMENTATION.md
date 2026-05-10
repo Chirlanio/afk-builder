@@ -1087,6 +1087,50 @@ Source label `afk.guide / Whitesushii` distingue do `afk.guide / Best Teams`. Se
 
 ---
 
+### ✅ Fase 22 — Heroes destaque por fase + Signature Items guide
+
+Continuação direta da 21.5: consumir os 2 últimos pedaços úteis do dump capturado pelo usuário (afk.guide via extensão Claude Chrome). Pulei tradução PT-BR de engravings (descrições já em PT-BR; labels EN são nomes próprios da comunidade) e tier de beasts no allclash (sem ganho marginal sobre afk.guide).
+
+#### 22.1 — Heroes destaque por fase (`hero_features`)
+
+- **Migration `create_hero_features_table`:** id, hero_id (FK cascade), tag (varchar 32), note (text nullable), source/source_url, timestamps. Unique `(hero_id, tag, source)` permite múltiplas fontes futuras. Index em `tag`.
+- **`HeroFeature` model** com 6 constants: `TAG_EARLY_CARRY`, `TAG_EARLY_SUPPORT`, `TAG_EARLY_TANK`, `TAG_EARLY_UTILITY`, `TAG_PVP_TOP`, `TAG_TWISTED_REALM_TOP`. `belongsTo(Hero)`.
+- **`Hero::features()` hasMany.**
+- **`HeroFeaturesSeeder` persiste 37 features** organizadas em 6 grupos:
+  - 6 early carry (Daimon, Raku, Scarlet, Ainz, Eironn, Kren)
+  - 10 early support (Joan of Arc, Palmer, Nevanthi, Ferael, Rosaline, Lyca, Tasi, Silas, Merlin, Rowan)
+  - 3 early tank (Grezhul, Mishka, Arthur)
+  - 3 early utility (Lorsan, Brutus, Mortas)
+  - 9 PvP top (Ezizh, Mehira, Talene, Twins, Oden, Lucretia, Flora, Queen, Ainz)
+  - 6 Twisted Realm top (Scarlet, Awakened Solise, Twins, Mortas, Grezhul, Warek)
+  - Notas extraídas dos parênteses do dump preservadas em `note` (ex: "Daimon (SI Lv20)" → tag=early_carry note="SI Lv20")
+- **Resolver de hero:** `splitNameAndNote()` separa nome + nota; `resolveHero()` tem mapa de aliases (`twins → elijah-lailah`, `awakened solise → solise`, `ainz → ainz-ooal-gown`, etc) + fallback de slug + match case-insensitive.
+- **HeroController:** `index` carrega `with('features:id,hero_id,tag,note')` para uso futuro nos cards; `details` carrega `with('features:id,hero_id,tag,note,source_url')`. Ambos retornam no payload.
+- **TS types:** `HeroFeatureTag` union de 6 tags + `HeroFeature` interface em `types/afk.ts`. `Hero.features?` opcional.
+- **UI:** badges horizontais no topo do tab "Detalhes" do modal de herói (antes de Stats). Cores diferentes por tag: rosa carry, azul support, âmbar tank, verde utility, roxo pvp_top, fúcsia twisted_realm. Notas anexadas no badge (ex: `Carry Early Game · SI Lv20`). Card do herói **não** ganhou badge para preservar layout limpo (decisão consciente: features são para o modal de detalhe).
+
+#### 22.2 — Signature Items guide (`/guias/signature-items`)
+
+Em vez de criar nova tabela ou colunas, reusei o sistema `guides` (Fase 8) para armazenar os custos por nível dos SI como conteúdo markdown.
+
+- **`SignatureItemsGuideSeeder`** cria 1 entry com slug `signature-items`, categoria `mecanicas`, `display_order=90`. `title`/`summary`/`content` em EN + `_pt` em PT-BR.
+- **Conteúdo (PT-BR):** O que é SI, como destravar (20 Primordial Emblems), 4 tabelas markdown com custos por faixa (1-10, 11-20, 21-30, 31-40), 13 heróis legendários sem SI (cap nivel 160), estratégia de investimento por faixa.
+- **Cap +40:** documentado como exclusivo das facções **Celestial e Hypogean**. Outras facções param em +30.
+- **Apenas conteúdo, sem código:** o `GuideController` existente (Fase 8) já renderiza o markdown via `MarkdownContent`, então o guia aparece automaticamente em `/guias` sem mudança de rota/UI.
+
+##### Validação Fase 22
+
+- ✅ Build Vite 4.12s
+- ✅ 114 testes verdes (sem regressão)
+- ✅ 37 features persistidas (cobertura completa do dump — 0 missing)
+- ✅ 9 guides totais (era 8; signature-items adicionado)
+- ⚠️ **Pulado conscientemente:**
+  - Tradução PT-BR dos labels de engravings — labels são nomes próprios em EN ("Phoenix Rising"), comunidade BR usa em EN. Descrições já estão em PT-BR.
+  - Allclash beasts tier list — afk.guide já cobre 27 beasts, allclash não adicionaria valor marginal.
+  - Filtro UI por feature em `/heroes` — daria pra adicionar facetas tipo "PvP Top" mas é melhoria de UX, não dado novo.
+
+---
+
 ### ✅ Fase 20 — Admin de beasts: card estilo hero + upload de imagem
 
 Refatora o admin `/admin/beasts` (criado na Fase 14c) para usar o mesmo padrão visual dos cards de heróis e adiciona upload local de imagens (até então só URLs externas do wiki eram suportadas).
