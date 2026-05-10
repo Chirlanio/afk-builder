@@ -171,6 +171,33 @@ const STAT_LABELS: Record<keyof Omit<HeroStats, 'id' | 'hero_id'>, string> = {
     accuracy: 'Precisão',
     dodge: 'Esquiva',
     haste: 'Pressa',
+    vitality: 'Vitalidade',
+    armor: 'Armadura',
+    attack_speed: 'Velocidade de Ataque',
+    healing: 'Cura',
+    recovery_per_second: 'Recuperação/s',
+    energy_recovery_rate: 'Tx. Recuperação Energia',
+    crit_block_rate: 'Tx. Bloqueio Crítico',
+    crit_damage_resistance: 'Resist. Dano Crítico',
+    physical_piercing: 'Perfuração Física',
+    magic_piercing: 'Perfuração Mágica',
+    physical_resistance: 'Resist. Física',
+    magic_resistance: 'Resist. Mágica',
+    magic_efficiency: 'Eficiência Mágica',
+    magic_suppression: 'Supressão Mágica',
+    life_steal: 'Sanguessuga',
+    tenacity: 'Tenacidade',
+    damage_resistance: 'Resist. a Dano',
+    perception: 'Percepção',
+    proficiency: 'Competência',
+    dispel: 'Dissolver',
+    erosion: 'Erosão',
+    aid: 'Amparo',
+    draconic_amplification: 'Amp. Verbo Dracônico',
+    draconic_resistance: 'Resist. Verbo Dracônico',
+    arena_damage_boost: 'Reforço Dano Arena',
+    arena_damage_reduction: 'Redução Dano Arena',
+    trial_damage_boost: 'Reforço Dano Provação',
 };
 
 export function HeroDetailModal({ slug, open, onOpenChange, onNavigate }: HeroDetailModalProps) {
@@ -791,14 +818,21 @@ function EquipmentSlot({ icon, label, tier, level }: EquipmentSlotProps) {
 
 function StatsGrid({ stats }: { stats: HeroStats }) {
     const fmt = (v: number | null) => (v === null ? '—' : v.toLocaleString('pt-BR'));
-    const order: (keyof typeof STAT_LABELS)[] = ['hp', 'attack', 'defense', 'crit_rate', 'crit_amp', 'accuracy', 'dodge', 'haste'];
+
+    // Mostra todos os campos cadastrados (não-null) — esconde os vazios pra não poluir.
+    const allKeys = Object.keys(STAT_LABELS) as (keyof typeof STAT_LABELS)[];
+    const filledKeys = allKeys.filter((k) => stats[k] !== null && stats[k] !== undefined);
+
+    if (filledKeys.length === 0) {
+        return null;
+    }
 
     return (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {order.map((key) => (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {filledKeys.map((key) => (
                 <div key={key} className="rounded-lg border bg-card p-2">
-                    <div className="text-[10px] text-muted-foreground">{STAT_LABELS[key]}</div>
-                    <div className="mt-0.5 text-lg font-semibold tabular-nums">{fmt(stats[key])}</div>
+                    <div className="line-clamp-1 text-[10px] text-muted-foreground" title={STAT_LABELS[key]}>{STAT_LABELS[key]}</div>
+                    <div className="mt-0.5 text-base font-semibold tabular-nums">{fmt(stats[key])}</div>
                 </div>
             ))}
         </div>

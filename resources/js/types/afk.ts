@@ -242,6 +242,34 @@ export interface HeroStats {
     accuracy: number | null;
     dodge: number | null;
     haste: number | null;
+    // Extras (Fase 24.8)
+    vitality: number | null;
+    armor: number | null;
+    attack_speed: number | null;
+    healing: number | null;
+    recovery_per_second: number | null;
+    energy_recovery_rate: number | null;
+    crit_block_rate: number | null;
+    crit_damage_resistance: number | null;
+    physical_piercing: number | null;
+    magic_piercing: number | null;
+    physical_resistance: number | null;
+    magic_resistance: number | null;
+    magic_efficiency: number | null;
+    magic_suppression: number | null;
+    life_steal: number | null;
+    tenacity: number | null;
+    damage_resistance: number | null;
+    perception: number | null;
+    proficiency: number | null;
+    dispel: number | null;
+    erosion: number | null;
+    aid: number | null;
+    draconic_amplification: number | null;
+    draconic_resistance: number | null;
+    arena_damage_boost: number | null;
+    arena_damage_reduction: number | null;
+    trial_damage_boost: number | null;
 }
 
 export type HeroAbilityType = 'basic' | 'active' | 'passive' | 'ultimate' | 'signature' | 'awakened';

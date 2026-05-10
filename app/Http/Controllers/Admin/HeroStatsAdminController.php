@@ -10,24 +10,23 @@ use Illuminate\Http\Request;
 
 class HeroStatsAdminController extends Controller
 {
-    private const FIELDS = ['hp', 'attack', 'defense', 'crit_rate', 'crit_amp', 'accuracy', 'dodge', 'haste'];
+    private const CORE_FIELDS = ['hp', 'attack', 'defense', 'crit_rate', 'crit_amp', 'accuracy', 'dodge', 'haste'];
 
     public function update(Request $request, string $slug): JsonResponse
     {
         $hero = Hero::query()->where('slug', $slug)->firstOrFail();
 
-        // Caps relaxados para endgame ascended (Shemira HP ~664M, ATK/DEF chegam a ~30M).
-        // Folga ampla para qualquer valor exibido em jogo.
-        // hp/atk/def são inteiros; demais (crit/accuracy/dodge/haste) aceitam decimais
-        // porque o jogo exibe valores como 25.5%, 30.7%.
+        // hp/atk/def são inteiros grandes; demais (% ou números menores) decimais.
         $integerFields = ['hp', 'attack', 'defense'];
+        $allFields = array_merge(self::CORE_FIELDS, HeroStat::EXTRA_FIELDS);
+
         $rules = [];
-        foreach (self::FIELDS as $f) {
+        foreach ($allFields as $f) {
             $type = in_array($f, $integerFields, true) ? 'integer' : 'numeric';
             $max = match ($f) {
                 'hp' => 9_999_999_999,
                 'attack', 'defense' => 999_999_999,
-                default => 9_999,
+                default => 99_999_999.99,
             };
             $rules[$f] = ['nullable', $type, 'min:0', "max:{$max}"];
         }
@@ -36,11 +35,11 @@ class HeroStatsAdminController extends Controller
 
         // Normaliza: garante uma entrada para cada campo (null quando ausente)
         $data = [];
-        foreach (self::FIELDS as $f) {
+        foreach ($allFields as $f) {
             $data[$f] = $validated[$f] ?? null;
         }
 
-        $allNull = ! collect(self::FIELDS)->some(fn ($f) => $data[$f] !== null);
+        $allNull = ! collect($allFields)->some(fn ($f) => $data[$f] !== null);
 
         if ($allNull) {
             HeroStat::where('hero_id', $hero->id)->delete();
