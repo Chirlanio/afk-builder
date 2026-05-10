@@ -16,10 +16,15 @@ class HeroStatsAdminController extends Controller
     {
         $hero = Hero::query()->where('slug', $slug)->firstOrFail();
 
+        // Caps relaxados para endgame ascended (Shemira HP ~664M, ATK/DEF chegam a ~30M).
+        // Folga ampla para qualquer valor exibido em jogo.
         $rules = [];
         foreach (self::FIELDS as $f) {
-            // crit/accuracy/dodge/haste tipicamente ≤ 1000 (basis points), HP/ATK/DEF podem ser grandes
-            $max = in_array($f, ['hp', 'attack', 'defense'], true) ? 999_999 : 9_999;
+            $max = match ($f) {
+                'hp' => 9_999_999_999,
+                'attack', 'defense' => 999_999_999,
+                default => 9_999,
+            };
             $rules[$f] = ['nullable', 'integer', 'min:0', "max:{$max}"];
         }
 

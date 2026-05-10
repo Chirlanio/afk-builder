@@ -17,9 +17,9 @@ interface Props {
 }
 
 const FIELDS: { key: keyof Omit<HeroStats, 'id' | 'hero_id'>; label: string; max: number; help?: string }[] = [
-    { key: 'hp', label: 'HP', max: 999_999, help: 'Pontos de vida base (Nv 1).' },
-    { key: 'attack', label: 'Ataque', max: 999_999, help: 'Atributo de ataque base.' },
-    { key: 'defense', label: 'Defesa', max: 999_999, help: 'Atributo de defesa base.' },
+    { key: 'hp', label: 'HP', max: 9_999_999_999, help: 'Pontos de vida (do nível atual exibido em jogo).' },
+    { key: 'attack', label: 'Ataque', max: 999_999_999, help: 'Atributo de ataque.' },
+    { key: 'defense', label: 'Defesa', max: 999_999_999, help: 'Atributo de defesa.' },
     { key: 'crit_rate', label: 'Taxa Crítica', max: 9_999, help: 'Em pontos.' },
     { key: 'crit_amp', label: 'Amp. Crítica', max: 9_999, help: 'Amplificação crítica.' },
     { key: 'accuracy', label: 'Precisão', max: 9_999, help: 'Hit Rating.' },

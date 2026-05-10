@@ -127,10 +127,29 @@ class HeroStatsAdminTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         $hero = $this->makeHero();
 
+        // Cap atual: 9_999_999_999 (10B) — endgame ascended chega a centenas de milhões
+        // (Shemira HP base ~664M).
         $this->actingAs($admin)
-            ->patchJson("/admin/heroes/{$hero->slug}/stats", ['hp' => 1_000_000])
+            ->patchJson("/admin/heroes/{$hero->slug}/stats", ['hp' => 9_999_999_999])
+            ->assertOk();
+
+        $this->actingAs($admin)
+            ->patchJson("/admin/heroes/{$hero->slug}/stats", ['hp' => 10_000_000_000])
             ->assertStatus(422)
             ->assertJsonValidationErrors('hp');
+    }
+
+    public function test_validacao_aceita_atk_def_acima_de_um_milhao(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $hero = $this->makeHero();
+
+        $this->actingAs($admin)
+            ->patchJson("/admin/heroes/{$hero->slug}/stats", [
+                'attack' => 30_000_000,
+                'defense' => 25_000_000,
+            ])
+            ->assertOk();
     }
 
     public function test_404_quando_slug_nao_existe(): void
