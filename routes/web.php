@@ -12,6 +12,7 @@ use App\Http\Controllers\FormationShareController;
 use App\Http\Controllers\FormationVersionController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HeroController;
+use App\Http\Controllers\RecommendedFormationController;
 use App\Http\Controllers\UserHeroController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +45,11 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('user/heroes/{userHero}', [UserHeroController::class, 'destroy'])->name('user-heroes.destroy');
 
     Route::get('formations', [FormationController::class, 'index'])->name('formations.index');
+    Route::get('formations/recommended', [RecommendedFormationController::class, 'index'])
+        ->name('formations.recommended.index');
+    Route::post('formations/recommended/{recommended:slug}/clone', [RecommendedFormationController::class, 'clone'])
+        ->where('recommended', '[a-z0-9-]+')
+        ->name('formations.recommended.clone');
     Route::get('formations/compare/{a}/{b}', [FormationCompareController::class, 'show'])
         ->name('formations.compare');
     Route::get('formations/create', [FormationController::class, 'create'])->name('formations.create');

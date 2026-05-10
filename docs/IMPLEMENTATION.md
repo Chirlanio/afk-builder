@@ -935,7 +935,34 @@ Cobre o caso de "trazer comps populares como referência". Modelagem isolada (n�
   - **God Comp (PvP):** talene, elijah-lailah, rowan, tasi, ezizh — "ciclar definitivas via geração rápida de energia"
   - **Green Sand Wolf (PvE):** tidus, lyca, skriath, eironn, safiya — "Skriath puxa backline, Eironn vortex de 5, Tidus fear AoE; supera 90-100 níveis de déficit"
   - Todos os 10 hero_slugs validados existirem no banco antes de seedar
-- **Por que sem UI nesta sessão:** comps curados isoladamente têm pouco valor sem (1) página `/formations/recommended`, (2) action "duplicar para minhas formations", (3) curadoria de mais 5-10 comps. Decisão consciente de fatiar — Fase 22 fecha esse loop.
+- **Por que sem UI nesta sessão (depois adicionada em 21.3):** comps curados isoladamente têm pouco valor sem (1) página `/formations/recommended`, (2) action "duplicar para minhas formations", (3) curadoria de mais 5-10 comps.
+
+#### 21.3 — UI dos comps recomendados (página + clone + sidebar)
+
+Fechou o loop da 21.2 — sem isso, os comps seedados ficavam invisíveis no app. Implementado no mesmo dia ainda.
+
+- **`RecommendedFormationController`:**
+  - `index()` — Inertia render com `recommendedFormations` (filtrados `is_active`, ordenados por `sort_order` + `name`) e `heroesBySlug` (lookup table dos heróis dos comps com faction relation eager-loaded). Coleta todos os slugs únicos dos comps e busca em uma query só (evita N+1).
+  - `clone(Request, RecommendedFormation $recommended)` — POST `/formations/recommended/{recommended:slug}/clone`. Cria `Formation`+`FormationTeam`+`FormationTeamHero` em transação. Mapping `mode → challenge_type code` via constante `MODE_TO_CHALLENGE_CODE` (pvp→arena_of_heroes, pve→campaign, twisted_realm→dream_realm, labyrinth→arcane_labyrinth, king_tower→kings_tower). Nome da formation = `"{name} (cópia)"`, mode `target`, notes preenchido com descrição + atribuição de fonte. Redireciona para `/formations/{id}/edit` com flash message.
+  - `RecommendedFormation::getRouteKeyName()` retorna `'slug'` para o route model binding usar slug em vez de id.
+- **2 rotas em `/formations/recommended*`** dentro do middleware `auth`:
+  - `GET formations/recommended` → `formations.recommended.index`
+  - `POST formations/recommended/{recommended:slug}/clone` → `formations.recommended.clone` (regex `[a-z0-9-]+` no slug)
+- **TS types em `types/afk.ts`:** `RecommendedFormationMode` (union de 6 modos) + `RecommendedFormation`.
+- **Página `pages/formations/recommended/index.tsx`:**
+  - `PageShell` com ícone `Sparkles` e descrição apontando que vem de fontes externas
+  - Grid 1 col → 2 cols em `lg`. Cada card mostra: nome + badge colorido por mode (rosa pvp, verde pve, roxo twisted, azul labyrinth, amber king_tower), faceset com 5 portraits 56px (borda colorida pela facção via `FACTION_THEME[hero.faction.code].cardBorder/cardGradient`), descrição, link externo da fonte (ícone `ExternalLink`), botão "Duplicar para minhas formações"
+  - Botão usa `useConfirm` para evitar duplicações acidentais. Loading state com `Loader2`. Após sucesso, `router.visit('/formations')` leva o user para a lista (com a cópia recém-criada já presente).
+  - Faceset filtra heróis que existem no banco; se algum slug do comp não casar (cadastro pendente), mostra placeholder `<N> faltando` para o user saber.
+- **Sidebar (`app-sidebar.tsx`):** novo item "Comps prontos" entre "Formações" e "Guias", ícone `Sparkles`. Visível para todos os usuários autenticados (não é admin-only — leitura é pública dentro do app).
+
+##### Validação 21.3
+
+- ✅ Build Vite 4.02s
+- ✅ 21 testes de Formation passam (sem regressão)
+- ✅ 2 rotas registradas
+- ✅ TS check sem erros novos
+- ❌ **Clone E2E não testado automaticamente** — exige seed do user + Beast/Hero suficientes. Smoke check manual: `/formations/recommended` renderiza, botão funciona, formation criada com 5 heróis nas posições 1-5.
 
 #### Validação Fase 21
 

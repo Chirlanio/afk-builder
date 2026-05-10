@@ -31,6 +31,11 @@ class RecommendedFormation extends Model
         'sort_order' => 'integer',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
     /**
      * @return \Illuminate\Database\Eloquent\Collection<int, Hero>
      */

@@ -100,6 +100,19 @@ export interface HeroRating {
     source_url: string | null;
 }
 
+export type RecommendedFormationMode = 'pvp' | 'pve' | 'twisted_realm' | 'labyrinth' | 'king_tower' | 'arcane_labyrinth';
+
+export interface RecommendedFormation {
+    id: number;
+    slug: string;
+    name: string;
+    mode: RecommendedFormationMode;
+    description: string | null;
+    hero_slugs: string[];
+    source_url: string | null;
+    source_label: string | null;
+}
+
 export interface Collection {
     id: number;
     slug: string;
