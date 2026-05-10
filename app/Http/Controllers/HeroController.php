@@ -86,6 +86,7 @@ class HeroController extends Controller
                 'abilities' => fn ($q) => $q->orderBy('display_order'),
                 'furnitureAbility',
                 'stats',
+                'ratings:id,hero_id,mode,stage,tier,source,source_url',
             ])
             ->firstOrFail();
 
@@ -176,6 +177,7 @@ class HeroController extends Controller
             'synergies' => $synergies,
             'availableArtifacts' => $availableArtifacts,
             'availableCollections' => $availableCollections,
+            'ratings' => $hero->ratings,
         ]);
     }
 }

@@ -22,6 +22,7 @@ import {
     Star,
     Sword,
     Trash2,
+    Trophy,
     Unlock,
     Users,
 } from 'lucide-react';
@@ -61,6 +62,10 @@ import type {
     FactionCode,
     Hero,
     HeroClass,
+    HeroRating,
+    HeroRatingMode,
+    HeroRatingStage,
+    HeroRatingTier,
     HeroStats,
     Tier,
     TierCode,
@@ -79,7 +84,34 @@ interface DetailsPayload {
     synergies: SynergyEntry[];
     availableArtifacts: Artifact[];
     availableCollections: Collection[];
+    ratings: HeroRating[];
 }
+
+const RATING_MODE_LABEL: Record<HeroRatingMode, string> = {
+    overall: 'Geral',
+    pvp: 'PvP',
+    pve: 'PvE',
+    labyrinth: 'Labirinto',
+    twisted_realm: 'Realidade Distorcida',
+    temporal_rift: 'Sala do Tempo',
+    abyssal_expedition: 'Expedição Abissal',
+};
+
+const RATING_STAGE_LABEL: Record<HeroRatingStage, string> = {
+    early: 'Cap. 1-30',
+    mid: 'Cap. 30-35',
+    end: 'Cap. 35+',
+};
+
+const RATING_TIER_BADGE: Record<HeroRatingTier, string> = {
+    'S+': 'bg-gradient-to-br from-rose-500 to-amber-400 text-white border-rose-400/60',
+    S: 'bg-rose-500/90 text-white border-rose-400/60',
+    A: 'bg-orange-500/90 text-white border-orange-400/60',
+    B: 'bg-amber-500/90 text-stone-900 border-amber-400/60',
+    C: 'bg-zinc-500/80 text-white border-zinc-400/60',
+    D: 'bg-zinc-700/80 text-white border-zinc-600/60',
+    F: 'bg-zinc-900/80 text-zinc-300 border-zinc-700/60',
+};
 
 interface HeroDetailModalProps {
     slug: string | null;
@@ -215,7 +247,7 @@ interface ContentProps {
 }
 
 function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, onMutation, onNavigate }: ContentProps) {
-    const { hero, userHero, synergies, availableArtifacts, availableCollections: _ } = data;
+    const { hero, userHero, synergies, availableArtifacts, availableCollections: _, ratings } = data;
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     const factionTheme = FACTION_THEME[hero.faction.code as FactionCode];
@@ -494,6 +526,17 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                             {stats ? <StatsGrid stats={stats} /> : <Empty>Estatísticas base ainda não cadastradas.</Empty>}
                         </SectionBlock>
 
+                        {/* Tier Ratings (afk.guide) */}
+                        {ratings && ratings.length > 0 && (
+                            <SectionBlock
+                                icon={Trophy}
+                                title="Tier Rating"
+                                extra={<span className="text-[10px] text-muted-foreground">Fonte: afk.guide</span>}
+                            >
+                                <RatingsGrid ratings={ratings} />
+                            </SectionBlock>
+                        )}
+
                         {/* Abilities */}
                         <SectionBlock icon={Sparkles} title="Habilidades">
                             {abilities.length === 0 ? (
@@ -701,6 +744,61 @@ function StatsGrid({ stats }: { stats: HeroStats }) {
                     <div className="mt-0.5 text-lg font-semibold tabular-nums">{fmt(stats[key])}</div>
                 </div>
             ))}
+        </div>
+    );
+}
+
+function RatingsGrid({ ratings }: { ratings: HeroRating[] }) {
+    const stages: HeroRatingStage[] = ['early', 'mid', 'end'];
+    const modes: HeroRatingMode[] = ['overall', 'pvp', 'pve', 'labyrinth', 'twisted_realm', 'temporal_rift', 'abyssal_expedition'];
+
+    const lookup: Partial<Record<`${HeroRatingMode}|${HeroRatingStage}`, HeroRatingTier>> = {};
+    for (const r of ratings) {
+        lookup[`${r.mode}|${r.stage}`] = r.tier;
+    }
+
+    const visibleModes = modes.filter((m) => stages.some((s) => lookup[`${m}|${s}`] !== undefined));
+
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] border-separate border-spacing-1 text-xs">
+                <thead>
+                    <tr>
+                        <th className="text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Modo</th>
+                        {stages.map((s) => (
+                            <th key={s} className="text-center text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                {RATING_STAGE_LABEL[s]}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {visibleModes.map((mode) => (
+                        <tr key={mode}>
+                            <td className="py-1 pr-2 text-xs text-foreground">{RATING_MODE_LABEL[mode]}</td>
+                            {stages.map((stage) => {
+                                const tier = lookup[`${mode}|${stage}`];
+                                return (
+                                    <td key={stage} className="text-center">
+                                        {tier ? (
+                                            <span
+                                                className={cn(
+                                                    'inline-block min-w-[28px] rounded-md border px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+                                                    RATING_TIER_BADGE[tier],
+                                                )}
+                                            >
+                                                {tier}
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] text-muted-foreground">—</span>
+                                        )}
+                                    </td>
+                                );
+                            })}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }

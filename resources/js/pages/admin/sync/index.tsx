@@ -17,6 +17,7 @@ import {
     Sofa,
     Sparkles,
     Terminal,
+    Trophy,
     Users,
     type LucideIcon,
 } from 'lucide-react';
@@ -84,6 +85,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
     Sparkles,
     PawPrint,
     Languages,
+    Trophy,
     Terminal,
 };
 

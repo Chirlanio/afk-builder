@@ -86,6 +86,20 @@ export interface Beast {
     is_active: boolean;
 }
 
+export type HeroRatingMode = 'overall' | 'pvp' | 'pve' | 'labyrinth' | 'twisted_realm' | 'temporal_rift' | 'abyssal_expedition';
+export type HeroRatingStage = 'early' | 'mid' | 'end';
+export type HeroRatingTier = 'S+' | 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
+
+export interface HeroRating {
+    id: number;
+    hero_id: number;
+    mode: HeroRatingMode;
+    stage: HeroRatingStage;
+    tier: HeroRatingTier;
+    source: string;
+    source_url: string | null;
+}
+
 export interface Collection {
     id: number;
     slug: string;

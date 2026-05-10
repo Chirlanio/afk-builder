@@ -88,4 +88,9 @@ class Hero extends Model
             ->withPivot(['weight', 'note'])
             ->withTimestamps();
     }
+
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(HeroRating::class);
+    }
 }

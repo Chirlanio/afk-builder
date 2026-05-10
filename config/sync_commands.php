@@ -88,6 +88,15 @@ return [
         ],
     ],
 
+    'heroes:sync-ratings' => [
+        'label' => 'Sincronizar tier ratings (afk.guide)',
+        'description' => 'Importa tiers (S+/S/A/B/C/D/F) por modo (Overall/PvP/PvE/Labyrinth/Twisted Realm) e estágio (early/mid/end) do afk.guide. Idempotente — sobrescreve ratings existentes da mesma fonte.',
+        'icon' => 'Trophy',
+        'options' => [
+            'dry-run' => ['type' => 'bool', 'label' => 'Dry run (não persiste)'],
+        ],
+    ],
+
     'content:translate' => [
         'label' => 'Traduzir conteúdo (EN→PT-BR)',
         'description' => 'Traduz lore, abilities, furniture e guides via Google Translate (sem API key). Sem flags processa tudo o que ainda não tem tradução.',
