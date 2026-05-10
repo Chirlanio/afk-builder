@@ -93,12 +93,15 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
     }, [heroes, placedHeroIds, search, filterFaction, filterClass]);
 
     const handleDragStart = (event: DragStartEvent) => {
-        const kind = (event.active.data.current?.kind ?? 'hero') as 'hero' | 'row';
-        const id = Number(event.active.id);
-        setActiveDrag({ kind, id });
+        const data = event.active.data.current;
+        const kind = (data?.kind ?? 'hero') as 'hero' | 'row';
         if (kind === 'hero') {
-            setDragOriginRowId(findRowOfHero(id));
-        } else {
+            const heroId = Number(data?.heroId);
+            setActiveDrag({ kind, id: heroId });
+            setDragOriginRowId(findRowOfHero(heroId));
+        } else if (kind === 'row') {
+            const rowId = Number(data?.rowId);
+            setActiveDrag({ kind, id: rowId });
             setDragOriginRowId(undefined);
         }
     };
@@ -114,18 +117,16 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
         const activeKind = active.data.current?.kind;
         if (activeKind !== 'hero') return;
 
-        const heroId = Number(active.id);
-        const overId = over.id;
+        const heroId = Number(active.data.current?.heroId);
         const overData = over.data.current;
 
-        // Determina o container destino
+        // Determina o container destino via data.current.kind (IDs prefixados evitam colisão)
         let toRowId: number | null | undefined;
         if (overData?.kind === 'hero') {
-            // Hovering sobre outro hero: pega o container dele
             toRowId = (overData.fromRowId ?? null) as number | null;
-        } else if (typeof overId === 'string' && overId.startsWith('row-body-')) {
-            toRowId = Number(overId.replace('row-body-', ''));
-        } else if (overId === 'pool') {
+        } else if (overData?.kind === 'row-body') {
+            toRowId = Number(overData.rowId);
+        } else if (overData?.kind === 'pool') {
             toRowId = null;
         } else {
             return;
@@ -164,7 +165,8 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
 
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
-        const kind = (active.data.current?.kind ?? 'hero') as 'hero' | 'row';
+        const data = active.data.current;
+        const kind = (data?.kind ?? 'hero') as 'hero' | 'row';
         const originRowId = dragOriginRowId;
         setActiveDrag(null);
         setDragOriginRowId(undefined);
@@ -173,11 +175,11 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
 
         // ============== Reorder rows ==============
         if (kind === 'row') {
-            const activeId = Number(active.id);
-            const overId = Number(over.id);
-            if (activeId === overId) return;
-            const oldIdx = rows.findIndex((r) => r.id === activeId);
-            const newIdx = rows.findIndex((r) => r.id === overId);
+            const activeRowId = Number(data?.rowId);
+            const overRowId = Number(over.data.current?.rowId);
+            if (!activeRowId || !overRowId || activeRowId === overRowId) return;
+            const oldIdx = rows.findIndex((r) => r.id === activeRowId);
+            const newIdx = rows.findIndex((r) => r.id === overRowId);
             if (oldIdx === -1 || newIdx === -1) return;
             const newRows = arrayMove(rows, oldIdx, newIdx);
             setRows(newRows);
@@ -192,17 +194,16 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
         }
 
         // ============== Hero drop ==============
-        const heroId = Number(active.id);
-        const overId = over.id;
+        const heroId = Number(data?.heroId);
         const overData = over.data.current;
 
-        // Determina destino final
+        // Determina destino final via data.current.kind
         let targetRowId: number | null;
         if (overData?.kind === 'hero') {
             targetRowId = (overData.fromRowId ?? null) as number | null;
-        } else if (typeof overId === 'string' && overId.startsWith('row-body-')) {
-            targetRowId = Number(overId.replace('row-body-', ''));
-        } else if (overId === 'pool') {
+        } else if (overData?.kind === 'row-body') {
+            targetRowId = Number(overData.rowId);
+        } else if (overData?.kind === 'pool') {
             targetRowId = null;
         } else {
             return;
@@ -210,9 +211,9 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
 
         const currentRowId = findRowOfHero(heroId);
 
-        // Caso 1: reorder dentro da mesma row (ambos origem e destino são a mesma row)
+        // Caso 1: reorder dentro da mesma row
         if (originRowId !== undefined && originRowId !== null && targetRowId === originRowId && overData?.kind === 'hero') {
-            const overHeroId = Number(over.id);
+            const overHeroId = Number(overData.heroId);
             if (overHeroId === heroId) return;
 
             const rowIdx = rows.findIndex((r) => r.id === targetRowId);
@@ -237,7 +238,7 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
             return;
         }
 
-        // Caso 2: move entre containers (já feito visualmente em handleDragOver, agora persistir)
+        // Caso 2: move entre containers (já feito visualmente em handleDragOver)
         if (currentRowId !== originRowId) {
             try {
                 await axios.post(`/tier-lists/${tierList.id}/place-hero`, {
@@ -369,7 +370,7 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
                         {/* Tiers */}
                         <div className="flex flex-col gap-2">
-                            <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+                            <SortableContext items={rows.map((r) => `row-${r.id}`)} strategy={verticalListSortingStrategy}>
                                 {rows.map((row) => (
                                     <SortableTierRow
                                         key={row.id}
@@ -437,7 +438,7 @@ function SortableTierRow({
     const [labelEdit, setLabelEdit] = useState(row.label);
     const [colorEdit, setColorEdit] = useState<TierListColor>(row.color);
 
-    // Sortable na própria row (handle ativa o drag)
+    // Sortable na própria row (handle ativa o drag) — id prefixado para evitar colisão com hero IDs
     const {
         attributes,
         listeners,
@@ -445,10 +446,13 @@ function SortableTierRow({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: row.id, data: { kind: 'row' } });
+    } = useSortable({ id: `row-${row.id}`, data: { kind: 'row', rowId: row.id } });
 
-    // Droppable separado no corpo da row para receber heróis (id usa prefixo row-body-)
-    const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: `row-body-${row.id}` });
+    // Droppable separado no corpo da row para receber heróis
+    const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+        id: `row-body-${row.id}`,
+        data: { kind: 'row-body', rowId: row.id },
+    });
 
     const sortableStyle: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
@@ -532,7 +536,7 @@ function SortableTierRow({
                     isOver && 'bg-primary/5',
                 )}
             >
-                <SortableContext items={row.items.map((it) => it.hero_id)} strategy={horizontalListSortingStrategy}>
+                <SortableContext items={row.items.map((it) => `hero-${it.hero_id}`)} strategy={horizontalListSortingStrategy}>
                     {row.items.map((item) => (
                         <SortableHero key={item.hero_id} hero={item.hero} rowId={row.id} />
                     ))}
@@ -549,8 +553,8 @@ function SortableTierRow({
 
 function SortableHero({ hero, rowId }: { hero: Hero; rowId: number }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-        id: hero.id,
-        data: { kind: 'hero', fromRowId: rowId },
+        id: `hero-${hero.id}`,
+        data: { kind: 'hero', heroId: hero.id, fromRowId: rowId },
     });
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
@@ -639,7 +643,7 @@ function HeroPool({
     factions: Faction[];
     heroClasses: HeroClass[];
 }) {
-    const { setNodeRef, isOver } = useDroppable({ id: 'pool' });
+    const { setNodeRef, isOver } = useDroppable({ id: 'pool', data: { kind: 'pool' } });
 
     return (
         <aside ref={setNodeRef} className={cn('flex flex-col gap-2 rounded-lg border-2 bg-card p-3 transition-all', isOver ? 'border-primary bg-primary/5 shadow-lg ring-4 ring-primary' : 'border-border')}>
@@ -693,8 +697,8 @@ function HeroPool({
 
 function DraggableHero({ hero }: { hero: Hero }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-        id: hero.id,
-        data: { kind: 'hero', fromRowId: null },
+        id: `hero-${hero.id}`,
+        data: { kind: 'hero', heroId: hero.id, fromRowId: null },
     });
     const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
     return (
