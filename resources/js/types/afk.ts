@@ -164,6 +164,18 @@ export interface UserTierList {
 
 export type RecommendedFormationMode = 'pvp' | 'pve' | 'twisted_realm' | 'labyrinth' | 'king_tower' | 'arcane_labyrinth';
 
+export interface RecommendedMatch {
+    slug: string;
+    name: string;
+    mode: RecommendedFormationMode;
+    tier: string | null;
+    core_overlap: number;
+    total_overlap: number;
+    total_core: number;
+    percent: number;
+    missing_core: string[];
+}
+
 export interface RecommendedFormation {
     id: number;
     slug: string;

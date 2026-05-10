@@ -28,6 +28,7 @@ import type {
     FormationTeam,
     Hero,
     HeroClass,
+    RecommendedMatch,
     Tier,
     TierCode,
 } from '@/types/afk';
@@ -42,6 +43,7 @@ interface PageProps {
     factions: Faction[];
     heroClasses: HeroClass[];
     tiers: Tier[];
+    recommendedMatches?: Record<number, RecommendedMatch[]>;
 }
 
 function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlotsState[] {
@@ -63,7 +65,7 @@ function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlo
     });
 }
 
-export default function FormationsEdit({ formation, heroPool, beasts, factions, heroClasses, tiers }: PageProps) {
+export default function FormationsEdit({ formation, heroPool, beasts, factions, heroClasses, tiers, recommendedMatches }: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Formações', href: '/formations' },
         { title: formation.name, href: `/formations/${formation.id}/edit` },
@@ -516,17 +518,19 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
                     <div className="grid flex-1 gap-3 lg:grid-cols-[1fr_320px]">
                         <div className="flex flex-col gap-3 overflow-y-auto pr-1 pb-20 lg:pb-0">
                             {teams.map((team) => (
-                                <TeamRow
-                                    key={team.position}
-                                    team={team}
-                                    heroById={heroById}
-                                    factionById={factionById}
-                                    classById={classById}
-                                    tierById={tierById}
-                                    onRemoveHero={(slotPosition) => removeFromSlot(team.position, slotPosition)}
-                                    onSuggest={() => suggestForTeam(team.position)}
-                                    isSuggesting={suggestingTeamPos === team.position}
-                                />
+                                <div key={team.position} className="flex flex-col gap-1">
+                                    <TeamRow
+                                        team={team}
+                                        heroById={heroById}
+                                        factionById={factionById}
+                                        classById={classById}
+                                        tierById={tierById}
+                                        onRemoveHero={(slotPosition) => removeFromSlot(team.position, slotPosition)}
+                                        onSuggest={() => suggestForTeam(team.position)}
+                                        isSuggesting={suggestingTeamPos === team.position}
+                                    />
+                                    <RecommendedMatchesStripe matches={recommendedMatches?.[team.position] ?? []} />
+                                </div>
                             ))}
                         </div>
 
@@ -714,4 +718,59 @@ function findHeroPosition(teams: TeamSlotsState[], heroId: number): { teamPos: n
         }
     }
     return null;
+}
+
+const MATCH_TIER_BADGE: Record<string, string> = {
+    'S+': 'bg-gradient-to-br from-rose-500 to-amber-400 text-white',
+    S: 'bg-rose-500 text-white',
+    A: 'bg-orange-500 text-white',
+    B: 'bg-amber-500 text-stone-900',
+    C: 'bg-zinc-500 text-white',
+};
+
+function RecommendedMatchesStripe({ matches }: { matches: RecommendedMatch[] }) {
+    if (matches.length === 0) return null;
+
+    return (
+        <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-2 py-1">
+            <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                <Sparkles className="size-3" />
+                Comps próximos:
+            </span>
+            {matches.map((match) => {
+                const titleLines: string[] = [
+                    `${match.name}${match.tier ? ` (${match.tier})` : ''}`,
+                    `Core: ${match.core_overlap}/${match.total_core}`,
+                    `Total no comp: ${match.total_overlap}`,
+                ];
+                if (match.missing_core.length > 0) {
+                    titleLines.push(`Faltando do core: ${match.missing_core.join(', ')}`);
+                }
+
+                return (
+                    <a
+                        key={match.slug}
+                        href="/formations/recommended"
+                        title={titleLines.join('\n')}
+                        className="group flex items-center gap-1 rounded-md border bg-card px-1.5 py-0.5 text-[10px] hover:border-amber-500/60 hover:bg-amber-500/10"
+                    >
+                        {match.tier && (
+                            <span className={cn('rounded px-1 py-0.5 text-[9px] font-bold leading-none', MATCH_TIER_BADGE[match.tier] ?? 'bg-muted text-foreground')}>
+                                {match.tier}
+                            </span>
+                        )}
+                        <span className="truncate font-medium max-w-[140px]">{match.name}</span>
+                        <span className="text-muted-foreground">
+                            {match.core_overlap}/{match.total_core} core
+                        </span>
+                        {match.missing_core.length > 0 && (
+                            <span className="text-amber-700 dark:text-amber-400" aria-label={`faltando ${match.missing_core.length}`}>
+                                · falta {match.missing_core.length}
+                            </span>
+                        )}
+                    </a>
+                );
+            })}
+        </div>
+    );
 }

@@ -1163,8 +1163,27 @@ Slumber Seal (S+) agora vale **2x mais** que beasts sem tier; tier C/D ficam sig
 - ✅ **199 testes verdes** (era 187, +12 novos: 4 ChallengeTypeMode + 5 RosterStageInferrer + 3 PowerCalculator beast tier)
 - ✅ Backward compat: testes de optimization existentes (TeamScorer, SingleTeamOptimizer, MultiTeamPartitioner) seguem passando sem alteração — quando ctx é null/empty, novos componentes retornam 0
 - ✅ Sem regressões nos algoritmos existentes — pesos novos somam ao total existente
-- ⚠️ **UI dos `recommendedMatches` ainda não consome o payload** — backend pronto, frontend fica para próxima iteração
 - ⚠️ **Não implementado:** sliders na UI para ajustar `tierRatingWeight` / `featureWeight` por formation (hoje vêm do `ScoringProfile` do challenge_type, fixo)
+
+#### 24.7 — UI dos `recommendedMatches` no editor
+
+Consome o payload já entregue pela 24.5: agora cada team no editor mostra uma stripe colorida com até 3 comps recomendados que mais se aproximam.
+
+- **Tipo TS** `RecommendedMatch` adicionado em `types/afk.ts` (slug, name, mode, tier, core_overlap, total_overlap, total_core, percent, missing_core).
+- **`PageProps`** do `formations/edit.tsx` aceita `recommendedMatches?: Record<number, RecommendedMatch[]>` (Map por team position).
+- **`RecommendedMatchesStripe` component** (inline no edit.tsx) renderizado abaixo de cada `TeamRow`:
+  - Borda dashed amber, ícone `Sparkles`, label "Comps próximos:"
+  - Para cada match: chip com badge de tier colorido (S+ gradient, S rose, A orange, B amber, C zinc), nome do comp truncado em 140px, contagem `core_overlap/total_core core`, e (se houver) "falta N" em amber para missing_core
+  - **Tooltip nativo** (`title=`) com 3-4 linhas: nome (tier), core overlap, total no comp, lista de heróis faltando do core
+  - Click leva pra `/formations/recommended` (página inteira, sem filtro por slug ainda — pode evoluir pra `/formations/recommended#slug` no futuro)
+  - Não renderiza nada se `matches.length === 0`
+
+##### Validação 24.7
+
+- ✅ Build Vite 4.13s
+- ✅ 199 testes verdes
+- ✅ TS check limpo
+- ⚠️ Click ainda não filtra por slug — abre a página inteira
 
 ---
 
