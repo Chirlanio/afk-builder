@@ -184,6 +184,33 @@ class UserTierListController extends Controller
     }
 
     /**
+     * Reordena os items de uma row específica de acordo com a ordem dos hero_ids enviada.
+     * Items que pertencem à row mas não estão no array têm sua posição preservada após os listados.
+     */
+    public function reorderItems(Request $request, UserTierList $tierList, UserTierListRow $row): JsonResponse
+    {
+        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($row->user_tier_list_id === $tierList->id, 404);
+
+        $data = $request->validate([
+            'hero_ids' => ['required', 'array', 'min:1'],
+            'hero_ids.*' => ['integer'],
+        ]);
+
+        $heroIds = array_map('intval', $data['hero_ids']);
+
+        DB::transaction(function () use ($row, $heroIds) {
+            foreach ($heroIds as $position => $heroId) {
+                \App\Models\UserTierListItem::where('user_tier_list_row_id', $row->id)
+                    ->where('hero_id', $heroId)
+                    ->update(['position' => $position]);
+            }
+        });
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
      * Move um herói para uma row (ou para "pool" se row_id=null).
      * Idempotente: remove o herói de qualquer row anterior antes de inserir na nova.
      */

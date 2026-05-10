@@ -1215,6 +1215,47 @@ Fechou o gap deixado em 23: rows agora são arrastáveis para reordenar. Junto, 
 - ✅ Reorder funcional via grip handle no label
 - ⚠️ Sort horizontal de items dentro da mesma row ainda não implementado — drop ainda insere no fim. Fica como melhoria futura (precisa `SortableContext` aninhado horizontal por row + estratégia de cross-list para permitir mover entre rows + dentro da mesma row).
 
+#### 23.2 — Sort horizontal de items dentro de uma row (cross-container DnD)
+
+Fechou o gap deixado em 23.1: items dentro de uma row são reordenáveis via drag-and-drop, e moves entre rows preview em tempo real durante o arrasto.
+
+##### Endpoint backend
+
+- **`POST /tier-lists/{tierList}/rows/{row}/reorder-items`** body `{ hero_ids: number[] }`. Valida ownership + `row->user_tier_list_id === tierList->id`. Em transação: itera o array enviado e atualiza `position = index` para cada herói da row pelo `hero_id`. Idempotente.
+- Adicionado a `routes/web.php` como `tier-lists.rows.reorder-items`.
+- Total de rotas em `/tier-lists*` agora: 15 (+1 desde 23.1).
+
+##### Frontend — refator de `pages/tier-lists/edit.tsx`
+
+- **`SortableContext` aninhado** por row body com `horizontalListSortingStrategy` e `items={row.items.map(it => it.hero_id)}`. Cada item dentro de uma row é um `SortableHero` (novo componente) usando `useSortable({ id: hero.id, data: { kind: 'hero', fromRowId: rowId } })`. Pool continua com `useDraggable` (heróis no pool não precisam ordem entre si).
+- **IDs do droppable de cada row mudaram** de `row-${id}` para `row-body-${id}` para evitar colisão com o `useSortable` da row inteira (que usa `id = row.id` numérico). Now ID space:
+  - `row-body-${id}` (string) → drop target genérico de uma row (corpo)
+  - `row.id` (number) → sortable da row para reorder vertical
+  - `hero.id` (number) → sortable/draggable do hero
+  - `pool` (string) → drop target do pool
+- **`closestCorners`** como `collisionDetection` no `DndContext` — funciona melhor que default para listas mistas vertical+horizontal aninhadas.
+- **`onDragOver` faz cross-container moves em tempo real:**
+  - Detecta destino via `over.data.current.kind` (`'hero'` → pega o `fromRowId` do hero abaixo) ou prefix do `over.id` (`row-body-${id}` ou `'pool'`)
+  - Compara com `findRowOfHero(heroId)` (helper) — origem atual no state
+  - Se diferente, atualiza o state movendo o herói: filtra fora da row de origem + insere na de destino
+  - **Não persiste** — só visual. Persiste em `onDragEnd`.
+- **`onDragEnd` discrimina 3 casos:**
+  - **Reorder rows** (`kind === 'row'`): mantém o fluxo da 23.1 → `arrayMove` + POST `/rows/reorder`
+  - **Reorder dentro da mesma row** (origem === destino, `over.data.kind === 'hero'`): `arrayMove(items)` localmente + POST `/rows/{row}/reorder-items` com `hero_ids` ordenados
+  - **Move entre containers** (origem ≠ destino — pool↔row ou row↔outra-row): `onDragOver` já moveu visualmente; só persiste com POST `/place-hero`
+- **`dragOriginRowId` state** capturado em `onDragStart` armazena de onde o herói saiu (null = pool, number = row). Usado em `onDragEnd` para distinguir reorder vs move e evitar fazer POST quando nada mudou (drag cancelado).
+- **`findRowOfHero(heroId, source)`** helper inline (busca em `rows`) — usado tanto em `onDragStart` (capturar origem) quanto em `onDragOver` (detectar mudança real de container).
+- **Fallback de erro**: qualquer falha de rede em qualquer dos 3 endpoints → `router.reload({ only: ['tierList'] })` recarrega o estado canonical do servidor.
+
+##### Validação 23.2
+
+- ✅ Build Vite 4.10s
+- ✅ 187 testes verdes
+- ✅ Type check limpo nos arquivos modificados
+- ✅ 15 rotas em `/tier-lists*` (+1 reorder-items)
+- ⚠️ **Não testado em CI** — DnD multi-container é difícil de testar automatizado. Smoke check manual: criar lista, arrastar hero pool→row (move), arrastar entre rows (move), arrastar dentro da mesma row (reorder), abrir DevTools Network e verificar 1 request por gesto.
+- ⚠️ **`scrollIntoView` ou auto-scroll** durante drag para fora da viewport não foi implementado — `@dnd-kit` tem `AutoScroll` modifier mas não habilitei.
+
 ---
 
 ### ✅ Fase 22 — Heroes destaque por fase + Signature Items guide

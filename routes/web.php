@@ -86,6 +86,7 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('tier-lists/{tierList}/rows/{row}', [UserTierListController::class, 'updateRow'])->name('tier-lists.rows.update');
     Route::delete('tier-lists/{tierList}/rows/{row}', [UserTierListController::class, 'deleteRow'])->name('tier-lists.rows.delete');
     Route::post('tier-lists/{tierList}/rows/reorder', [UserTierListController::class, 'reorderRows'])->name('tier-lists.rows.reorder');
+    Route::post('tier-lists/{tierList}/rows/{row}/reorder-items', [UserTierListController::class, 'reorderItems'])->name('tier-lists.rows.reorder-items');
     Route::post('tier-lists/{tierList}/place-hero', [UserTierListController::class, 'placeHero'])->name('tier-lists.place-hero');
     Route::post('tier-lists/{tierList}/share', [UserTierListController::class, 'share'])->name('tier-lists.share');
     Route::delete('tier-lists/{tierList}/share', [UserTierListController::class, 'unshare'])->name('tier-lists.share.revoke');
