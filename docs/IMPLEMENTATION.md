@@ -878,6 +878,108 @@ Cobre o caso comum de "admin disparou comando errado, percebeu antes do worker p
 - ✅ Todos os 11 checks do script passam no estado atual do projeto
 - ❌ **Pipeline completo (`composer dev`) não foi rodado** — fica em foreground, requer terminal interativo. Validado em partes: `migrate:status` ok, sintaxe PowerShell ok, 187 testes ok.
 
+#### ✅ 19.3 — Fix `composer dev`: `queue:listen` → `queue:work --timeout=1800`
+
+Detectado em uso real: jobs longos do `/admin/sync` (ex: `heroes:sync`) estavam sendo mortos antes de terminar. Causa raiz: `queue:listen` dispara um subprocess `php artisan queue:work --once` com **timeout fixo de 60s** do Symfony Process. Quando o subprocess passa de 60s, o `Listener` o mata via `ProcessTimedOutException`. O job na tabela `jobs` fica com `attempts=1` mas sem ser marcado como failed. Na próxima execução do worker, `MaxAttemptsExceededException` dispara em milissegundos (porque `tries=1`) sem nem chamar o `handle()`, populando `failed_jobs` com jobs nunca executados.
+
+- **`composer.json`:** trocado `php artisan queue:listen --tries=1` por `php artisan queue:work --tries=1 --timeout=1800` na seção `scripts.dev`. O `1800s` casa com `RunArtisanCommandJob::$timeout = 1800`.
+- **Trade-off documentado:** `queue:work` mantém código PHP em memória entre jobs. Edits em jobs ou comandos artisan invocados por eles exigem **reiniciar o `composer dev`** (Ctrl+C + re-run). `queue:listen` recarregava automaticamente — perdemos esse comportamento em troca de jobs de até 30 min funcionarem.
+- Não afeta os outros 3 processos do `concurrently` (serve, pail, vite continuam com seu hot-reload normal).
+
+---
+
+### ✅ Fase 21 — Tier ratings (afk.guide) + estrutura de comps recomendados
+
+Primeira integração com fonte externa fora da Fandom. Levantamento exploratório do site `afk.guide` (WordPress + Ninja Tables) identificou que apenas a tier list de heróis tem dados estruturados e não-redundantes ao que já temos. Outras categorias (skills, lore, beasts) duplicariam o sync da Fandom ou não trazem valor numérico (beasts só tem descrições qualitativas).
+
+#### 21.1 — Tier ratings de heróis (sync de afk.guide)
+
+- **Migration `hero_ratings`:** id, hero_id (FK cascade), mode (varchar 32), stage (varchar 16), tier (varchar 4), source (varchar 64, default 'afk.guide'), source_url, sync_batch (varchar 64, timestamp da execução para rastrear lotes), timestamps. Unique composto `(hero_id, mode, stage, source)` permite múltiplas fontes coexistirem no futuro. Index em `(mode, stage, tier)` para queries de "todos S+ em PvP end".
+- **`App\Models\HeroRating`:**
+  - Constants: `MODE_OVERALL`, `MODE_PVP`, `MODE_PVE`, `MODE_LABYRINTH`, `MODE_TWISTED_REALM`, `MODE_TEMPORAL_RIFT`, `MODE_ABYSSAL_EXPEDITION`
+  - Constants: `STAGE_EARLY`, `STAGE_MID`, `STAGE_END`
+  - `TIERS = ['S+', 'S', 'A', 'B', 'C', 'D', 'F']`
+  - `belongsTo(Hero)` + `Hero::ratings()` `hasMany`
+- **`SyncHeroRatingsCommand` (`heroes:sync-ratings`):**
+  - Fetch HTML via `Http::withOptions(['verify' => CaBundle...])` + UA custom
+  - `DOMDocument->loadHTML('<?xml encoding="UTF-8">'.$html, LIBXML_NOERROR | LIBXML_NOWARNING)` para evitar warnings de HTML5/UTF-8
+  - `DOMXPath` localiza `//table[contains(@class, 'ninja_footable')]` — a página tem 3 tabelas (Early/Mid/End)
+  - Stage detectado via `<caption>` ("From the Beginning to Chapter 30" → early; "Chapter 30 to Chapter 35" → mid; sem caption + `aria-label="Late Game..."` → end)
+  - Headers extraídos de `<thead>/<tr>/<th>` mapeados via `HEADER_TO_MODE` (case-insensitive). "Guild Hunt" e "Twisted Realm" mapeiam pro mesmo mode (a página usa labels intercambiáveis)
+  - Para cada `<tr>` no `<tbody>`: extrai textContent da td "Hero" (que tem `<img>` + `<br>` + nome), normaliza com `html_entity_decode + collapse whitespace`
+  - Resolve hero por: (1) `slug = Str::slug(name)`, (2) se "Awakened X" → tira prefixo e tenta `slug` da base, (3) fallback `whereRaw('LOWER(name) = ?')`. Cobre 96.5% dos heróis (552 de 572).
+  - Tier normalizado: uppercase + remove "—"/"-"/vazio. Aceita só os 7 valores em `TIERS`
+  - `updateOrCreate` por `(hero_id, mode, stage, source)` — idempotente, sobrescreve tiers da mesma fonte
+  - Flag `--dry-run` (loga sem persistir) + `--source=URL` (default `https://afk.guide/afk-arena-tier-list/`)
+  - Resultado em produção: **3199 ratings persistidos** (552 heróis × ~7 modos × 1-3 estágios)
+- **Adicionado a `config/sync_commands.php`:** entrada `heroes:sync-ratings` com label PT-BR, ícone `Trophy` (importado em `pages/admin/sync/index.tsx`) e flag `dry-run`
+- **Heróis não encontrados (16 nomes únicos):** Bronn, Saveas, Angelo, Ankhira, Golus, Mirael, Arden, Silvina, Ira, Vedan, Hogan, Ogi, Niru, Morvus, Shalltear, "Canisa and Ruke" — sobrepõem com a lista da Fase 6.7 (heróis que a wiki não consegue popular auto). Cadastro manual pendente via `/admin/heroes/create`.
+- **TS types em `types/afk.ts`:** `HeroRatingMode`, `HeroRatingStage`, `HeroRatingTier`, `HeroRating`. Enums seguem os constants do model.
+- **UI no `hero-detail-modal.tsx`:**
+  - `HeroController::details` carrega `with('ratings:id,hero_id,mode,stage,tier,source,source_url')` e injeta no payload
+  - Nova `SectionBlock` "Tier Rating" (ícone `Trophy`, fonte "afk.guide" como extra) entre Stats e Habilidades — só renderiza se `ratings.length > 0`
+  - Componente `RatingsGrid`: tabela compacta (`min-w-[420px]` + `overflow-x-auto`) com colunas = estágios e linhas = modos. Filtra modos vazios (só mostra modos com ao menos 1 rating em algum estágio).
+  - Tier badges coloridos via `RATING_TIER_BADGE`: S+ gradiente rose→amber, S rose, A orange, B amber, C zinc claro, D zinc médio, F zinc escuro
+  - Labels PT-BR via `RATING_MODE_LABEL` ("Geral", "Realidade Distorcida", "Sala do Tempo", "Expedição Abissal", etc) e `RATING_STAGE_LABEL` ("Cap. 1-30", "Cap. 30-35", "Cap. 35+")
+
+#### 21.2 — Estrutura mínima de comps recomendados (sem UI ainda)
+
+Cobre o caso de "trazer comps populares como referência". Modelagem isolada (não polui `formations` dos users). UI fica para uma sessão futura.
+
+- **Migration `recommended_formations`:** id, slug unique, name, mode (varchar 32), description text, hero_slugs json, source_url, source_label, sort_order, is_active, timestamps. Index em `(mode, is_active, sort_order)`.
+- **`App\Models\RecommendedFormation`:**
+  - Constants: `MODE_PVP`, `MODE_PVE`, `MODE_TWISTED_REALM`, `MODE_LABYRINTH`, `MODE_KING_TOWER`, `MODE_ARCANE_LABYRINTH`
+  - Cast `hero_slugs => array`
+  - Helper `resolveHeroes()` retorna `Collection<Hero>` para os slugs cadastrados
+- **`RecommendedFormationsSeeder`** com 2 comps populares curados manualmente do `/best-team/`:
+  - **God Comp (PvP):** talene, elijah-lailah, rowan, tasi, ezizh — "ciclar definitivas via geração rápida de energia"
+  - **Green Sand Wolf (PvE):** tidus, lyca, skriath, eironn, safiya — "Skriath puxa backline, Eironn vortex de 5, Tidus fear AoE; supera 90-100 níveis de déficit"
+  - Todos os 10 hero_slugs validados existirem no banco antes de seedar
+- **Por que sem UI nesta sessão:** comps curados isoladamente têm pouco valor sem (1) página `/formations/recommended`, (2) action "duplicar para minhas formations", (3) curadoria de mais 5-10 comps. Decisão consciente de fatiar — Fase 22 fecha esse loop.
+
+#### Validação Fase 21
+
+- ✅ Build Vite 4.50s
+- ✅ 187 testes verdes (sem regressão)
+- ✅ Migration `hero_ratings` aplicada
+- ✅ Migration `recommended_formations` aplicada
+- ✅ Sync produção: 572 linhas parseadas / 552 matched (96.5%) / 3199 ratings persistidos
+- ✅ 6 rotas em `/admin/sync*` (não mudou — `heroes:sync-ratings` reusa POST `/admin/sync` via whitelist)
+- ✅ Type check sem erros novos (mantidos os 6 pré-existentes do `hero-detail-modal.tsx`/Inertia generics)
+- ⚠️ **Termos de uso do afk.guide não verificados além do `robots.txt`** — `Disallow` apenas em `/wp-admin/`, sem `Crawl-delay`. Fetch único por sync, não há scraping massivo recorrente. Atribuição da fonte (`source: 'afk.guide'` + `source_url`) preservada em cada rating e no rodapé do `RatingsGrid`.
+
+---
+
+### ✅ Fase 20 — Admin de beasts: card estilo hero + upload de imagem
+
+Refatora o admin `/admin/beasts` (criado na Fase 14c) para usar o mesmo padrão visual dos cards de heróis e adiciona upload local de imagens (até então só URLs externas do wiki eram suportadas).
+
+- **Backend — upload local:**
+  - Criado symlink `public/storage` via `php artisan storage:link` (faltava no projeto, primeira feature a usar disco público).
+  - Novo endpoint `POST /admin/beasts/upload-image` em `BeastAdminController::uploadImage`. Valida arquivo: `image|mimes:png,jpg,jpeg,webp,gif|max:2048` (2 MB). Usa `$file->store('beasts', 'public')` → arquivo vai pra `storage/app/public/beasts/<hash>.<ext>`. Retorna `{ ok: true, url: Storage::url($path) }` (resolve para `/storage/beasts/...`).
+  - Validação de `portrait_url` no `validatePayload` ampliada: era `['nullable', 'url', 'max:500']`, agora aceita **URL absoluta** (wiki/Fandom) **ou** caminho relativo `/storage/...` (upload local) via closure de validação.
+
+- **Frontend — modal (`beast-form-modal.tsx`):**
+  - Bloco "Imagem do beast" com 3 elementos lado a lado: preview 96px (mostra a imagem ou ícone `PawPrint` placeholder, com botão `X` para limpar), botão **Upload** (abre file picker via `useRef`, mostra `Loader2` enquanto envia, hint "PNG/JPG/WebP até 2 MB"), input de URL editável (mantida para sync da wiki).
+  - `handleUpload(file)` envia `FormData` via `axios.post`, atualiza `data.portrait_url` com a URL retornada e reseta o input file. Erros do backend (incluindo o `errors.image` do validator) aparecem inline em vermelho.
+  - URL e file input não são mutuamente exclusivos: usuário pode digitar URL externa, fazer upload local, ou colar caminho `/storage/...` direto.
+
+- **Frontend — card (`pages/admin/beasts/index.tsx`):**
+  - Layout antigo (horizontal compacto, imagem 64px à esquerda) substituído por padrão `HeroCard`-like: card vertical em `<button>`, `aspect-square` para a imagem (1:1, combina com sprites de pets — mais natural que o 3:4 retrato dos heróis), nome embaixo.
+  - Helper `beastTheme(beast)` calcula borda + gradiente baseado no **buff dominante**:
+    - 1 stat com buff > 0: rosa (Força), azul/sky (Inteligência), verde/emerald (Agilidade)
+    - 2+ stats: gradiente roxo (`from-rose-950/30 via-sky-950/20 to-emerald-950/30` + `border-purple-400/50`)
+    - Sem buffs cadastrados: borda dashed âmbar (sinaliza "incompleto" como o badge antigo)
+  - Badges de buff coloridos sobrepostos no canto superior esquerdo, **sempre visíveis** (`For +X` rosa, `Int +X` azul, `Agi +X` verde, `Sem buffs` âmbar). Diferente do `HeroCard` que mostra tier+classe nos cantos.
+  - Ícones editar/excluir aparecem no canto superior direito **apenas no hover** (`opacity-0 group-hover:opacity-100`). Click no card abre o modal de edição (mesma ação do lápis); `stopPropagation` no botão de delete impede o click bubblar.
+  - Grid responsivo aumentado: era `1 → 2 → 3` (md → xl), agora `2 → 3 → 4 → 5 → 6` (sm → md → lg → xl). Cards menores cabem mais por linha sem perder legibilidade.
+  - Hover: `scale-[1.03]` + `shadow-lg` colorido por tema. Beast inativo → `opacity-60`.
+
+- **Validação:**
+  - 5 rotas em `/admin/beasts*` (upload-image adicionada): `GET index`, `POST store`, `POST upload-image`, `PATCH update`, `DELETE destroy`.
+  - `npx tsc --noEmit` limpo nos arquivos modificados (erros pré-existentes em outros arquivos não relacionados).
+  - Não testei E2E o fluxo de upload — depende de subir o `composer dev` e clicar manualmente.
+
 ---
 
 - **Testes:** 4 cenários (`GuideTest`) — guest redireciona, index agrupa por categoria com counts, show renderiza com categoryLabel, 404 em slug inexistente. **98 testes verdes** no projeto.
