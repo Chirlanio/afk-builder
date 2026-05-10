@@ -1256,6 +1256,62 @@ Fechou o gap deixado em 23.1: items dentro de uma row são reordenáveis via dra
 - ⚠️ **Não testado em CI** — DnD multi-container é difícil de testar automatizado. Smoke check manual: criar lista, arrastar hero pool→row (move), arrastar entre rows (move), arrastar dentro da mesma row (reorder), abrir DevTools Network e verificar 1 request por gesto.
 - ⚠️ **`scrollIntoView` ou auto-scroll** durante drag para fora da viewport não foi implementado — `@dnd-kit` tem `AutoScroll` modifier mas não habilitei.
 
+#### 23.3 — Bugfix de ID collision + remoção do reorder de rows
+
+Dois ajustes pequenos baseados em feedback de uso real.
+
+##### Bugfix: ID collision entre hero.id e row.id
+
+**Sintoma:** ao arrastar a Alna (`hero.id=5`) que estava na tier S, a row C inteira (`row.id=5`) era arrastada junto. O `@dnd-kit` confundia os dois `useSortable` que usavam o mesmo ID numérico no mesmo `DndContext`.
+
+**Fix:** prefixar todos os IDs de sortable/draggable com `'hero-'` ou `'row-'`:
+
+| Elemento | Antes | Depois |
+|----------|-------|--------|
+| `SortableContext` (rows) | `items={rows.map(r => r.id)}` | `items={rows.map(r => \`row-${r.id}\`)}` |
+| `useSortable` da row | `id: row.id` | `id: \`row-${row.id}\`` + `data: { rowId }` |
+| `SortableContext` (items por row) | `items=[hero IDs]` | `items=[\`hero-${heroId}\`]` |
+| `useSortable` do hero | `id: hero.id` | `id: \`hero-${hero.id}\`` + `data: { heroId, fromRowId }` |
+| `useDraggable` do pool | `id: hero.id` | `id: \`hero-${hero.id}\`` + mesmo `data` |
+| `useDroppable` row body | (sem data) | `data: { kind: 'row-body', rowId }` |
+| `useDroppable` pool | (sem data) | `data: { kind: 'pool' }` |
+
+Os handlers (`onDragStart`/`onDragOver`/`onDragEnd`) **não fazem mais parsing de string**: leem `active.data.current.heroId` ou `over.data.current.rowId` direto. Mais robusto e legível.
+
+##### Remoção: reorder de rows (subfases 23.1 e parte da 23.2 desfeitas)
+
+Após uso, decidiu-se que **arrastar tier rows não traz valor suficiente** — a ordem natural (S+ no topo → F embaixo) já é canônica e raramente precisa mudar. A complexidade adicional (drag handle visível, rotação de preview, lógica de discriminator `kind=row` nos handlers) não compensava.
+
+**Removido:**
+
+- **Backend:** método `reorderRows` do `UserTierListController` + rota `POST /tier-lists/{tierList}/rows/reorder`. Total de rotas em `/tier-lists*` agora: 13 (era 15).
+- **Frontend (`edit.tsx`):**
+  - `SortableContext` outer (que envolvia as rows)
+  - `useSortable` no container da row (`SortableTierRow` virou `TierRow` simples sem ref de sortable)
+  - Drag handle (botão com ícone `GripVertical` no topo do label)
+  - Branch `kind === 'row'` em `onDragStart` e `onDragEnd`
+  - `RowPreviewCard` do `DragOverlay` (componente removido inteiramente)
+  - Imports: `verticalListSortingStrategy`, `GripVertical`
+  - Tipo de `activeDrag.kind` simplificado para `'hero'` apenas
+  - Width da coluna do label voltou de `w-24` para `w-20`
+
+**Mantido (do que foi adicionado em 23.1/23.2):**
+
+- `DragOverlay` com `HeroPreviewCard` (preview do hero seguindo cursor)
+- Drop target intensificado (ring-4, scale, shadow, mensagens "⬇ Solte aqui")
+- `closestCorners` collision detection
+- `SortableContext` aninhado horizontal por row + `SortableHero` (sort horizontal de items)
+- `onDragOver` para cross-container moves em tempo real
+- Endpoint `reorder-items` por row (backend)
+
+##### Validação 23.3
+
+- ✅ Build Vite 4.20s
+- ✅ 187 testes verdes
+- ✅ Type check limpo
+- ✅ 13 rotas em `/tier-lists*` (2 a menos)
+- ✅ Bug de ID collision não reproduz mais — Alna pode ser arrastada da S para C sem mover rows
+
 ---
 
 ### ✅ Fase 22 — Heroes destaque por fase + Signature Items guide

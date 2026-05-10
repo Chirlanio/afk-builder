@@ -158,31 +158,6 @@ class UserTierListController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function reorderRows(Request $request, UserTierList $tierList): JsonResponse
-    {
-        abort_unless($tierList->user_id === $request->user()->id, 403);
-
-        $data = $request->validate([
-            'row_ids' => ['required', 'array', 'min:1'],
-            'row_ids.*' => ['integer'],
-        ]);
-
-        $existingIds = $tierList->rows()->pluck('id')->all();
-        $providedIds = array_map('intval', $data['row_ids']);
-
-        if (count(array_diff($providedIds, $existingIds)) > 0) {
-            abort(422, 'IDs de rows inválidos.');
-        }
-
-        DB::transaction(function () use ($providedIds) {
-            foreach ($providedIds as $position => $rowId) {
-                UserTierListRow::where('id', $rowId)->update(['position' => $position]);
-            }
-        });
-
-        return response()->json(['ok' => true]);
-    }
-
     /**
      * Reordena os items de uma row específica de acordo com a ordem dos hero_ids enviada.
      * Items que pertencem à row mas não estão no array têm sua posição preservada após os listados.

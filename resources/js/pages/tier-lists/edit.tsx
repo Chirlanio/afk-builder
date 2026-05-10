@@ -11,11 +11,11 @@ import {
     useSensor,
     useSensors,
 } from '@dnd-kit/core';
-import { arrayMove, horizontalListSortingStrategy, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove, horizontalListSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { Check, GripVertical, ListChecks, Pencil, Plus, Save, Search, Share2, Trash2, X } from 'lucide-react';
+import { Check, ListChecks, Pencil, Plus, Save, Search, Share2, Trash2, X } from 'lucide-react';
 import { type FormEvent, useMemo, useState } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
@@ -52,7 +52,7 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
     const [shareToken, setShareToken] = useState<string | null>(tierList.share_token);
     const [shareCopied, setShareCopied] = useState(false);
     const [editingRow, setEditingRow] = useState<number | null>(null);
-    const [activeDrag, setActiveDrag] = useState<{ kind: 'hero' | 'row'; id: number } | null>(null);
+    const [activeDrag, setActiveDrag] = useState<{ kind: 'hero'; id: number } | null>(null);
     const [dragOriginRowId, setDragOriginRowId] = useState<number | null | undefined>(undefined);
 
     const { confirm, dialog: confirmDialog } = useConfirm();
@@ -94,16 +94,10 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
 
     const handleDragStart = (event: DragStartEvent) => {
         const data = event.active.data.current;
-        const kind = (data?.kind ?? 'hero') as 'hero' | 'row';
-        if (kind === 'hero') {
-            const heroId = Number(data?.heroId);
-            setActiveDrag({ kind, id: heroId });
-            setDragOriginRowId(findRowOfHero(heroId));
-        } else if (kind === 'row') {
-            const rowId = Number(data?.rowId);
-            setActiveDrag({ kind, id: rowId });
-            setDragOriginRowId(undefined);
-        }
+        if (data?.kind !== 'hero') return;
+        const heroId = Number(data.heroId);
+        setActiveDrag({ kind: 'hero', id: heroId });
+        setDragOriginRowId(findRowOfHero(heroId));
     };
 
     /**
@@ -166,35 +160,13 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         const data = active.data.current;
-        const kind = (data?.kind ?? 'hero') as 'hero' | 'row';
         const originRowId = dragOriginRowId;
         setActiveDrag(null);
         setDragOriginRowId(undefined);
 
-        if (!over) return;
+        if (!over || data?.kind !== 'hero') return;
 
-        // ============== Reorder rows ==============
-        if (kind === 'row') {
-            const activeRowId = Number(data?.rowId);
-            const overRowId = Number(over.data.current?.rowId);
-            if (!activeRowId || !overRowId || activeRowId === overRowId) return;
-            const oldIdx = rows.findIndex((r) => r.id === activeRowId);
-            const newIdx = rows.findIndex((r) => r.id === overRowId);
-            if (oldIdx === -1 || newIdx === -1) return;
-            const newRows = arrayMove(rows, oldIdx, newIdx);
-            setRows(newRows);
-            try {
-                await axios.post(`/tier-lists/${tierList.id}/rows/reorder`, {
-                    row_ids: newRows.map((r) => r.id),
-                });
-            } catch {
-                router.reload({ only: ['tierList'] });
-            }
-            return;
-        }
-
-        // ============== Hero drop ==============
-        const heroId = Number(data?.heroId);
+        const heroId = Number(data.heroId);
         const overData = over.data.current;
 
         // Determina destino final via data.current.kind
@@ -370,19 +342,17 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
                         {/* Tiers */}
                         <div className="flex flex-col gap-2">
-                            <SortableContext items={rows.map((r) => `row-${r.id}`)} strategy={verticalListSortingStrategy}>
-                                {rows.map((row) => (
-                                    <SortableTierRow
-                                        key={row.id}
-                                        row={row}
-                                        isEditing={editingRow === row.id}
-                                        onEdit={() => setEditingRow(row.id)}
-                                        onCancelEdit={() => setEditingRow(null)}
-                                        onSave={(label, color) => handleUpdateRow(row, label, color)}
-                                        onDelete={() => handleDeleteRow(row)}
-                                    />
-                                ))}
-                            </SortableContext>
+                            {rows.map((row) => (
+                                <TierRow
+                                    key={row.id}
+                                    row={row}
+                                    isEditing={editingRow === row.id}
+                                    onEdit={() => setEditingRow(row.id)}
+                                    onCancelEdit={() => setEditingRow(null)}
+                                    onSave={(label, color) => handleUpdateRow(row, label, color)}
+                                    onDelete={() => handleDeleteRow(row)}
+                                />
+                            ))}
                             <Button variant="outline" size="sm" onClick={handleAddRow} className="self-start">
                                 <Plus className="size-3" />
                                 Adicionar tier
@@ -409,10 +379,6 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
                             const hero = heroes.find((h) => h.id === activeDrag.id);
                             return hero ? <HeroPreviewCard hero={hero} /> : null;
                         })()}
-                        {activeDrag?.kind === 'row' && (() => {
-                            const row = rows.find((r) => r.id === activeDrag.id);
-                            return row ? <RowPreviewCard row={row} /> : null;
-                        })()}
                     </DragOverlay>
                 </DndContext>
             </PageShell>
@@ -420,7 +386,7 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
     );
 }
 
-function SortableTierRow({
+function TierRow({
     row,
     isEditing,
     onEdit,
@@ -438,26 +404,11 @@ function SortableTierRow({
     const [labelEdit, setLabelEdit] = useState(row.label);
     const [colorEdit, setColorEdit] = useState<TierListColor>(row.color);
 
-    // Sortable na própria row (handle ativa o drag) — id prefixado para evitar colisão com hero IDs
-    const {
-        attributes,
-        listeners,
-        setNodeRef: setSortableRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id: `row-${row.id}`, data: { kind: 'row', rowId: row.id } });
-
-    // Droppable separado no corpo da row para receber heróis
+    // Droppable no corpo da row para receber heróis
     const { setNodeRef: setDroppableRef, isOver } = useDroppable({
         id: `row-body-${row.id}`,
         data: { kind: 'row-body', rowId: row.id },
     });
-
-    const sortableStyle: React.CSSProperties = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-    };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -466,17 +417,13 @@ function SortableTierRow({
 
     return (
         <div
-            ref={setSortableRef}
-            style={sortableStyle}
             className={cn(
                 'flex overflow-hidden rounded-lg border-2 transition-all',
                 TIER_LIST_COLOR_BORDER[row.color],
                 isOver && 'scale-[1.01] shadow-lg ring-4 ring-primary',
-                isDragging && 'opacity-30',
             )}
         >
-            {/* Coluna esquerda: label + handle + edit/delete */}
-            <div className={cn('flex w-24 shrink-0 flex-col items-stretch justify-center gap-1 px-2 py-3', TIER_LIST_COLOR_BG[row.color])}>
+            <div className={cn('flex w-20 shrink-0 flex-col items-center justify-center gap-1 px-2 py-3', TIER_LIST_COLOR_BG[row.color])}>
                 {isEditing ? (
                     <form onSubmit={handleSubmit} className="flex flex-col items-center gap-1">
                         <Input
@@ -502,30 +449,12 @@ function SortableTierRow({
                         </div>
                     </form>
                 ) : (
-                    <div className="flex flex-col items-center gap-1">
-                        {/* Drag handle pra mover a row inteira */}
-                        <button
-                            type="button"
-                            {...attributes}
-                            {...listeners}
-                            className="flex w-full cursor-grab items-center justify-center rounded bg-black/15 py-0.5 active:cursor-grabbing"
-                            aria-label="Arrastar tier"
-                            title="Arraste para reordenar este tier"
-                        >
-                            <GripVertical className="size-4" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onEdit}
-                            className="flex flex-col items-center gap-0.5"
-                            aria-label={`Editar tier ${row.label}`}
-                        >
-                            <span className="text-2xl font-black leading-none">{row.label}</span>
-                            <span className="text-[9px] uppercase tracking-wide opacity-80">
-                                {row.items.length} {row.items.length === 1 ? 'herói' : 'heróis'}
-                            </span>
-                        </button>
-                    </div>
+                    <button type="button" onClick={onEdit} className="flex flex-col items-center gap-0.5" aria-label={`Editar tier ${row.label}`}>
+                        <span className="text-2xl font-black leading-none">{row.label}</span>
+                        <span className="text-[9px] uppercase tracking-wide opacity-80">
+                            {row.items.length} {row.items.length === 1 ? 'herói' : 'heróis'}
+                        </span>
+                    </button>
                 )}
             </div>
             {/* Corpo droppable + sortable horizontal */}
@@ -595,29 +524,6 @@ function HeroPreviewCard({ hero }: { hero: Hero }) {
                 <div className="grid size-12 place-items-center rounded bg-muted text-[10px] text-muted-foreground">?</div>
             )}
             <span className="line-clamp-1 max-w-full text-center text-[9px] leading-none">{hero.name}</span>
-        </div>
-    );
-}
-
-function RowPreviewCard({ row }: { row: RowState }) {
-    return (
-        <div className={cn('flex overflow-hidden rounded-lg border-2 shadow-2xl ring-2 ring-primary opacity-95', TIER_LIST_COLOR_BORDER[row.color])} style={{ transform: 'rotate(-1deg)', minWidth: 320 }}>
-            <div className={cn('flex w-24 flex-col items-center justify-center px-2 py-3', TIER_LIST_COLOR_BG[row.color])}>
-                <span className="text-2xl font-black leading-none">{row.label}</span>
-                <span className="text-[9px] uppercase tracking-wide opacity-80">
-                    {row.items.length} {row.items.length === 1 ? 'herói' : 'heróis'}
-                </span>
-            </div>
-            <div className="flex flex-1 flex-wrap items-start gap-1 p-2">
-                {row.items.slice(0, 8).map((item) => (
-                    item.hero.portrait_url ? (
-                        <img key={item.id} src={item.hero.portrait_url} alt="" className="size-10 rounded object-cover object-top" />
-                    ) : null
-                ))}
-                {row.items.length > 8 && (
-                    <span className="self-center text-[10px] text-muted-foreground">+{row.items.length - 8}</span>
-                )}
-            </div>
         </div>
     );
 }
