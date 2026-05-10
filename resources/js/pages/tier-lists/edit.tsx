@@ -1,7 +1,19 @@
-import { DndContext, type DragEndEvent, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
+import {
+    DndContext,
+    type DragEndEvent,
+    DragOverlay,
+    type DragStartEvent,
+    PointerSensor,
+    useDraggable,
+    useDroppable,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { Check, Copy, ListChecks, Pencil, Plus, Save, Search, Share2, Trash2, X } from 'lucide-react';
+import { Check, GripVertical, ListChecks, Pencil, Plus, Save, Search, Share2, Trash2, X } from 'lucide-react';
 import { type FormEvent, useMemo, useState } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +50,7 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
     const [shareToken, setShareToken] = useState<string | null>(tierList.share_token);
     const [shareCopied, setShareCopied] = useState(false);
     const [editingRow, setEditingRow] = useState<number | null>(null);
+    const [activeDrag, setActiveDrag] = useState<{ kind: 'hero' | 'row'; id: number } | null>(null);
 
     const { confirm, dialog: confirmDialog } = useConfirm();
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -66,10 +79,39 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
         });
     }, [heroes, placedHeroIds, search, filterFaction, filterClass]);
 
+    const handleDragStart = (event: DragStartEvent) => {
+        const kind = (event.active.data.current?.kind ?? 'hero') as 'hero' | 'row';
+        setActiveDrag({ kind, id: Number(event.active.id) });
+    };
+
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
+        setActiveDrag(null);
         if (!over) return;
 
+        const kind = (active.data.current?.kind ?? 'hero') as 'hero' | 'row';
+
+        // ============== Reorder rows ==============
+        if (kind === 'row') {
+            const activeId = Number(active.id);
+            const overId = Number(over.id);
+            if (activeId === overId) return;
+            const oldIdx = rows.findIndex((r) => r.id === activeId);
+            const newIdx = rows.findIndex((r) => r.id === overId);
+            if (oldIdx === -1 || newIdx === -1) return;
+            const newRows = arrayMove(rows, oldIdx, newIdx);
+            setRows(newRows);
+            try {
+                await axios.post(`/tier-lists/${tierList.id}/rows/reorder`, {
+                    row_ids: newRows.map((r) => r.id),
+                });
+            } catch {
+                router.reload({ only: ['tierList'] });
+            }
+            return;
+        }
+
+        // ============== Place hero ==============
         const heroId = Number(active.id);
         const overId = String(over.id);
         let targetRowId: number | null = null;
@@ -81,7 +123,6 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
             return;
         }
 
-        // Optimistic update
         const hero = heroes.find((h) => h.id === heroId);
         if (!hero) return;
 
@@ -109,7 +150,6 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
                 row_id: targetRowId,
             });
         } catch {
-            // Rollback simples: refetch
             router.reload({ only: ['tierList'] });
         }
     };
@@ -223,21 +263,23 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
                     </div>
                 )}
 
-                <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
                         {/* Tiers */}
                         <div className="flex flex-col gap-2">
-                            {rows.map((row) => (
-                                <TierRow
-                                    key={row.id}
-                                    row={row}
-                                    isEditing={editingRow === row.id}
-                                    onEdit={() => setEditingRow(row.id)}
-                                    onCancelEdit={() => setEditingRow(null)}
-                                    onSave={(label, color) => handleUpdateRow(row, label, color)}
-                                    onDelete={() => handleDeleteRow(row)}
-                                />
-                            ))}
+                            <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+                                {rows.map((row) => (
+                                    <SortableTierRow
+                                        key={row.id}
+                                        row={row}
+                                        isEditing={editingRow === row.id}
+                                        onEdit={() => setEditingRow(row.id)}
+                                        onCancelEdit={() => setEditingRow(null)}
+                                        onSave={(label, color) => handleUpdateRow(row, label, color)}
+                                        onDelete={() => handleDeleteRow(row)}
+                                    />
+                                ))}
+                            </SortableContext>
                             <Button variant="outline" size="sm" onClick={handleAddRow} className="self-start">
                                 <Plus className="size-3" />
                                 Adicionar tier
@@ -257,13 +299,25 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
                             heroClasses={heroClasses}
                         />
                     </div>
+
+                    {/* Preview do elemento sendo arrastado, segue o cursor */}
+                    <DragOverlay dropAnimation={null}>
+                        {activeDrag?.kind === 'hero' && (() => {
+                            const hero = heroes.find((h) => h.id === activeDrag.id);
+                            return hero ? <HeroPreviewCard hero={hero} /> : null;
+                        })()}
+                        {activeDrag?.kind === 'row' && (() => {
+                            const row = rows.find((r) => r.id === activeDrag.id);
+                            return row ? <RowPreviewCard row={row} /> : null;
+                        })()}
+                    </DragOverlay>
                 </DndContext>
             </PageShell>
         </AppLayout>
     );
 }
 
-function TierRow({
+function SortableTierRow({
     row,
     isEditing,
     onEdit,
@@ -280,7 +334,24 @@ function TierRow({
 }) {
     const [labelEdit, setLabelEdit] = useState(row.label);
     const [colorEdit, setColorEdit] = useState<TierListColor>(row.color);
-    const { setNodeRef, isOver } = useDroppable({ id: `row-${row.id}` });
+
+    // Sortable na própria row (handle ativa o drag)
+    const {
+        attributes,
+        listeners,
+        setNodeRef: setSortableRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: row.id, data: { kind: 'row' } });
+
+    // Droppable separado no corpo da row para receber heróis
+    const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: `row-${row.id}` });
+
+    const sortableStyle: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -288,8 +359,18 @@ function TierRow({
     };
 
     return (
-        <div className={cn('flex overflow-hidden rounded-lg border-2 transition-colors', TIER_LIST_COLOR_BORDER[row.color], isOver && 'ring-2 ring-primary')}>
-            <div className={cn('flex w-20 shrink-0 flex-col items-center justify-center gap-1 px-2 py-3', TIER_LIST_COLOR_BG[row.color])}>
+        <div
+            ref={setSortableRef}
+            style={sortableStyle}
+            className={cn(
+                'flex overflow-hidden rounded-lg border-2 transition-all',
+                TIER_LIST_COLOR_BORDER[row.color],
+                isOver && 'scale-[1.01] shadow-lg ring-4 ring-primary',
+                isDragging && 'opacity-30',
+            )}
+        >
+            {/* Coluna esquerda: label + handle + edit/delete */}
+            <div className={cn('flex w-24 shrink-0 flex-col items-stretch justify-center gap-1 px-2 py-3', TIER_LIST_COLOR_BG[row.color])}>
                 {isEditing ? (
                     <form onSubmit={handleSubmit} className="flex flex-col items-center gap-1">
                         <Input
@@ -315,18 +396,86 @@ function TierRow({
                         </div>
                     </form>
                 ) : (
-                    <button type="button" onClick={onEdit} className="flex flex-col items-center gap-0.5" aria-label={`Editar tier ${row.label}`}>
-                        <span className="text-2xl font-black leading-none">{row.label}</span>
-                        <span className="text-[9px] uppercase tracking-wide opacity-80">{row.items.length} {row.items.length === 1 ? 'herói' : 'heróis'}</span>
-                    </button>
+                    <div className="flex flex-col items-center gap-1">
+                        {/* Drag handle pra mover a row inteira */}
+                        <button
+                            type="button"
+                            {...attributes}
+                            {...listeners}
+                            className="flex w-full cursor-grab items-center justify-center rounded bg-black/15 py-0.5 active:cursor-grabbing"
+                            aria-label="Arrastar tier"
+                            title="Arraste para reordenar este tier"
+                        >
+                            <GripVertical className="size-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onEdit}
+                            className="flex flex-col items-center gap-0.5"
+                            aria-label={`Editar tier ${row.label}`}
+                        >
+                            <span className="text-2xl font-black leading-none">{row.label}</span>
+                            <span className="text-[9px] uppercase tracking-wide opacity-80">
+                                {row.items.length} {row.items.length === 1 ? 'herói' : 'heróis'}
+                            </span>
+                        </button>
+                    </div>
                 )}
             </div>
-            <div ref={setNodeRef} className="flex flex-1 flex-wrap items-start gap-1 p-2 min-h-[80px]">
+            {/* Corpo droppable */}
+            <div
+                ref={setDroppableRef}
+                className={cn(
+                    'flex flex-1 flex-wrap items-start gap-1 p-2 min-h-[80px] transition-colors',
+                    isOver && 'bg-primary/5',
+                )}
+            >
                 {row.items.map((item) => (
                     <DraggableHero key={item.hero_id} hero={item.hero} />
                 ))}
                 {row.items.length === 0 && (
-                    <span className="self-center px-2 text-xs text-muted-foreground">Arraste heróis aqui</span>
+                    <span className={cn('self-center px-2 text-xs', isOver ? 'font-semibold text-primary' : 'text-muted-foreground')}>
+                        {isOver ? '⬇ Solte aqui' : 'Arraste heróis aqui'}
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function HeroPreviewCard({ hero }: { hero: Hero }) {
+    return (
+        <div
+            className="flex w-14 cursor-grabbing flex-col items-center gap-0.5 rounded-md border-2 border-primary bg-card p-1 shadow-2xl"
+            style={{ transform: 'rotate(-3deg)' }}
+        >
+            {hero.portrait_url ? (
+                <img src={hero.portrait_url} alt={hero.name} className="size-12 rounded object-cover object-top pointer-events-none" />
+            ) : (
+                <div className="grid size-12 place-items-center rounded bg-muted text-[10px] text-muted-foreground">?</div>
+            )}
+            <span className="line-clamp-1 max-w-full text-center text-[9px] leading-none">{hero.name}</span>
+        </div>
+    );
+}
+
+function RowPreviewCard({ row }: { row: RowState }) {
+    return (
+        <div className={cn('flex overflow-hidden rounded-lg border-2 shadow-2xl ring-2 ring-primary opacity-95', TIER_LIST_COLOR_BORDER[row.color])} style={{ transform: 'rotate(-1deg)', minWidth: 320 }}>
+            <div className={cn('flex w-24 flex-col items-center justify-center px-2 py-3', TIER_LIST_COLOR_BG[row.color])}>
+                <span className="text-2xl font-black leading-none">{row.label}</span>
+                <span className="text-[9px] uppercase tracking-wide opacity-80">
+                    {row.items.length} {row.items.length === 1 ? 'herói' : 'heróis'}
+                </span>
+            </div>
+            <div className="flex flex-1 flex-wrap items-start gap-1 p-2">
+                {row.items.slice(0, 8).map((item) => (
+                    item.hero.portrait_url ? (
+                        <img key={item.id} src={item.hero.portrait_url} alt="" className="size-10 rounded object-cover object-top" />
+                    ) : null
+                ))}
+                {row.items.length > 8 && (
+                    <span className="self-center text-[10px] text-muted-foreground">+{row.items.length - 8}</span>
                 )}
             </div>
         </div>
@@ -357,10 +506,10 @@ function HeroPool({
     const { setNodeRef, isOver } = useDroppable({ id: 'pool' });
 
     return (
-        <aside ref={setNodeRef} className={cn('flex flex-col gap-2 rounded-lg border bg-card p-3', isOver && 'ring-2 ring-primary')}>
-            <div className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <aside ref={setNodeRef} className={cn('flex flex-col gap-2 rounded-lg border-2 bg-card p-3 transition-all', isOver ? 'border-primary bg-primary/5 shadow-lg ring-4 ring-primary' : 'border-border')}>
+            <div className={cn('flex items-center gap-1 text-xs font-semibold uppercase tracking-wide', isOver ? 'text-primary' : 'text-muted-foreground')}>
                 <ListChecks className="size-3" />
-                Pool ({heroes.length})
+                {isOver ? '⬇ Solte para remover do tier' : `Pool (${heroes.length})`}
             </div>
             <div className="flex items-center gap-1">
                 <Search className="size-3 text-muted-foreground" />

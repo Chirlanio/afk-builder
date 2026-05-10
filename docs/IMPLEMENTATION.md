@@ -1169,6 +1169,52 @@ Novo item **"Tier Lists"** (ícone `ListChecks` do lucide-react) entre "Comps pr
 - ⚠️ **Sem testes automatizados específicos de tier list** — endpoints simples + UI dependem de DnD que é difícil de testar em CI. Smoke check manual: criar lista, adicionar tier custom, arrastar herói entre rows, compartilhar, abrir URL pública em incógnito.
 - ⚠️ **Reordenação de rows via DnD ainda não implementada na UI** — endpoint existe (`reorderRows`), mas a UI atual só permite editar label/cor/excluir, não arrastar a row inteira. Pode ser próxima iteração.
 
+#### 23.1 — Reorder de rows via DnD + DragOverlay + visual feedback intensificado
+
+Fechou o gap deixado em 23: rows agora são arrastáveis para reordenar. Junto, adicionei feedback visual rico durante drag: preview do elemento seguindo o cursor + destaque forte do drop target.
+
+##### Reorder de rows com `@dnd-kit/sortable`
+
+- **Imports adicionados:** `SortableContext`, `useSortable`, `arrayMove`, `verticalListSortingStrategy` de `@dnd-kit/sortable`; `CSS` de `@dnd-kit/utilities`; `DragOverlay`, `DragStartEvent` de `@dnd-kit/core`.
+- **`SortableContext`** envolve a lista de rows com `verticalListSortingStrategy` e `items={rows.map(r => r.id)}`.
+- **`SortableTierRow`** (renomeado de `TierRow`):
+  - Wrapping `useSortable({ id: row.id, data: { kind: 'row' } })` no container externo
+  - Aplica `transform = CSS.Transform.toString(transform)` + `transition` para a animação
+  - **Drag handle dedicado** (botão com ícone `GripVertical`) recebe `attributes` e `listeners` — só ele ativa o drag de row, evitando conflito com clicks no label de edit
+  - `isDragging && 'opacity-30'` no DOM original enquanto o overlay segue o cursor
+  - `useDroppable({ id: 'row-${row.id}' })` continua presente no corpo da row (recebe drops de heróis) — separado do sortable
+- **Discriminator entre tipos:** `data: { kind: 'hero' | 'row' }` no `useDraggable`/`useSortable`. `handleDragStart` lê `event.active.data.current?.kind` e seta `activeDrag`. `handleDragEnd` despacha em duas branches:
+  - `kind === 'row'` → `arrayMove` local + `axios.post('/rows/reorder', { row_ids: [...] })`
+  - `kind === 'hero'` → fluxo existente de place-hero
+- **Width da coluna do label aumentou** de `w-20` para `w-24` para acomodar o drag handle acima do label sem cortar.
+
+##### `DragOverlay` — preview seguindo o cursor
+
+- **`<DragOverlay dropAnimation={null}>`** dentro do `DndContext`. Renderiza um clone visual do elemento sendo arrastado, posicionado pelo `@dnd-kit` automaticamente conforme o cursor se move.
+- **`HeroPreviewCard`:** rotação `-3deg` + `border-2 border-primary` + `shadow-2xl` para sensação de "destacado do plano".
+- **`RowPreviewCard`:** rotação `-1deg` + `ring-2 ring-primary` + `shadow-2xl`. Mostra label + cor + thumbnails dos primeiros 8 heróis (com `+N` overflow se mais).
+- O `dropAnimation={null}` desabilita a animação de "voltar para o lugar" quando o drop não é válido — em compensação, faz o preview sumir instantâneo (UX mais responsivo).
+
+##### Visual feedback de drop target
+
+| Target  | Estado normal | Estado `isOver` |
+|---------|---------------|-----------------|
+| Row     | `border-2` da cor do tier  | `scale-[1.01]` + `shadow-lg` + `ring-4 ring-primary` |
+| Corpo da row | bg neutro | `bg-primary/5` |
+| Mensagem em row vazia | "Arraste heróis aqui" cinza | "⬇ Solte aqui" em primary com font-semibold |
+| Pool | `border` neutra | `border-primary` + `bg-primary/5` + `ring-4 ring-primary` + `shadow-lg` |
+| Header do pool | "Pool (N)" cinza | "⬇ Solte para remover do tier" em primary |
+
+`transition-all` em rows e pool faz a mudança ser animada (não pisca).
+
+##### Validação 23.1
+
+- ✅ Build Vite 4.05s — chunk de `@dnd-kit/sortable` adicionado em `utils-*.js` (23.48 kB / 7.93 kB gzip)
+- ✅ 187 testes verdes (sem regressão)
+- ✅ Type check limpo (errors pré-existentes do `public.tsx` ajustados de quebra)
+- ✅ Reorder funcional via grip handle no label
+- ⚠️ Sort horizontal de items dentro da mesma row ainda não implementado — drop ainda insere no fim. Fica como melhoria futura (precisa `SortableContext` aninhado horizontal por row + estratégia de cross-list para permitir mover entre rows + dentro da mesma row).
+
 ---
 
 ### ✅ Fase 22 — Heroes destaque por fase + Signature Items guide
