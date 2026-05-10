@@ -23,11 +23,11 @@ class HeroStat extends Model
         'hp' => 'integer',
         'attack' => 'integer',
         'defense' => 'integer',
-        'crit_rate' => 'integer',
-        'crit_amp' => 'integer',
-        'accuracy' => 'integer',
-        'dodge' => 'integer',
-        'haste' => 'integer',
+        'crit_rate' => 'float',
+        'crit_amp' => 'float',
+        'accuracy' => 'float',
+        'dodge' => 'float',
+        'haste' => 'float',
     ];
 
     public function hero(): BelongsTo

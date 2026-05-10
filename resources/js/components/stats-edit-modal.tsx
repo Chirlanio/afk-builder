@@ -16,15 +16,23 @@ interface Props {
     onSaved?: () => void | Promise<void>;
 }
 
-const FIELDS: { key: keyof Omit<HeroStats, 'id' | 'hero_id'>; label: string; max: number; help?: string }[] = [
-    { key: 'hp', label: 'HP', max: 9_999_999_999, help: 'Pontos de vida (do nível atual exibido em jogo).' },
-    { key: 'attack', label: 'Ataque', max: 999_999_999, help: 'Atributo de ataque.' },
-    { key: 'defense', label: 'Defesa', max: 999_999_999, help: 'Atributo de defesa.' },
-    { key: 'crit_rate', label: 'Taxa Crítica', max: 9_999, help: 'Em pontos.' },
-    { key: 'crit_amp', label: 'Amp. Crítica', max: 9_999, help: 'Amplificação crítica.' },
-    { key: 'accuracy', label: 'Precisão', max: 9_999, help: 'Hit Rating.' },
-    { key: 'dodge', label: 'Esquiva', max: 9_999, help: 'Dodge Rating.' },
-    { key: 'haste', label: 'Pressa', max: 9_999, help: 'Energia.' },
+interface StatField {
+    key: keyof Omit<HeroStats, 'id' | 'hero_id'>;
+    label: string;
+    max: number;
+    step: number; // 1 para inteiros (hp/atk/def), 0.01 para percentuais (crit/accuracy/dodge/haste)
+    help?: string;
+}
+
+const FIELDS: StatField[] = [
+    { key: 'hp', label: 'HP', max: 9_999_999_999, step: 1, help: 'Pontos de vida (do nível atual exibido em jogo).' },
+    { key: 'attack', label: 'Ataque', max: 999_999_999, step: 1, help: 'Atributo de ataque.' },
+    { key: 'defense', label: 'Defesa', max: 999_999_999, step: 1, help: 'Atributo de defesa.' },
+    { key: 'crit_rate', label: 'Taxa Crítica', max: 9_999, step: 0.01, help: 'Em % (aceita decimais).' },
+    { key: 'crit_amp', label: 'Amp. Crítica', max: 9_999, step: 0.01, help: 'Amplificação crítica em % (aceita decimais).' },
+    { key: 'accuracy', label: 'Precisão', max: 9_999, step: 0.01, help: 'Hit Rating (aceita decimais).' },
+    { key: 'dodge', label: 'Esquiva', max: 9_999, step: 0.01, help: 'Dodge Rating (aceita decimais).' },
+    { key: 'haste', label: 'Pressa', max: 9_999, step: 0.01, help: 'Energia (aceita decimais).' },
 ];
 
 export function StatsEditModal({ open, onOpenChange, hero, stats, onSaved }: Props) {
@@ -98,7 +106,7 @@ export function StatsEditModal({ open, onOpenChange, hero, stats, onSaved }: Pro
 
                 <form onSubmit={submit} className="flex flex-col gap-3 pt-2">
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        {FIELDS.map(({ key, label, max, help }) => (
+                        {FIELDS.map(({ key, label, max, step, help }) => (
                             <div key={key} className="flex flex-col gap-1">
                                 <Label htmlFor={`stat-${key}`} className="text-xs">{label}</Label>
                                 <Input
@@ -106,6 +114,7 @@ export function StatsEditModal({ open, onOpenChange, hero, stats, onSaved }: Pro
                                     type="number"
                                     min={0}
                                     max={max}
+                                    step={step}
                                     value={values[key] ?? ''}
                                     onChange={(e) => setValues((s) => ({ ...s, [key]: e.target.value }))}
                                     placeholder="—"

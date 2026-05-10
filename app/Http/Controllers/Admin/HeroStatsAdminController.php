@@ -18,14 +18,18 @@ class HeroStatsAdminController extends Controller
 
         // Caps relaxados para endgame ascended (Shemira HP ~664M, ATK/DEF chegam a ~30M).
         // Folga ampla para qualquer valor exibido em jogo.
+        // hp/atk/def são inteiros; demais (crit/accuracy/dodge/haste) aceitam decimais
+        // porque o jogo exibe valores como 25.5%, 30.7%.
+        $integerFields = ['hp', 'attack', 'defense'];
         $rules = [];
         foreach (self::FIELDS as $f) {
+            $type = in_array($f, $integerFields, true) ? 'integer' : 'numeric';
             $max = match ($f) {
                 'hp' => 9_999_999_999,
                 'attack', 'defense' => 999_999_999,
                 default => 9_999,
             };
-            $rules[$f] = ['nullable', 'integer', 'min:0', "max:{$max}"];
+            $rules[$f] = ['nullable', $type, 'min:0', "max:{$max}"];
         }
 
         $validated = $request->validate($rules);
