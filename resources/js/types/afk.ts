@@ -81,6 +81,8 @@ export interface Beast {
     strength_buff: number;
     intelligence_buff: number;
     agility_buff: number;
+    tier: string | null;
+    tier_note: string | null;
     portrait_url: string | null;
     source_url: string | null;
     is_active: boolean;
@@ -96,6 +98,18 @@ export interface HeroRating {
     mode: HeroRatingMode;
     stage: HeroRatingStage;
     tier: HeroRatingTier;
+    source: string;
+    source_url: string | null;
+}
+
+export type HeroEngravingLevel = 'e30' | 'e60';
+
+export interface HeroEngraving {
+    id: number;
+    hero_id: number;
+    level: HeroEngravingLevel;
+    label: string;
+    description: string;
     source: string;
     source_url: string | null;
 }

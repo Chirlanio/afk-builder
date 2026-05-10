@@ -14,6 +14,8 @@ class Beast extends Model
         'strength_buff',
         'intelligence_buff',
         'agility_buff',
+        'tier',
+        'tier_note',
         'portrait_url',
         'source_url',
         'is_active',

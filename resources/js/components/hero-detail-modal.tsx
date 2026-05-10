@@ -62,6 +62,7 @@ import type {
     FactionCode,
     Hero,
     HeroClass,
+    HeroEngraving,
     HeroRating,
     HeroRatingMode,
     HeroRatingStage,
@@ -85,6 +86,7 @@ interface DetailsPayload {
     availableArtifacts: Artifact[];
     availableCollections: Collection[];
     ratings: HeroRating[];
+    engravings: HeroEngraving[];
 }
 
 const RATING_MODE_LABEL: Record<HeroRatingMode, string> = {
@@ -257,7 +259,7 @@ interface ContentProps {
 }
 
 function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, onMutation, onNavigate }: ContentProps) {
-    const { hero, userHero, synergies, availableArtifacts, availableCollections: _, ratings } = data;
+    const { hero, userHero, synergies, availableArtifacts, availableCollections: _, ratings, engravings } = data;
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     const factionTheme = FACTION_THEME[hero.faction.code as FactionCode];
@@ -543,6 +545,17 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                             </SectionBlock>
                         )}
 
+                        {/* Eternal Engravings E30/E60 */}
+                        {engravings && engravings.length > 0 && (
+                            <SectionBlock
+                                icon={Gem}
+                                title="Eternal Engravings"
+                                extra={<span className="text-[10px] text-muted-foreground">E30 / E60</span>}
+                            >
+                                <EngravingsList engravings={engravings} />
+                            </SectionBlock>
+                        )}
+
                         {/* Abilities */}
                         <SectionBlock icon={Sparkles} title="Habilidades">
                             {abilities.length === 0 ? (
@@ -750,6 +763,49 @@ function StatsGrid({ stats }: { stats: HeroStats }) {
                     <div className="mt-0.5 text-lg font-semibold tabular-nums">{fmt(stats[key])}</div>
                 </div>
             ))}
+        </div>
+    );
+}
+
+function EngravingsList({ engravings }: { engravings: HeroEngraving[] }) {
+    const e30 = engravings.find((e) => e.level === 'e30');
+    const e60 = engravings.find((e) => e.level === 'e60');
+    const url = engravings.find((e) => e.source_url)?.source_url ?? null;
+
+    const Block = ({ title, eng, accent }: { title: string; eng: HeroEngraving | undefined; accent: string }) => {
+        if (!eng) return null;
+        return (
+            <div className={cn('rounded-lg border p-3', accent)}>
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                        <Badge variant="default" className="font-mono text-[10px]">{title}</Badge>
+                        <span className="text-sm font-semibold">{eng.label}</span>
+                    </div>
+                </div>
+                <p className="text-xs text-muted-foreground">{eng.description}</p>
+            </div>
+        );
+    };
+
+    return (
+        <div className="flex flex-col gap-2">
+            {url && (
+                <div className="flex justify-end">
+                    <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                    >
+                        <ExternalLink className="size-3" />
+                        afk.guide
+                    </a>
+                </div>
+            )}
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <Block title="E30" eng={e30} accent="border-sky-500/40 bg-sky-500/5" />
+                <Block title="E60" eng={e60} accent="border-amber-500/40 bg-amber-500/5" />
+            </div>
         </div>
     );
 }

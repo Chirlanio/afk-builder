@@ -21,6 +21,8 @@ interface FormState {
     strength_buff: string;
     intelligence_buff: string;
     agility_buff: string;
+    tier: string;
+    tier_note: string;
     portrait_url: string;
     source_url: string;
     is_active: boolean;
@@ -33,10 +35,14 @@ const EMPTY: FormState = {
     strength_buff: '0',
     intelligence_buff: '0',
     agility_buff: '0',
+    tier: '',
+    tier_note: '',
     portrait_url: '',
     source_url: '',
     is_active: true,
 };
+
+const BEAST_TIERS = ['', 'S+', 'S', 'A', 'B', 'C', 'D', 'F'];
 
 export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
     const isEditing = beast !== null;
@@ -62,6 +68,8 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                 strength_buff: String(beast.strength_buff),
                 intelligence_buff: String(beast.intelligence_buff),
                 agility_buff: String(beast.agility_buff),
+                tier: beast.tier ?? '',
+                tier_note: beast.tier_note ?? '',
                 portrait_url: beast.portrait_url ?? '',
                 source_url: beast.source_url ?? '',
                 is_active: beast.is_active,
@@ -104,6 +112,8 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
             strength_buff: data.strength_buff === '' ? 0 : Number(data.strength_buff),
             intelligence_buff: data.intelligence_buff === '' ? 0 : Number(data.intelligence_buff),
             agility_buff: data.agility_buff === '' ? 0 : Number(data.agility_buff),
+            tier: data.tier || null,
+            tier_note: data.tier_note || null,
             portrait_url: data.portrait_url || null,
             source_url: data.source_url || null,
             is_active: data.is_active,
@@ -206,6 +216,33 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                             <Input id="b-agi" type="number" min={0} value={data.agility_buff} onChange={(e) => setData((s) => ({ ...s, agility_buff: e.target.value }))} />
                             <p className="text-[10px] text-muted-foreground">Pontos aplicados a heróis Agility.</p>
                             {errors.agility_buff && <p className="text-[10px] text-destructive">{errors.agility_buff}</p>}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="b-tier">Tier (afk.guide)</Label>
+                            <select
+                                id="b-tier"
+                                value={data.tier}
+                                onChange={(e) => setData((s) => ({ ...s, tier: e.target.value }))}
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                            >
+                                {BEAST_TIERS.map((t) => (
+                                    <option key={t || 'none'} value={t}>{t || '(sem tier)'}</option>
+                                ))}
+                            </select>
+                            {errors.tier && <p className="text-[10px] text-destructive">{errors.tier}</p>}
+                        </div>
+                        <div className="flex flex-col gap-1.5 sm:col-span-2">
+                            <Label htmlFor="b-tier-note">Observação do tier</Label>
+                            <Input
+                                id="b-tier-note"
+                                value={data.tier_note}
+                                onChange={(e) => setData((s) => ({ ...s, tier_note: e.target.value }))}
+                                placeholder="Ex: Buffa carry, debuffa time inimigo"
+                            />
+                            {errors.tier_note && <p className="text-[10px] text-destructive">{errors.tier_note}</p>}
                         </div>
                     </div>
 

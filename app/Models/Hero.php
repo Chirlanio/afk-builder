@@ -93,4 +93,9 @@ class Hero extends Model
     {
         return $this->hasMany(HeroRating::class);
     }
+
+    public function engravings(): HasMany
+    {
+        return $this->hasMany(HeroEngraving::class)->orderBy('level');
+    }
 }

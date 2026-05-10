@@ -238,6 +238,68 @@ class RecommendedFormationsSeeder extends Seeder
                 'source_label' => 'afk.guide / Best Teams',
                 'sort_order' => 26,
             ],
+
+            // ================== Whitesushii Endgame Late ==================
+            [
+                'slug' => 'the-slumber',
+                'name' => 'The Slumber',
+                'mode' => RecommendedFormation::MODE_PVE,
+                'tier' => 'S',
+                'level_deficit' => null,
+                'description' => 'CC chain: Pippa + Tasi + Gorvo + Khazard mantêm os inimigos sempre controlados enquanto Saurus escala dano.',
+                'notes' => 'Comp endgame curado pelo Whitesushii. Forte contra times sem Tenacity.',
+                'hero_slugs' => ['pippa', 'tasi', 'gorvo', 'khazard', 'saurus'],
+                'core_count' => 5,
+                'artifacts' => null,
+                'source_url' => 'https://afk.guide/best-team/',
+                'source_label' => 'afk.guide / Whitesushii',
+                'sort_order' => 30,
+            ],
+            [
+                'slug' => 'the-speedy-lizard',
+                'name' => 'The Speedy Lizard',
+                'mode' => RecommendedFormation::MODE_PVE,
+                'tier' => 'S',
+                'level_deficit' => null,
+                'description' => 'Twins ulta primeiro → Tasi controla → Saurus escala dano até o fim da batalha.',
+                'notes' => 'Comp endgame curado pelo Whitesushii. Saurus precisa de SI bem investido.',
+                'hero_slugs' => ['elijah-lailah', 'tasi', 'saurus'],
+                'core_count' => 3,
+                'artifacts' => null,
+                'source_url' => 'https://afk.guide/best-team/',
+                'source_label' => 'afk.guide / Whitesushii',
+                'sort_order' => 31,
+            ],
+            [
+                'slug' => 'manhattan-project',
+                'name' => 'Manhattan Project (Safiya-Eironn)',
+                'mode' => RecommendedFormation::MODE_PVE,
+                'tier' => 'S',
+                'level_deficit' => null,
+                'description' => 'Eironn puxa todos os inimigos para a barreira da Safiya; Safiya mata todos com o ultimate em sequência.',
+                'notes' => 'Corrida ao ultimate da Safiya — quanto mais rápido, mais inimigos pegos no AoE.',
+                'hero_slugs' => ['safiya', 'eironn'],
+                'core_count' => 2,
+                'artifacts' => null,
+                'source_url' => 'https://afk.guide/best-team/',
+                'source_label' => 'afk.guide / Whitesushii',
+                'sort_order' => 32,
+            ],
+            [
+                'slug' => 'daimon-carry-solo',
+                'name' => 'Daimon Carry Solo',
+                'mode' => RecommendedFormation::MODE_PVE,
+                'tier' => 'A',
+                'level_deficit' => null,
+                'description' => 'Daimon como carry solo enquanto tanks compram tempo no início. Foca em manter Daimon vivo até ele scalar.',
+                'notes' => 'Funciona melhor quando Daimon tem bom investimento de SI e Stitchy F3+.',
+                'hero_slugs' => ['daimon'],
+                'core_count' => 1,
+                'artifacts' => null,
+                'source_url' => 'https://afk.guide/best-team/',
+                'source_label' => 'afk.guide / Whitesushii',
+                'sort_order' => 33,
+            ],
         ];
 
         $keepSlugs = array_column($comps, 'slug');
@@ -245,7 +307,13 @@ class RecommendedFormationsSeeder extends Seeder
         // Idempotência: remove comps de seed antigos que não estão mais na lista curada.
         // Não toca em comps com slugs fora deste conjunto (caso admin adicione manualmente no futuro).
         RecommendedFormation::query()
-            ->whereIn('source_label', ['afk.guide / Best Teams', 'afk.guide / Twisted Realm', 'afk.guide / Arcane Labyrinth', 'afk.guide / Kings Tower'])
+            ->whereIn('source_label', [
+                'afk.guide / Best Teams',
+                'afk.guide / Twisted Realm',
+                'afk.guide / Arcane Labyrinth',
+                'afk.guide / Kings Tower',
+                'afk.guide / Whitesushii',
+            ])
             ->whereNotIn('slug', $keepSlugs)
             ->delete();
 

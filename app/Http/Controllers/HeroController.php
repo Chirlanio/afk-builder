@@ -87,6 +87,7 @@ class HeroController extends Controller
                 'furnitureAbility',
                 'stats',
                 'ratings:id,hero_id,mode,stage,tier,source,source_url',
+                'engravings:id,hero_id,level,label,description,source,source_url',
             ])
             ->firstOrFail();
 
@@ -178,6 +179,7 @@ class HeroController extends Controller
             'availableArtifacts' => $availableArtifacts,
             'availableCollections' => $availableCollections,
             'ratings' => $hero->ratings,
+            'engravings' => $hero->engravings,
         ]);
     }
 }

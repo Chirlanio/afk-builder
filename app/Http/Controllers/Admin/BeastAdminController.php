@@ -79,6 +79,8 @@ class BeastAdminController extends Controller
             'strength_buff' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'intelligence_buff' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'agility_buff' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'tier' => ['nullable', Rule::in(['S+', 'S', 'A', 'B', 'C', 'D', 'F'])],
+            'tier_note' => ['nullable', 'string', 'max:500'],
             'portrait_url' => ['nullable', 'string', 'max:500', function (string $attr, mixed $value, \Closure $fail) {
                 if (str_starts_with((string) $value, '/storage/')) {
                     return;

@@ -201,7 +201,26 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
                                     </div>
 
                                     <div className="flex flex-col gap-0.5 px-2 py-2 text-left">
-                                        <div className="truncate text-sm font-semibold leading-tight">{beast.name}</div>
+                                        <div className="flex items-center gap-1">
+                                            <span className="truncate text-sm font-semibold leading-tight">{beast.name}</span>
+                                            {beast.tier && (
+                                                <span
+                                                    className={cn(
+                                                        'shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none',
+                                                        beast.tier === 'S+' && 'bg-gradient-to-br from-rose-500 to-amber-400 text-white',
+                                                        beast.tier === 'S' && 'bg-rose-500 text-white',
+                                                        beast.tier === 'A' && 'bg-orange-500 text-white',
+                                                        beast.tier === 'B' && 'bg-amber-500 text-stone-900',
+                                                        beast.tier === 'C' && 'bg-zinc-500 text-white',
+                                                        beast.tier === 'D' && 'bg-zinc-700 text-white',
+                                                        beast.tier === 'F' && 'bg-zinc-900 text-zinc-300',
+                                                    )}
+                                                    title={beast.tier_note ?? `Tier ${beast.tier}`}
+                                                >
+                                                    {beast.tier}
+                                                </span>
+                                            )}
+                                        </div>
                                         {!beast.is_active && (
                                             <Badge variant="outline" className="mt-1 w-fit text-[10px]">Inativo</Badge>
                                         )}

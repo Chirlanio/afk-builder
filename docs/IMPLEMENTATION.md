@@ -1032,6 +1032,48 @@ Cobertura de heróis: 60 de 62 nomes existem no banco (só "Canisa & Ruke" falta
 - ⚠️ **Engravings (E30/E60), Signature Items (custos), Beasts tier list (allclash) ainda não consumidos** — capturados pelo usuário no dump mas fora do escopo desta sessão. Anotados como Fase 22 candidatos.
 - ⚠️ **afk.global pulado** — bloqueio explícito a Claude no robots.txt. Compromisso assumido: respeitar.
 
+#### 21.5 — Beasts tier list + Eternal Engravings + comps Whitesushii
+
+Continuação direta da 21.4: consumir os dados restantes do dump capturado pelo usuário via extensão Claude Chrome.
+
+##### Beasts tier list (afk.guide)
+
+- **Migration `add_tier_to_beasts`:** adiciona `tier` (varchar 4) + `tier_note` (text), index em `tier`. Beast model fillable atualizado.
+- **`BeastTiersSeeder`** popula 27 beasts com tier (S+/S/A/B/C/D/F) e nota explicativa: Slumber Seal (S+), Pandy Dumpty/Treatspector/Flutterplume Owl/Nightfall Pegasus (S), 6 em A, 6 em B, 4 em C, 4 em D, 2 em F. Cria 2 que não existiam na lista master da Fandom (Count Snickerfang, Joyous Roamer) com tier_note mas sem buffs (cadastro manual via UI).
+- **UI:** card em `/admin/beasts` mostra **tier badge colorido** ao lado do nome (mesmo gradient do tier S+ usado em outros lugares). `tier_note` aparece como tooltip nativo (`title=`).
+- **Modal de edição (`beast-form-modal.tsx`):** novo bloco com select de tier (`S+`/`S`/`A`/`B`/`C`/`D`/`F`/`(sem tier)`) + input de tier_note. Validação backend: `Rule::in(['S+', 'S', 'A', 'B', 'C', 'D', 'F'])`.
+
+##### Eternal Engravings E30/E60 por herói
+
+- **Migration `create_hero_engravings_table`:** id, hero_id (FK cascade), level (varchar 4 — `e30`/`e60`), label (varchar 128), description (text), source/source_url, timestamps. Unique `(hero_id, level, source)` permite múltiplas fontes futuras. Index `(hero_id, level)`.
+- **`HeroEngraving` model** com `LEVEL_E30`/`LEVEL_E60` constants e `belongsTo(Hero)`. `Hero::engravings()` ordena por level.
+- **`HeroEngravingsSeeder`** persiste **174 engravings (87 heróis × 2 níveis)** estruturados em array por facção: 10 Celestials, 9 Hypogeans, 10 Lightbearers, 16 Maulers, 15 Wilders, 16 Graveborns, 11 Dimensionals. Mantém label original (em inglês para preservar matching com guias) + descrição em PT-BR.
+- **`HeroController::details`** carrega `engravings:id,hero_id,level,label,description,source,source_url` e injeta no payload.
+- **UI:** nova `SectionBlock` "Eternal Engravings" no modal de herói (após Tier Rating, antes de Habilidades). Componente `EngravingsList` renderiza E30 (border sky) e E60 (border amber) lado a lado em grid 1→2 colunas. Cada bloco mostra badge do nível + label (nome curto) + descrição completa. Link para a fonte (afk.guide) no canto superior.
+- **TS types:** `HeroEngravingLevel = 'e30' | 'e60'` e `HeroEngraving` em `types/afk.ts`.
+
+##### Comps Whitesushii (4 únicos adicionados)
+
+Cherry-pick dos comps endgame Whitesushii que não duplicam os 13 já curados:
+
+- **The Slumber (S, PvE):** CC chain pippa/tasi/gorvo/khazard + saurus escalando dano
+- **The Speedy Lizard (S, PvE):** elijah-lailah → tasi → saurus
+- **Manhattan Project / Safiya-Eironn (S, PvE):** safiya/eironn — corrida ao ultimate da Safiya
+- **Daimon Carry Solo (A, PvE):** daimon como carry solo, tanks compram tempo
+
+Source label `afk.guide / Whitesushii` distingue do `afk.guide / Best Teams`. Seeder estendeu a whitelist de cleanup para incluir esse novo source_label.
+
+**Total agora:** 17 comps (10 PvE + 7 PvP).
+
+##### Validação 21.5
+
+- ✅ Build Vite 4.12s
+- ✅ 110 testes verdes (Hero|Formation|Beast)
+- ✅ 27 beasts com tier (todos da lista do afk.guide)
+- ✅ 174 engravings persistidos (87 heróis × 2 níveis)
+- ✅ 17 comps recomendados (10 PvE + 7 PvP)
+- ⚠️ **Não consumido ainda:** Signature Items (custos por nível), heroes destaque por fase (early/mid/end por role), tradução PT-BR dos labels de engravings (mantidos em EN). Anotados para Fase 22.
+
 #### Validação Fase 21
 
 - ✅ Build Vite 4.50s
