@@ -1,7 +1,8 @@
 import axios from 'axios';
-import { Crown, Footprints, Gem, Hotel, Loader2, PenLine, Save, ScrollText, Shield, Shirt, Sword } from 'lucide-react';
+import { BarChart3, Crown, Footprints, Gem, Hotel, Loader2, PenLine, Save, ScrollText, Shield, Shirt, Sword } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
+import { StatsEditModal } from '@/components/stats-edit-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -44,6 +45,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
     const [boots, setBoots] = useState<{ tier: EquipmentTier | null; level: number | null }>({ tier: userHero?.boots_tier ?? null, level: userHero?.boots_level ?? null });
     const [notes, setNotes] = useState<string>(userHero?.notes ?? '');
     const [saving, setSaving] = useState(false);
+    const [statsModalOpen, setStatsModalOpen] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     // Resync quando abre ou troca de herói
@@ -322,17 +324,44 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-2 border-t pt-3">
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={saving}>
-                            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                            {saving ? 'Salvando...' : isEditing ? 'Salvar' : 'Adicionar'}
-                        </Button>
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+                        {isEditing && userHero && hero && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setStatsModalOpen(true)}
+                                disabled={saving}
+                            >
+                                <BarChart3 className="size-4" />
+                                Stats avançados
+                            </Button>
+                        )}
+                        <div className="ml-auto flex gap-2">
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={saving}>
+                                {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                                {saving ? 'Salvando...' : isEditing ? 'Salvar' : 'Adicionar'}
+                            </Button>
+                        </div>
                     </div>
                 </form>
             </DialogContent>
+
+            {/* Modal de stats reais do roster — só aparece em edição (precisa userHero) */}
+            {isEditing && hero && userHero && (
+                <StatsEditModal
+                    open={statsModalOpen}
+                    onOpenChange={setStatsModalOpen}
+                    hero={hero}
+                    stats={userHero as any}
+                    endpoint={`/user/heroes/${userHero.id}/stats`}
+                    contextLabel="Stats do meu roster"
+                    onSaved={() => onSaved?.()}
+                />
+            )}
         </Dialog>
     );
 }

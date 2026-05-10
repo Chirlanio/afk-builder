@@ -199,6 +199,38 @@ class UserHeroController extends Controller
         return back();
     }
 
+    /**
+     * Atualiza os 35 stats do roster (HP/ATK/DEF + extras). Mesma lista de
+     * campos que HeroStat. hp/atk/def são integer; demais aceitam decimais.
+     */
+    public function updateStats(Request $request, UserHero $userHero): \Illuminate\Http\JsonResponse
+    {
+        abort_unless($userHero->user_id === $request->user()->id, 403);
+
+        $integerFields = ['hp', 'attack', 'defense'];
+        $rules = [];
+        foreach (UserHero::STAT_FIELDS as $f) {
+            $type = in_array($f, $integerFields, true) ? 'integer' : 'numeric';
+            $max = match ($f) {
+                'hp' => 9_999_999_999,
+                'attack', 'defense' => 999_999_999,
+                default => 99_999_999.99,
+            };
+            $rules[$f] = ['nullable', $type, 'min:0', "max:{$max}"];
+        }
+
+        $validated = $request->validate($rules);
+
+        $data = [];
+        foreach (UserHero::STAT_FIELDS as $f) {
+            $data[$f] = $validated[$f] ?? null;
+        }
+
+        $userHero->update($data);
+
+        return response()->json(['ok' => true, 'userHero' => $userHero->fresh()]);
+    }
+
     private function ascensionValue(?string $code): int
     {
         if ($code === null) {

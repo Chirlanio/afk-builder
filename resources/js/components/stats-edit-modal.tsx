@@ -14,6 +14,14 @@ interface Props {
     hero: Hero | null;
     stats: HeroStats | null;
     onSaved?: () => void | Promise<void>;
+    /**
+     * Endpoint para PATCH dos stats. Default: `/admin/heroes/${hero.slug}/stats`
+     * (cadastro do admin para os stats "base"). Pode ser sobrescrito para
+     * `/user/heroes/${userHeroId}/stats` ao editar stats do roster do user.
+     */
+    endpoint?: string;
+    /** Subtítulo opcional acima do nome (ex: "Stats do meu roster"). */
+    contextLabel?: string;
 }
 
 interface StatField {
@@ -105,7 +113,7 @@ const SECTIONS: StatSection[] = [
 
 const ALL_FIELD_KEYS = SECTIONS.flatMap((s) => s.fields.map((f) => f.key));
 
-export function StatsEditModal({ open, onOpenChange, hero, stats, onSaved }: Props) {
+export function StatsEditModal({ open, onOpenChange, hero, stats, onSaved, endpoint, contextLabel }: Props) {
     const init = (v: number | null | undefined) => (v === null || v === undefined ? '' : String(v));
 
     const [values, setValues] = useState<Record<string, string>>({});
@@ -135,8 +143,9 @@ export function StatsEditModal({ open, onOpenChange, hero, stats, onSaved }: Pro
             payload[key] = v === '' ? null : Number(v);
         }
 
+        const url = endpoint ?? `/admin/heroes/${hero.slug}/stats`;
         try {
-            await axios.patch(`/admin/heroes/${hero.slug}/stats`, payload);
+            await axios.patch(url, payload);
             await onSaved?.();
             onOpenChange(false);
         } catch (err: unknown) {
@@ -161,7 +170,7 @@ export function StatsEditModal({ open, onOpenChange, hero, stats, onSaved }: Pro
                     <div className="flex flex-col items-center gap-1 text-center">
                         <span className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
                             <BarChart3 className="size-3" />
-                            Estatísticas base
+                            {contextLabel ?? 'Estatísticas base'}
                         </span>
                         <h2 className="text-xl font-bold leading-tight">{hero.name}</h2>
                     </div>

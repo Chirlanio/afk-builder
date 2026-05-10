@@ -47,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('user/heroes', [UserHeroController::class, 'store'])->name('user-heroes.store');
     Route::patch('user/heroes/{userHero}', [UserHeroController::class, 'update'])->name('user-heroes.update');
+    Route::patch('user/heroes/{userHero}/stats', [UserHeroController::class, 'updateStats'])->name('user-heroes.stats.update');
     Route::delete('user/heroes/{userHero}', [UserHeroController::class, 'destroy'])->name('user-heroes.destroy');
 
     Route::get('formations', [FormationController::class, 'index'])->name('formations.index');

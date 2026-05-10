@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HeroStat extends Model
 {
+    /** Campos numéricos básicos (compartilhados com user_heroes para stats reais do roster). */
+    public const CORE_FIELDS = ['hp', 'attack', 'defense', 'crit_rate', 'crit_amp', 'accuracy', 'dodge', 'haste'];
+
     public const EXTRA_FIELDS = [
         'vitality', 'armor', 'attack_speed', 'healing', 'recovery_per_second', 'energy_recovery_rate',
         'crit_block_rate', 'crit_damage_resistance',

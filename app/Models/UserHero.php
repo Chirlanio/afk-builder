@@ -22,6 +22,19 @@ class UserHero extends Model
 
     public const EQUIPMENT_SLOTS = ['weapon', 'helmet', 'chest', 'boots'];
 
+    /** Stats reusam o schema de HeroStat (ver HeroStat::CORE_FIELDS / EXTRA_FIELDS). */
+    public const STAT_FIELDS = [
+        'hp', 'attack', 'defense',
+        'crit_rate', 'crit_amp', 'accuracy', 'dodge', 'haste',
+        'vitality', 'armor', 'attack_speed', 'healing', 'recovery_per_second', 'energy_recovery_rate',
+        'crit_block_rate', 'crit_damage_resistance',
+        'physical_piercing', 'magic_piercing', 'physical_resistance', 'magic_resistance', 'magic_efficiency', 'magic_suppression',
+        'life_steal', 'tenacity', 'damage_resistance', 'perception',
+        'proficiency', 'dispel', 'erosion', 'aid',
+        'draconic_amplification', 'draconic_resistance',
+        'arena_damage_boost', 'arena_damage_reduction', 'trial_damage_boost',
+    ];
+
     protected $fillable = [
         'user_id',
         'hero_id',
@@ -40,6 +53,7 @@ class UserHero extends Model
         'collection_id',
         'power_rating',
         'notes',
+        ...self::STAT_FIELDS,
     ];
 
     protected $casts = [
@@ -54,6 +68,42 @@ class UserHero extends Model
         'boots_level' => 'integer',
         'artifact_star_level' => 'integer',
         'power_rating' => 'integer',
+        // Stats reais do roster
+        'hp' => 'integer',
+        'attack' => 'integer',
+        'defense' => 'integer',
+        'crit_rate' => 'float',
+        'crit_amp' => 'float',
+        'accuracy' => 'float',
+        'dodge' => 'float',
+        'haste' => 'float',
+        'vitality' => 'float',
+        'armor' => 'float',
+        'attack_speed' => 'float',
+        'healing' => 'float',
+        'recovery_per_second' => 'float',
+        'energy_recovery_rate' => 'float',
+        'crit_block_rate' => 'float',
+        'crit_damage_resistance' => 'float',
+        'physical_piercing' => 'float',
+        'magic_piercing' => 'float',
+        'physical_resistance' => 'float',
+        'magic_resistance' => 'float',
+        'magic_efficiency' => 'float',
+        'magic_suppression' => 'float',
+        'life_steal' => 'float',
+        'tenacity' => 'float',
+        'damage_resistance' => 'float',
+        'perception' => 'float',
+        'proficiency' => 'float',
+        'dispel' => 'float',
+        'erosion' => 'float',
+        'aid' => 'float',
+        'draconic_amplification' => 'float',
+        'draconic_resistance' => 'float',
+        'arena_damage_boost' => 'float',
+        'arena_damage_reduction' => 'float',
+        'trial_damage_boost' => 'float',
     ];
 
     public function user(): BelongsTo
