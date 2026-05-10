@@ -7,6 +7,7 @@ use App\Models\Beast;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -50,6 +51,20 @@ class BeastAdminController extends Controller
         return back()->with('flash', "Beast '{$beast->name}' removido.");
     }
 
+    public function uploadImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => ['required', 'file', 'image', 'mimes:png,jpg,jpeg,webp,gif', 'max:2048'],
+        ]);
+
+        $path = $request->file('image')->store('beasts', 'public');
+
+        return response()->json([
+            'ok' => true,
+            'url' => Storage::url($path),
+        ]);
+    }
+
     private function validatePayload(Request $request, ?int $ignoreId = null): array
     {
         $slugRule = ['required', 'string', 'max:128', 'regex:/^[a-z0-9-]+$/'];
@@ -64,7 +79,15 @@ class BeastAdminController extends Controller
             'strength_buff' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'intelligence_buff' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'agility_buff' => ['nullable', 'integer', 'min:0', 'max:9999'],
-            'portrait_url' => ['nullable', 'url', 'max:500'],
+            'portrait_url' => ['nullable', 'string', 'max:500', function (string $attr, mixed $value, \Closure $fail) {
+                if (str_starts_with((string) $value, '/storage/')) {
+                    return;
+                }
+                if (filter_var($value, FILTER_VALIDATE_URL)) {
+                    return;
+                }
+                $fail('A URL da imagem deve ser absoluta (https://...) ou um caminho local (/storage/...).');
+            }],
             'source_url' => ['nullable', 'url', 'max:500'],
             'is_active' => ['nullable', 'boolean'],
         ]);

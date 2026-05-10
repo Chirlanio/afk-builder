@@ -81,6 +81,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('beasts', [BeastAdminController::class, 'index'])->name('beasts.index');
         Route::post('beasts', [BeastAdminController::class, 'store'])->name('beasts.store');
+        Route::post('beasts/upload-image', [BeastAdminController::class, 'uploadImage'])->name('beasts.upload-image');
         Route::patch('beasts/{beast}', [BeastAdminController::class, 'update'])->name('beasts.update');
         Route::delete('beasts/{beast}', [BeastAdminController::class, 'destroy'])->name('beasts.destroy');
 

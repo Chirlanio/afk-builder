@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { Beast } from '@/types/afk';
 
@@ -16,6 +17,49 @@ interface PageProps {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Beasts', href: '/admin/beasts' }];
+
+interface BeastTheme {
+    cardGradient: string;
+    cardBorder: string;
+    cardHoverGlow: string;
+}
+
+function beastTheme(beast: Beast): BeastTheme {
+    const stats: Array<'str' | 'int' | 'agi'> = [];
+    if (beast.strength_buff > 0) stats.push('str');
+    if (beast.intelligence_buff > 0) stats.push('int');
+    if (beast.agility_buff > 0) stats.push('agi');
+
+    if (stats.length === 0) {
+        return {
+            cardGradient: 'bg-gradient-to-br from-muted/40 via-muted/20 to-background',
+            cardBorder: 'border-dashed border-amber-500/40',
+            cardHoverGlow: 'hover:shadow-amber-500/30',
+        };
+    }
+    if (stats.length === 1) {
+        if (stats[0] === 'str') return {
+            cardGradient: 'bg-gradient-to-br from-rose-950/40 via-rose-900/15 to-background',
+            cardBorder: 'border-rose-500/50',
+            cardHoverGlow: 'hover:shadow-rose-500/40',
+        };
+        if (stats[0] === 'int') return {
+            cardGradient: 'bg-gradient-to-br from-sky-950/40 via-sky-900/15 to-background',
+            cardBorder: 'border-sky-500/50',
+            cardHoverGlow: 'hover:shadow-sky-500/40',
+        };
+        return {
+            cardGradient: 'bg-gradient-to-br from-emerald-950/40 via-emerald-900/15 to-background',
+            cardBorder: 'border-emerald-500/50',
+            cardHoverGlow: 'hover:shadow-emerald-500/40',
+        };
+    }
+    return {
+        cardGradient: 'bg-gradient-to-br from-rose-950/30 via-sky-950/20 to-emerald-950/30',
+        cardBorder: 'border-purple-400/50',
+        cardHoverGlow: 'hover:shadow-purple-400/40',
+    };
+}
 
 export default function BeastsAdminIndex({ beasts }: PageProps) {
     const [editing, setEditing] = useState<Beast | null>(null);
@@ -57,46 +101,112 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
                         <p className="mt-1 text-xs text-muted-foreground">Rode <code className="rounded bg-muted px-1">php artisan beasts:sync</code> ou crie manualmente.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                         {beasts.map((beast) => {
+                            const theme = beastTheme(beast);
                             const total = beast.strength_buff + beast.intelligence_buff + beast.agility_buff;
                             return (
-                                <div key={beast.id} className="flex gap-3 rounded-lg border bg-card p-3">
-                                    {beast.portrait_url ? (
-                                        <img src={beast.portrait_url} alt={beast.name} className="size-16 shrink-0 rounded-lg border bg-muted/30 object-contain" />
-                                    ) : (
-                                        <div className="grid size-16 shrink-0 place-items-center rounded-lg border border-dashed bg-muted/30 text-muted-foreground">
-                                            <PawPrint className="size-6" />
-                                        </div>
+                                <button
+                                    key={beast.id}
+                                    type="button"
+                                    onClick={() => setEditing(beast)}
+                                    className={cn(
+                                        'group relative flex w-full flex-col overflow-hidden rounded-xl border-2 transition-all duration-200',
+                                        theme.cardGradient,
+                                        theme.cardBorder,
+                                        theme.cardHoverGlow,
+                                        'hover:scale-[1.03] hover:shadow-lg',
+                                        !beast.is_active && 'opacity-60',
                                     )}
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <h3 className="truncate text-sm font-semibold">{beast.name}</h3>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {!beast.is_active && <Badge variant="outline" className="text-[10px]">Inativo</Badge>}
-                                                    {total === 0 && <Badge variant="outline" className="border-amber-500/40 text-[10px] text-amber-600 dark:text-amber-400">Buffs não cadastrados</Badge>}
-                                                </div>
-                                            </div>
-                                            <div className="flex shrink-0 gap-1">
-                                                <Button size="icon" variant="ghost" onClick={() => setEditing(beast)} className="size-7">
-                                                    <Pencil className="size-3" />
-                                                </Button>
-                                                <Button size="icon" variant="ghost" onClick={() => handleDelete(beast)} className="size-7 text-destructive hover:bg-destructive/10">
-                                                    <Trash2 className="size-3" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px]">
-                                            {beast.strength_buff > 0 && <Badge variant="secondary" className="border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300">Força +{beast.strength_buff}</Badge>}
-                                            {beast.intelligence_buff > 0 && <Badge variant="secondary" className="border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300">Int +{beast.intelligence_buff}</Badge>}
-                                            {beast.agility_buff > 0 && <Badge variant="secondary" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">Agi +{beast.agility_buff}</Badge>}
-                                        </div>
-                                        {beast.description && (
-                                            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{beast.description}</p>
+                                    aria-label={`Editar beast ${beast.name}`}
+                                >
+                                    <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1">
+                                        {beast.strength_buff > 0 && (
+                                            <span className="rounded-md bg-rose-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                                                For +{beast.strength_buff}
+                                            </span>
+                                        )}
+                                        {beast.intelligence_buff > 0 && (
+                                            <span className="rounded-md bg-sky-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                                                Int +{beast.intelligence_buff}
+                                            </span>
+                                        )}
+                                        {beast.agility_buff > 0 && (
+                                            <span className="rounded-md bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                                                Agi +{beast.agility_buff}
+                                            </span>
+                                        )}
+                                        {total === 0 && (
+                                            <span className="rounded-md bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                                                Sem buffs
+                                            </span>
                                         )}
                                     </div>
-                                </div>
+
+                                    <div className="absolute top-1.5 right-1.5 z-10 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                        <span
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditing(beast);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setEditing(beast);
+                                                }
+                                            }}
+                                            className="grid size-7 cursor-pointer place-items-center rounded-full bg-background/90 text-foreground shadow-sm hover:bg-background"
+                                            aria-label="Editar"
+                                        >
+                                            <Pencil className="size-3" />
+                                        </span>
+                                        <span
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(beast);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleDelete(beast);
+                                                }
+                                            }}
+                                            className="grid size-7 cursor-pointer place-items-center rounded-full bg-background/90 text-destructive shadow-sm hover:bg-background"
+                                            aria-label="Remover"
+                                        >
+                                            <Trash2 className="size-3" />
+                                        </span>
+                                    </div>
+
+                                    <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden">
+                                        {beast.portrait_url ? (
+                                            <img
+                                                src={beast.portrait_url}
+                                                alt={beast.name}
+                                                loading="lazy"
+                                                onError={(e) => {
+                                                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                                }}
+                                                className="size-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                            />
+                                        ) : (
+                                            <PawPrint className="size-12 text-muted-foreground/60" />
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-col gap-0.5 px-2 py-2 text-left">
+                                        <div className="truncate text-sm font-semibold leading-tight">{beast.name}</div>
+                                        {!beast.is_active && (
+                                            <Badge variant="outline" className="mt-1 w-fit text-[10px]">Inativo</Badge>
+                                        )}
+                                    </div>
+                                </button>
                             );
                         })}
                     </div>
