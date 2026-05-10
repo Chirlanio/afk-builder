@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { Brain, Crosshair, Dumbbell, Heart, Shield, Sparkles, Sword, Wind } from 'lucide-react';
-import type { ClassCode, EquipmentTier, FactionCode, HeroType, TierCode } from '@/types/afk';
+import type { ClassCode, EquipmentTier, FactionCode, HeroType, TierCode, TierListColor } from '@/types/afk';
 
 export interface FactionTheme {
     label: string;
@@ -251,3 +251,27 @@ export function localized<T extends Record<string, unknown>>(
     const value = item[field];
     return typeof value === 'string' && value.trim() !== '' ? value : null;
 }
+
+export const TIER_LIST_COLORS: TierListColor[] = ['rose', 'orange', 'amber', 'emerald', 'sky', 'violet', 'fuchsia', 'zinc'];
+
+export const TIER_LIST_COLOR_BG: Record<TierListColor, string> = {
+    rose: 'bg-rose-500/90 text-white',
+    orange: 'bg-orange-500/90 text-white',
+    amber: 'bg-amber-500/90 text-stone-900',
+    emerald: 'bg-emerald-500/90 text-white',
+    sky: 'bg-sky-500/90 text-white',
+    violet: 'bg-violet-500/90 text-white',
+    fuchsia: 'bg-fuchsia-500/90 text-white',
+    zinc: 'bg-zinc-500/90 text-white',
+};
+
+export const TIER_LIST_COLOR_BORDER: Record<TierListColor, string> = {
+    rose: 'border-rose-500/40 bg-rose-500/5',
+    orange: 'border-orange-500/40 bg-orange-500/5',
+    amber: 'border-amber-500/40 bg-amber-500/5',
+    emerald: 'border-emerald-500/40 bg-emerald-500/5',
+    sky: 'border-sky-500/40 bg-sky-500/5',
+    violet: 'border-violet-500/40 bg-violet-500/5',
+    fuchsia: 'border-fuchsia-500/40 bg-fuchsia-500/5',
+    zinc: 'border-zinc-500/40 bg-zinc-500/5',
+};

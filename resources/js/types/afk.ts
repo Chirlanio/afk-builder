@@ -131,6 +131,37 @@ export interface HeroFeature {
     source_url?: string | null;
 }
 
+export type TierListColor = 'rose' | 'orange' | 'amber' | 'emerald' | 'sky' | 'violet' | 'fuchsia' | 'zinc';
+
+export interface UserTierListItem {
+    id: number;
+    user_tier_list_row_id: number;
+    hero_id: number;
+    position: number;
+    hero?: Pick<Hero, 'id' | 'slug' | 'name' | 'faction_id' | 'hero_class_id' | 'portrait_url'>;
+}
+
+export interface UserTierListRow {
+    id: number;
+    user_tier_list_id: number;
+    label: string;
+    color: TierListColor;
+    position: number;
+    items?: UserTierListItem[];
+}
+
+export interface UserTierList {
+    id: number;
+    user_id: number;
+    name: string;
+    description: string | null;
+    share_token: string | null;
+    rows_count?: number;
+    rows?: UserTierListRow[];
+    user?: { id: number; name: string };
+    updated_at: string;
+}
+
 export type RecommendedFormationMode = 'pvp' | 'pve' | 'twisted_realm' | 'labyrinth' | 'king_tower' | 'arcane_labyrinth';
 
 export interface RecommendedFormation {

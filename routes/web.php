@@ -14,6 +14,7 @@ use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HeroController;
 use App\Http\Controllers\RecommendedFormationController;
 use App\Http\Controllers\UserHeroController;
+use App\Http\Controllers\UserTierListController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -23,6 +24,10 @@ Route::get('/', function () {
 Route::get('/f/{token}', [FormationShareController::class, 'publicShow'])
     ->where('token', '[A-Za-z0-9]{32}')
     ->name('formations.public');
+
+Route::get('/tier/{token}', [UserTierListController::class, 'publicShow'])
+    ->where('token', '[A-Za-z0-9]{32}')
+    ->name('tier-lists.public');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -70,6 +75,20 @@ Route::middleware(['auth'])->group(function () {
     Route::post('formations/{formation}/versions/{version}/restore', [FormationVersionController::class, 'restore'])
         ->name('formations.versions.restore');
     Route::delete('formations/{formation}', [FormationController::class, 'destroy'])->name('formations.destroy');
+
+    Route::get('tier-lists', [UserTierListController::class, 'index'])->name('tier-lists.index');
+    Route::get('tier-lists/create', [UserTierListController::class, 'create'])->name('tier-lists.create');
+    Route::post('tier-lists', [UserTierListController::class, 'store'])->name('tier-lists.store');
+    Route::get('tier-lists/{tierList}/edit', [UserTierListController::class, 'edit'])->name('tier-lists.edit');
+    Route::patch('tier-lists/{tierList}', [UserTierListController::class, 'update'])->name('tier-lists.update');
+    Route::delete('tier-lists/{tierList}', [UserTierListController::class, 'destroy'])->name('tier-lists.destroy');
+    Route::post('tier-lists/{tierList}/rows', [UserTierListController::class, 'addRow'])->name('tier-lists.rows.add');
+    Route::patch('tier-lists/{tierList}/rows/{row}', [UserTierListController::class, 'updateRow'])->name('tier-lists.rows.update');
+    Route::delete('tier-lists/{tierList}/rows/{row}', [UserTierListController::class, 'deleteRow'])->name('tier-lists.rows.delete');
+    Route::post('tier-lists/{tierList}/rows/reorder', [UserTierListController::class, 'reorderRows'])->name('tier-lists.rows.reorder');
+    Route::post('tier-lists/{tierList}/place-hero', [UserTierListController::class, 'placeHero'])->name('tier-lists.place-hero');
+    Route::post('tier-lists/{tierList}/share', [UserTierListController::class, 'share'])->name('tier-lists.share');
+    Route::delete('tier-lists/{tierList}/share', [UserTierListController::class, 'unshare'])->name('tier-lists.share.revoke');
 
     Route::middleware('can:manage-heroes')->prefix('admin')->name('admin.')->group(function () {
         Route::get('heroes/pending', [HeroAdminController::class, 'pendingIndex'])->name('heroes.pending');

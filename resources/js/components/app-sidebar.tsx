@@ -5,7 +5,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Library, Package, PawPrint, RefreshCw, ShieldCheck, Sparkles, Swords, Users } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Library, ListChecks, Package, PawPrint, RefreshCw, ShieldCheck, Sparkles, Swords, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const baseNavItems: NavItem[] = [
@@ -28,6 +28,11 @@ const baseNavItems: NavItem[] = [
         title: 'Comps prontos',
         url: '/formations/recommended',
         icon: Sparkles,
+    },
+    {
+        title: 'Tier Lists',
+        url: '/tier-lists',
+        icon: ListChecks,
     },
     {
         title: 'Guias',

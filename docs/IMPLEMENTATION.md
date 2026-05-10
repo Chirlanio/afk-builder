@@ -1087,6 +1087,90 @@ Source label `afk.guide / Whitesushii` distingue do `afk.guide / Best Teams`. Se
 
 ---
 
+### ✅ Fase 23 — Tier Lists customizadas com drag-and-drop
+
+Permite que cada user crie suas próprias tier lists e ranqueie heróis arrastando-os entre tiers customizáveis. Compartilhamento público via share_token (mesmo padrão das formations da Fase 6.4).
+
+#### Schema (3 tabelas)
+
+| Tabela | Campos relevantes | Notas |
+|--------|-------------------|-------|
+| `user_tier_lists` | id, user_id (FK cascade), name (varchar 100), description (text nullable), share_token (varchar 32 unique nullable) | Index `user_id`. Token gerado on-demand via `generateShareToken()`. |
+| `user_tier_list_rows` | id, user_tier_list_id (FK cascade), label (varchar 16), color (varchar 16, default 'zinc'), position (smallint) | Index `(user_tier_list_id, position)`. 8 cores aceitas: rose/orange/amber/emerald/sky/violet/fuchsia/zinc. |
+| `user_tier_list_items` | id, user_tier_list_row_id (FK cascade), hero_id (FK restrict), position (smallint) | Unique `(row_id, hero_id)` — herói só uma vez por row. Index `(row_id, position)`. |
+
+#### Models
+
+- **`UserTierList`:** `belongsTo(User)`, `hasMany(rows)` ordenado por `position`. `generateShareToken()` faz loop até achar token único de 32 chars; `revokeShareToken()` zera.
+- **`UserTierListRow`:** `belongsTo(UserTierList)`, `hasMany(items)` ordenado por `position`. Constants `COLORS` valida cores no controller.
+- **`UserTierListItem`:** `belongsTo(UserTierListRow, hero_id=>row)`, `belongsTo(Hero)`.
+- **`User::tierLists()`:** nova relação `hasMany(UserTierList)`.
+
+#### Controller (`UserTierListController`) — 14 endpoints
+
+Lista de rotas registradas em `routes/web.php`:
+
+```
+GET    /tier-lists                                    tier-lists.index
+GET    /tier-lists/create                             tier-lists.create
+POST   /tier-lists                                    tier-lists.store
+GET    /tier-lists/{tierList}/edit                    tier-lists.edit
+PATCH  /tier-lists/{tierList}                         tier-lists.update
+DELETE /tier-lists/{tierList}                         tier-lists.destroy
+POST   /tier-lists/{tierList}/rows                    tier-lists.rows.add
+PATCH  /tier-lists/{tierList}/rows/{row}              tier-lists.rows.update
+DELETE /tier-lists/{tierList}/rows/{row}              tier-lists.rows.delete
+POST   /tier-lists/{tierList}/rows/reorder            tier-lists.rows.reorder
+POST   /tier-lists/{tierList}/place-hero              tier-lists.place-hero
+POST   /tier-lists/{tierList}/share                   tier-lists.share
+DELETE /tier-lists/{tierList}/share                   tier-lists.share.revoke
+GET    /tier/{token}                                  tier-lists.public  (auth-free, regex 32 chars)
+```
+
+- **`store`** cria a lista com **5 tiers padrão** (S+/S/A/B/C com cores rose/orange/amber/emerald/sky) em transação. User redireciona para o editor.
+- **`placeHero`** é idempotente: remove o herói de qualquer row anterior dentro da mesma lista (em uma única query `whereIn('row_id', ...)`) antes de inserir na nova. `row_id=null` move pra fora dos tiers (volta pro pool).
+- **`reorderRows`** valida que todos os IDs informados pertencem à lista antes de aplicar (defensa contra IDs de outras listas). Update em loop dentro de transação.
+- **`addRow`** auto-incrementa position (`max(position) + 1`).
+- **`share`** gera token só se ainda não existe (idempotente). `unshare` apenas zera.
+- **`publicShow`** é a única rota fora de `auth` middleware — regex `[A-Za-z0-9]{32}` no path.
+- Todos os endpoints com `{tierList}` validam ownership: `abort_unless($tierList->user_id === $request->user()->id, 403)`.
+
+#### Frontend (4 páginas + helpers em `lib/afk.ts`)
+
+- **`pages/tier-lists/index.tsx`:** grid 1→3 cols com cards das listas do user. Cada card: nome, badges (`{N} tiers`, `Pública` se `share_token`), descrição truncada, botões Editar/Excluir.
+- **`pages/tier-lists/create.tsx`:** form simples com `useForm` (name + description). Após submit, redireciona pro editor.
+- **`pages/tier-lists/edit.tsx`** (componente principal, ~370 linhas):
+  - Layout `grid-cols-1 lg:grid-cols-[1fr_280px]`: tiers à esquerda, pool à direita.
+  - **`DndContext`** envolve tudo. `PointerSensor` com `activationConstraint: { distance: 5 }` evita drags acidentais em clicks.
+  - Cada herói é `useDraggable` com `id=hero.id` (numeric). Cada `TierRow` e o `HeroPool` são `useDroppable` com `id=row-{id}` ou `id=pool`.
+  - **`onDragEnd` faz optimistic update** local (move o item entre rows no state) **antes** de chamar `axios.post('/place-hero')`. Em caso de erro, faz `router.reload({ only: ['tierList'] })` pra ressincronizar.
+  - **`HeroPool`:** filtros por facção, classe e busca textual (case-insensitive). `useMemo` deriva o pool excluindo heróis já posicionados.
+  - **`TierRow` editável:** click no label do tier abre form inline com input de label + select de cor + botões save/cancel/delete. Cores aplicadas via `TIER_LIST_COLOR_BG` e `TIER_LIST_COLOR_BORDER` (helpers em `lib/afk.ts`).
+  - **Compartilhamento:** botão único toggle entre "Compartilhar" e "Pública (revogar)". Ao gerar token, copia URL pública pro clipboard automaticamente (`navigator.clipboard.writeText`) e mostra `Check` por 2s.
+  - **Editar metadata:** botão "Editar info" abre painel com inputs de name/description; salva via PATCH.
+- **`pages/tier-lists/public.tsx`:** read-only, layout sem `AppLayout` (página standalone tipo `formations/public`). Header com nome + autor + descrição. Rows renderizadas com mesma paleta. Footer com link "AFK Builder".
+
+#### Helpers em `lib/afk.ts`
+
+- `TIER_LIST_COLORS`: array das 8 cores aceitas
+- `TIER_LIST_COLOR_BG`: classes Tailwind para o label colorido (bg sólido)
+- `TIER_LIST_COLOR_BORDER`: classes para a borda da row + bg suave (`/5`)
+
+#### Sidebar
+
+Novo item **"Tier Lists"** (ícone `ListChecks` do lucide-react) entre "Comps prontos" e "Guias".
+
+#### Validação Fase 23
+
+- ✅ Build Vite 4.03s — chunk de `@dnd-kit/core` separado (42.57 kB / 14.19 kB gzip)
+- ✅ 187 testes verdes (sem regressão — nenhum teste novo escrito; Fase 23 adiciona apenas tabelas/rotas/UI sem mexer em código existente testado)
+- ✅ 14 rotas em `/tier-lists*` + 1 pública `/tier/{token}`
+- ✅ 3 migrations aplicadas
+- ⚠️ **Sem testes automatizados específicos de tier list** — endpoints simples + UI dependem de DnD que é difícil de testar em CI. Smoke check manual: criar lista, adicionar tier custom, arrastar herói entre rows, compartilhar, abrir URL pública em incógnito.
+- ⚠️ **Reordenação de rows via DnD ainda não implementada na UI** — endpoint existe (`reorderRows`), mas a UI atual só permite editar label/cor/excluir, não arrastar a row inteira. Pode ser próxima iteração.
+
+---
+
 ### ✅ Fase 22 — Heroes destaque por fase + Signature Items guide
 
 Continuação direta da 21.5: consumir os 2 últimos pedaços úteis do dump capturado pelo usuário (afk.guide via extensão Claude Chrome). Pulei tradução PT-BR de engravings (descrições já em PT-BR; labels EN são nomes próprios da comunidade) e tier de beasts no allclash (sem ganho marginal sobre afk.guide).

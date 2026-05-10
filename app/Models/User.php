@@ -23,6 +23,11 @@ class User extends Authenticatable
         return $this->hasMany(Formation::class);
     }
 
+    public function tierLists(): HasMany
+    {
+        return $this->hasMany(UserTierList::class);
+    }
+
     /**
      * The attributes that are mass assignable.
      *
