@@ -1,9 +1,20 @@
+import { PageShell } from '@/components/page-shell';
+import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import AppLayout from '@/layouts/app-layout';
+import { TIER_LIST_COLOR_BG, TIER_LIST_COLOR_BORDER, TIER_LIST_COLORS } from '@/lib/afk';
+import { cn } from '@/lib/utils';
+import type { BreadcrumbItem } from '@/types';
+import type { Faction, Hero, HeroClass, TierListColor, UserTierList, UserTierListItem, UserTierListRow } from '@/types/afk';
 import {
     closestCorners,
     DndContext,
     type DragEndEvent,
-    DragOverlay,
     type DragOverEvent,
+    DragOverlay,
     type DragStartEvent,
     PointerSensor,
     useDraggable,
@@ -17,18 +28,6 @@ import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import { Check, ListChecks, Pencil, Plus, Save, Search, Share2, Trash2, X } from 'lucide-react';
 import { type FormEvent, useMemo, useState } from 'react';
-import { PageShell } from '@/components/page-shell';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useConfirm } from '@/components/ui/confirm-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import AppLayout from '@/layouts/app-layout';
-import { TIER_LIST_COLOR_BG, TIER_LIST_COLOR_BORDER, TIER_LIST_COLORS } from '@/lib/afk';
-import { cn } from '@/lib/utils';
-import type { BreadcrumbItem } from '@/types';
-import type { Faction, Hero, HeroClass, TierListColor, UserTierList, UserTierListItem, UserTierListRow } from '@/types/afk';
 
 interface PageProps {
     tierList: UserTierList & { rows: (UserTierListRow & { items: (UserTierListItem & { hero: Hero })[] })[] };
@@ -285,7 +284,7 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
             <PageShell
                 title={editingMeta ? 'Editar info' : name}
                 icon={ListChecks}
-                description={editingMeta ? undefined : (description || 'Arraste heróis do pool para os tiers. Edits são salvos automaticamente.')}
+                description={editingMeta ? undefined : description || 'Arraste heróis do pool para os tiers. Edits são salvos automaticamente.'}
                 actions={
                     <div className="flex gap-1">
                         {!editingMeta && (
@@ -309,7 +308,7 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
                 }
             >
                 {editingMeta && (
-                    <div className="mb-4 rounded-lg border bg-card p-4">
+                    <div className="bg-card mb-4 rounded-lg border p-4">
                         <div className="grid gap-3 sm:grid-cols-2">
                             <div className="flex flex-col gap-1.5">
                                 <Label>Nome</Label>
@@ -321,7 +320,15 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
                             </div>
                         </div>
                         <div className="mt-3 flex justify-end gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => { setName(tierList.name); setDescription(tierList.description ?? ''); setEditingMeta(false); }}>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                    setName(tierList.name);
+                                    setDescription(tierList.description ?? '');
+                                    setEditingMeta(false);
+                                }}
+                            >
                                 Cancelar
                             </Button>
                             <Button size="sm" onClick={handleSaveMeta}>
@@ -375,10 +382,11 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
 
                     {/* Preview do elemento sendo arrastado, segue o cursor */}
                     <DragOverlay dropAnimation={null}>
-                        {activeDrag?.kind === 'hero' && (() => {
-                            const hero = heroes.find((h) => h.id === activeDrag.id);
-                            return hero ? <HeroPreviewCard hero={hero} /> : null;
-                        })()}
+                        {activeDrag?.kind === 'hero' &&
+                            (() => {
+                                const hero = heroes.find((h) => h.id === activeDrag.id);
+                                return hero ? <HeroPreviewCard hero={hero} /> : null;
+                            })()}
                     </DragOverlay>
                 </DndContext>
             </PageShell>
@@ -420,7 +428,7 @@ function TierRow({
             className={cn(
                 'flex overflow-hidden rounded-lg border-2 transition-all',
                 TIER_LIST_COLOR_BORDER[row.color],
-                isOver && 'scale-[1.01] shadow-lg ring-4 ring-primary',
+                isOver && 'ring-primary scale-[1.01] shadow-lg ring-4',
             )}
         >
             <div className={cn('flex w-20 shrink-0 flex-col items-center justify-center gap-1 px-2 py-3', TIER_LIST_COLOR_BG[row.color])}>
@@ -430,28 +438,36 @@ function TierRow({
                             value={labelEdit}
                             onChange={(e) => setLabelEdit(e.target.value)}
                             maxLength={16}
-                            className="h-7 w-16 bg-background px-1 text-center text-sm font-bold text-foreground"
+                            className="bg-background text-foreground h-7 w-16 px-1 text-center text-sm font-bold"
                             autoFocus
                         />
                         <select
                             value={colorEdit}
                             onChange={(e) => setColorEdit(e.target.value as TierListColor)}
-                            className="h-6 w-16 rounded bg-background px-1 text-[10px] text-foreground"
+                            className="bg-background text-foreground h-6 w-16 rounded px-1 text-[10px]"
                         >
                             {TIER_LIST_COLORS.map((c) => (
-                                <option key={c} value={c}>{c}</option>
+                                <option key={c} value={c}>
+                                    {c}
+                                </option>
                             ))}
                         </select>
                         <div className="flex gap-1">
-                            <button type="submit" className="rounded bg-emerald-500 p-0.5 text-white" aria-label="Salvar"><Check className="size-3" /></button>
-                            <button type="button" onClick={onCancelEdit} className="rounded bg-zinc-500 p-0.5 text-white" aria-label="Cancelar"><X className="size-3" /></button>
-                            <button type="button" onClick={onDelete} className="rounded bg-rose-500 p-0.5 text-white" aria-label="Excluir"><Trash2 className="size-3" /></button>
+                            <button type="submit" className="rounded bg-emerald-500 p-0.5 text-white" aria-label="Salvar">
+                                <Check className="size-3" />
+                            </button>
+                            <button type="button" onClick={onCancelEdit} className="rounded bg-zinc-500 p-0.5 text-white" aria-label="Cancelar">
+                                <X className="size-3" />
+                            </button>
+                            <button type="button" onClick={onDelete} className="rounded bg-rose-500 p-0.5 text-white" aria-label="Excluir">
+                                <Trash2 className="size-3" />
+                            </button>
                         </div>
                     </form>
                 ) : (
                     <button type="button" onClick={onEdit} className="flex flex-col items-center gap-0.5" aria-label={`Editar tier ${row.label}`}>
-                        <span className="text-2xl font-black leading-none">{row.label}</span>
-                        <span className="text-[9px] uppercase tracking-wide opacity-80">
+                        <span className="text-2xl leading-none font-black">{row.label}</span>
+                        <span className="text-[9px] tracking-wide uppercase opacity-80">
                             {row.items.length} {row.items.length === 1 ? 'herói' : 'heróis'}
                         </span>
                     </button>
@@ -460,10 +476,7 @@ function TierRow({
             {/* Corpo droppable + sortable horizontal */}
             <div
                 ref={setDroppableRef}
-                className={cn(
-                    'flex flex-1 flex-wrap items-start gap-1 p-2 min-h-[80px] transition-colors',
-                    isOver && 'bg-primary/5',
-                )}
+                className={cn('flex min-h-[80px] flex-1 flex-wrap items-start gap-1 p-2 transition-colors', isOver && 'bg-primary/5')}
             >
                 <SortableContext items={row.items.map((it) => `hero-${it.hero_id}`)} strategy={horizontalListSortingStrategy}>
                     {row.items.map((item) => (
@@ -471,7 +484,7 @@ function TierRow({
                     ))}
                 </SortableContext>
                 {row.items.length === 0 && (
-                    <span className={cn('self-center px-2 text-xs', isOver ? 'font-semibold text-primary' : 'text-muted-foreground')}>
+                    <span className={cn('self-center px-2 text-xs', isOver ? 'text-primary font-semibold' : 'text-muted-foreground')}>
                         {isOver ? '⬇ Solte aqui' : 'Arraste heróis aqui'}
                     </span>
                 )}
@@ -497,15 +510,21 @@ function SortableHero({ hero, rowId }: { hero: Hero; rowId: number }) {
             {...listeners}
             type="button"
             className={cn(
-                'flex w-14 shrink-0 cursor-grab flex-col items-center gap-0.5 rounded-md border bg-background p-1 transition-shadow active:cursor-grabbing',
+                'bg-background flex w-14 shrink-0 cursor-grab flex-col items-center gap-0.5 rounded-md border p-1 transition-shadow active:cursor-grabbing',
                 isDragging && 'opacity-30 shadow-lg',
             )}
             title={hero.name}
         >
             {hero.portrait_url ? (
-                <img src={hero.portrait_url} alt={hero.name} className="size-12 rounded object-cover object-top pointer-events-none" loading="lazy" draggable={false} />
+                <img
+                    src={hero.portrait_url}
+                    alt={hero.name}
+                    className="pointer-events-none size-12 rounded object-cover object-top"
+                    loading="lazy"
+                    draggable={false}
+                />
             ) : (
-                <div className="grid size-12 place-items-center rounded bg-muted text-[10px] text-muted-foreground">?</div>
+                <div className="bg-muted text-muted-foreground grid size-12 place-items-center rounded text-[10px]">?</div>
             )}
             <span className="line-clamp-1 max-w-full text-center text-[9px] leading-none">{hero.name}</span>
         </button>
@@ -515,13 +534,13 @@ function SortableHero({ hero, rowId }: { hero: Hero; rowId: number }) {
 function HeroPreviewCard({ hero }: { hero: Hero }) {
     return (
         <div
-            className="flex w-14 cursor-grabbing flex-col items-center gap-0.5 rounded-md border-2 border-primary bg-card p-1 shadow-2xl"
+            className="border-primary bg-card flex w-14 cursor-grabbing flex-col items-center gap-0.5 rounded-md border-2 p-1 shadow-2xl"
             style={{ transform: 'rotate(-3deg)' }}
         >
             {hero.portrait_url ? (
-                <img src={hero.portrait_url} alt={hero.name} className="size-12 rounded object-cover object-top pointer-events-none" />
+                <img src={hero.portrait_url} alt={hero.name} className="pointer-events-none size-12 rounded object-cover object-top" />
             ) : (
-                <div className="grid size-12 place-items-center rounded bg-muted text-[10px] text-muted-foreground">?</div>
+                <div className="bg-muted text-muted-foreground grid size-12 place-items-center rounded text-[10px]">?</div>
             )}
             <span className="line-clamp-1 max-w-full text-center text-[9px] leading-none">{hero.name}</span>
         </div>
@@ -552,36 +571,50 @@ function HeroPool({
     const { setNodeRef, isOver } = useDroppable({ id: 'pool', data: { kind: 'pool' } });
 
     return (
-        <aside ref={setNodeRef} className={cn('flex flex-col gap-2 rounded-lg border-2 bg-card p-3 transition-all', isOver ? 'border-primary bg-primary/5 shadow-lg ring-4 ring-primary' : 'border-border')}>
-            <div className={cn('flex items-center gap-1 text-xs font-semibold uppercase tracking-wide', isOver ? 'text-primary' : 'text-muted-foreground')}>
+        <aside
+            ref={setNodeRef}
+            className={cn(
+                'bg-card flex flex-col gap-2 rounded-lg border-2 p-3 transition-all',
+                isOver ? 'border-primary bg-primary/5 ring-primary shadow-lg ring-4' : 'border-border',
+            )}
+        >
+            <div
+                className={cn(
+                    'flex items-center gap-1 text-xs font-semibold tracking-wide uppercase',
+                    isOver ? 'text-primary' : 'text-muted-foreground',
+                )}
+            >
                 <ListChecks className="size-3" />
                 {isOver ? '⬇ Solte para remover do tier' : `Pool (${heroes.length})`}
             </div>
             <div className="flex items-center gap-1">
-                <Search className="size-3 text-muted-foreground" />
-                <Input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Buscar..."
-                    className="h-7 text-xs"
-                />
+                <Search className="text-muted-foreground size-3" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." className="h-7 text-xs" />
             </div>
             <div className="grid grid-cols-2 gap-1">
                 <Select value={filterFaction} onValueChange={setFilterFaction}>
-                    <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Facção" /></SelectTrigger>
+                    <SelectTrigger className="h-7 text-xs">
+                        <SelectValue placeholder="Facção" />
+                    </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todas facções</SelectItem>
                         {factions.map((f) => (
-                            <SelectItem key={f.id} value={String(f.id)}>{f.name_pt ?? f.code}</SelectItem>
+                            <SelectItem key={f.id} value={String(f.id)}>
+                                {f.name_pt ?? f.code}
+                            </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
                 <Select value={filterClass} onValueChange={setFilterClass}>
-                    <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Classe" /></SelectTrigger>
+                    <SelectTrigger className="h-7 text-xs">
+                        <SelectValue placeholder="Classe" />
+                    </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todas classes</SelectItem>
                         {heroClasses.map((c) => (
-                            <SelectItem key={c.id} value={String(c.id)}>{c.name_pt ?? c.code}</SelectItem>
+                            <SelectItem key={c.id} value={String(c.id)}>
+                                {c.name_pt ?? c.code}
+                            </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
@@ -590,12 +623,10 @@ function HeroPool({
                 {heroes.map((hero) => (
                     <DraggableHero key={hero.id} hero={hero} />
                 ))}
-                {heroes.length === 0 && (
-                    <span className="px-2 py-4 text-center text-xs text-muted-foreground">Nenhum herói no pool.</span>
-                )}
+                {heroes.length === 0 && <span className="text-muted-foreground px-2 py-4 text-center text-xs">Nenhum herói no pool.</span>}
             </div>
             {heroes.length === 0 && search === '' && filterFaction === 'all' && filterClass === 'all' && (
-                <p className="text-[10px] text-muted-foreground">Todos os heróis estão posicionados em algum tier.</p>
+                <p className="text-muted-foreground text-[10px]">Todos os heróis estão posicionados em algum tier.</p>
             )}
         </aside>
     );
@@ -615,7 +646,7 @@ function DraggableHero({ hero }: { hero: Hero }) {
             style={style}
             type="button"
             className={cn(
-                'flex w-14 shrink-0 cursor-grab flex-col items-center gap-0.5 rounded-md border bg-background p-1 transition-shadow active:cursor-grabbing',
+                'bg-background flex w-14 shrink-0 cursor-grab flex-col items-center gap-0.5 rounded-md border p-1 transition-shadow active:cursor-grabbing',
                 isDragging && 'opacity-40 shadow-lg',
             )}
             title={hero.name}
@@ -623,7 +654,7 @@ function DraggableHero({ hero }: { hero: Hero }) {
             {hero.portrait_url ? (
                 <img src={hero.portrait_url} alt={hero.name} className="size-12 rounded object-cover object-top" loading="lazy" draggable={false} />
             ) : (
-                <div className="grid size-12 place-items-center rounded bg-muted text-[10px] text-muted-foreground">?</div>
+                <div className="bg-muted text-muted-foreground grid size-12 place-items-center rounded text-[10px]">?</div>
             )}
             <span className="line-clamp-1 max-w-full text-center text-[9px] leading-none">{hero.name}</span>
         </button>

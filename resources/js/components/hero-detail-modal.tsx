@@ -47,8 +47,8 @@ import {
     HERO_TYPE_BADGE,
     HERO_TYPE_ICON,
     HERO_TYPE_LABEL,
-    TIER_THEME,
     localized,
+    TIER_THEME,
     tierFromAscension,
 } from '@/lib/afk';
 import { cn } from '@/lib/utils';
@@ -249,13 +249,11 @@ export function HeroDetailModal({ slug, open, onOpenChange, onNavigate }: HeroDe
                     a respeitar o max-w-5xl. Sem isso, conteúdo com min-content maior que
                     1024px expandiria o grid e criaria scroll horizontal. */}
                 <DialogContent className="max-h-[92vh] max-w-5xl grid-cols-[minmax(0,1fr)] overflow-y-auto p-0">
-                    <DialogTitle className="sr-only">
-                        {data?.hero.name ?? 'Detalhes do herói'}
-                    </DialogTitle>
+                    <DialogTitle className="sr-only">{data?.hero.name ?? 'Detalhes do herói'}</DialogTitle>
 
                     {loading && (
                         <div className="flex h-64 items-center justify-center">
-                            <Loader2 className="size-8 animate-spin text-muted-foreground" />
+                            <Loader2 className="text-muted-foreground size-8 animate-spin" />
                         </div>
                     )}
                     {!loading && data && (
@@ -307,7 +305,7 @@ interface ContentProps {
 }
 
 function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, onMutation, onNavigate }: ContentProps) {
-    const { hero, userHero, synergies, availableArtifacts, availableCollections: _, ratings, engravings, features } = data;
+    const { hero, userHero, synergies, ratings, engravings, features } = data;
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     const factionTheme = FACTION_THEME[hero.faction.code as FactionCode];
@@ -352,9 +350,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                 <div className="flex flex-col items-center gap-1.5 text-center">
                     {/* Tier + Stars */}
                     <div className="flex items-center gap-2">
-                        <Badge className={cn('px-3 py-0.5 text-xs uppercase tracking-wide', tierTheme.badge)}>
-                            {tierTheme.label}
-                        </Badge>
+                        <Badge className={cn('px-3 py-0.5 text-xs tracking-wide uppercase', tierTheme.badge)}>{tierTheme.label}</Badge>
                         {stars.total > 0 && (
                             <div className="flex gap-0.5">
                                 {Array.from({ length: stars.total }).map((_, i) => (
@@ -368,16 +364,16 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     </div>
 
                     {/* Title (subtitle) */}
-                    {hero.title && (
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground">{hero.title}</p>
-                    )}
+                    {hero.title && <p className="text-muted-foreground text-xs tracking-wider uppercase">{hero.title}</p>}
 
                     {/* Hero Name */}
-                    <h1 className={cn(
-                        'max-w-full break-words text-2xl font-bold leading-tight sm:text-3xl',
-                        awakened && 'bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 bg-clip-text text-transparent',
-                        !awakened && factionTheme.headerText,
-                    )}>
+                    <h1
+                        className={cn(
+                            'max-w-full text-2xl leading-tight font-bold break-words sm:text-3xl',
+                            awakened && 'bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 bg-clip-text text-transparent',
+                            !awakened && factionTheme.headerText,
+                        )}
+                    >
                         {hero.name}
                     </h1>
 
@@ -388,15 +384,16 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                             <ClassIcon className="size-3" />
                             {CLASS_LABEL[hero.hero_class.code as ClassCode]}
                         </Badge>
-                        {hero.type && (() => {
-                            const TypeIcon = HERO_TYPE_ICON[hero.type];
-                            return (
-                                <Badge variant="outline" className={cn('gap-1', HERO_TYPE_BADGE[hero.type])}>
-                                    <TypeIcon className="size-3" />
-                                    {HERO_TYPE_LABEL[hero.type]}
-                                </Badge>
-                            );
-                        })()}
+                        {hero.type &&
+                            (() => {
+                                const TypeIcon = HERO_TYPE_ICON[hero.type];
+                                return (
+                                    <Badge variant="outline" className={cn('gap-1', HERO_TYPE_BADGE[hero.type])}>
+                                        <TypeIcon className="size-3" />
+                                        {HERO_TYPE_LABEL[hero.type]}
+                                    </Badge>
+                                );
+                            })()}
                         {awakened && (
                             <Badge className="gap-1 bg-gradient-to-r from-rose-500 via-amber-400 to-rose-500 text-white">
                                 <Flame className="size-3" />
@@ -426,22 +423,24 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
 
                 {/* Centro: portrait + power + stats strip */}
                 <div className="flex min-w-0 flex-col items-center gap-3">
-                    <div className={cn(
-                        'relative aspect-[3/4] w-full overflow-hidden rounded-lg border-2',
-                        factionTheme.cardGradient,
-                        awakened ? 'border-amber-400/90 shadow-[inset_0_0_12px_rgba(251,191,36,0.45)]' : factionTheme.cardBorder,
-                    )}>
+                    <div
+                        className={cn(
+                            'relative aspect-[3/4] w-full overflow-hidden rounded-lg border-2',
+                            factionTheme.cardGradient,
+                            awakened ? 'border-amber-400/90 shadow-[inset_0_0_12px_rgba(251,191,36,0.45)]' : factionTheme.cardBorder,
+                        )}
+                    >
                         {hero.portrait_url ? (
                             <img src={hero.portrait_url} alt={hero.name} className="size-full object-contain object-bottom" />
                         ) : (
-                            <div className="grid size-full place-items-center text-xs text-muted-foreground">sem imagem</div>
+                            <div className="text-muted-foreground grid size-full place-items-center text-xs">sem imagem</div>
                         )}
                     </div>
 
                     {/* Power score */}
                     {userHero?.power_rating !== undefined && (
                         <div className="flex flex-col items-center">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Pontuação</span>
+                            <span className="text-muted-foreground text-[10px] tracking-wider uppercase">Pontuação</span>
                             <span className="text-2xl font-bold tabular-nums">{userHero.power_rating.toLocaleString('pt-BR')}</span>
                         </div>
                     )}
@@ -449,9 +448,9 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     {/* Stats strip */}
                     {owned && userHero ? (
                         <>
-                            <div className="flex w-full items-center justify-center gap-3 rounded-md border bg-muted/30 px-3 py-1.5 text-xs">
+                            <div className="bg-muted/30 flex w-full items-center justify-center gap-3 rounded-md border px-3 py-1.5 text-xs">
                                 <div className="flex flex-col items-center">
-                                    <span className="text-[9px] uppercase text-muted-foreground">Nível</span>
+                                    <span className="text-muted-foreground text-[9px] uppercase">Nível</span>
                                     <span className="font-semibold tabular-nums">{userHero.level}</span>
                                 </div>
                                 {stats && (
@@ -468,29 +467,52 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
 
                             {/* Atributos extras: Móveis, Inscrições, Notas */}
                             <div className="flex w-full flex-wrap items-center justify-center gap-1.5">
-                                <Chip icon={Hotel} label="Móveis" value={userFurniture > 0 ? `${userFurniture}/9` : '—'}
-                                    accent={f9Unlocked ? 'border-amber-400/60 bg-amber-400/10' : f3Unlocked ? 'border-emerald-500/40 bg-emerald-500/10' : undefined}
-                                    extra={userFurniture > 0 && (
-                                        <>
-                                            <span className={cn('text-[9px]', f3Unlocked && 'text-emerald-600 dark:text-emerald-400')}>{f3Unlocked ? '★F3' : '☆F3'}</span>
-                                            <span className={cn('text-[9px]', f9Unlocked && 'text-amber-600 dark:text-amber-400')}>{f9Unlocked ? '★F9' : '☆F9'}</span>
-                                        </>
-                                    )}
+                                <Chip
+                                    icon={Hotel}
+                                    label="Móveis"
+                                    value={userFurniture > 0 ? `${userFurniture}/9` : '—'}
+                                    accent={
+                                        f9Unlocked
+                                            ? 'border-amber-400/60 bg-amber-400/10'
+                                            : f3Unlocked
+                                              ? 'border-emerald-500/40 bg-emerald-500/10'
+                                              : undefined
+                                    }
+                                    extra={
+                                        userFurniture > 0 && (
+                                            <>
+                                                <span className={cn('text-[9px]', f3Unlocked && 'text-emerald-600 dark:text-emerald-400')}>
+                                                    {f3Unlocked ? '★F3' : '☆F3'}
+                                                </span>
+                                                <span className={cn('text-[9px]', f9Unlocked && 'text-amber-600 dark:text-amber-400')}>
+                                                    {f9Unlocked ? '★F9' : '☆F9'}
+                                                </span>
+                                            </>
+                                        )
+                                    }
                                 />
-                                <Chip icon={PenLine} label="Inscrições" value={userEngraving > 0 ? `+${userEngraving}` : '—'}
+                                <Chip
+                                    icon={PenLine}
+                                    label="Inscrições"
+                                    value={userEngraving > 0 ? `+${userEngraving}` : '—'}
                                     accent={userEngraving > 0 ? 'border-blue-500/40 bg-blue-500/10' : undefined}
                                 />
                                 {userHero.notes && (
-                                    <Chip icon={ScrollText} label="Notas" value={null} extra={
-                                        <span className="line-clamp-1 max-w-[140px] text-[10px] text-muted-foreground" title={userHero.notes}>
-                                            {userHero.notes}
-                                        </span>
-                                    } />
+                                    <Chip
+                                        icon={ScrollText}
+                                        label="Notas"
+                                        value={null}
+                                        extra={
+                                            <span className="text-muted-foreground line-clamp-1 max-w-[140px] text-[10px]" title={userHero.notes}>
+                                                {userHero.notes}
+                                            </span>
+                                        }
+                                    />
                                 )}
                             </div>
                         </>
                     ) : (
-                        <p className="text-xs text-muted-foreground">Não cadastrado no roster.</p>
+                        <p className="text-muted-foreground text-xs">Não cadastrado no roster.</p>
                     )}
 
                     {hero.source_url && (
@@ -498,7 +520,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                             href={hero.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-[10px]"
                         >
                             <ExternalLink className="size-3" />
                             Fandom Wiki
@@ -517,12 +539,14 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                             empty={false}
                             imageUrl={userHero.artifact.portrait_url}
                             accentClass="border-violet-500/60"
-                            detail={userHero.artifact_star_level !== null ? (
-                                <span className="text-amber-500">
-                                    {'★'.repeat(userHero.artifact_star_level)}
-                                    {'☆'.repeat(userHero.artifact.max_stars - userHero.artifact_star_level)}
-                                </span>
-                            ) : undefined}
+                            detail={
+                                userHero.artifact_star_level !== null ? (
+                                    <span className="text-amber-500">
+                                        {'★'.repeat(userHero.artifact_star_level)}
+                                        {'☆'.repeat(userHero.artifact.max_stars - userHero.artifact_star_level)}
+                                    </span>
+                                ) : undefined
+                            }
                         />
                     ) : userHero?.collection ? (
                         <HeroSlotCard
@@ -531,13 +555,13 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                             empty={false}
                             imageUrl={userHero.collection.portrait_url}
                             accentClass="border-fuchsia-500/60"
-                            detail={(
-                                <div className="flex flex-wrap justify-center gap-x-1 text-[9px] text-muted-foreground">
+                            detail={
+                                <div className="text-muted-foreground flex flex-wrap justify-center gap-x-1 text-[9px]">
                                     {userHero.collection.hp_bonus > 0 && <span>HP+{userHero.collection.hp_bonus}</span>}
                                     {userHero.collection.attack_bonus > 0 && <span>ATK+{userHero.collection.attack_bonus}</span>}
                                     {userHero.collection.defense_bonus > 0 && <span>DEF+{userHero.collection.defense_bonus}</span>}
                                 </div>
-                            )}
+                            }
                         />
                     ) : (
                         <HeroSlotCard icon={Gem} label="Artefato / Coleção" empty />
@@ -546,14 +570,19 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
             </section>
 
             {/* Action footer (acima das tabs) */}
-            <section className="flex flex-wrap items-center justify-center gap-2 border-y bg-muted/20 px-4 py-3">
+            <section className="bg-muted/20 flex flex-wrap items-center justify-center gap-2 border-y px-4 py-3">
                 {owned ? (
                     <>
                         <Button size="sm" variant="default" onClick={onEditRoster}>
                             <Pencil className="size-3" />
                             Editar Roster
                         </Button>
-                        <Button size="sm" variant="outline" onClick={handleRemoveFromRoster} className="border-destructive/40 text-destructive hover:bg-destructive/10">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleRemoveFromRoster}
+                            className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                        >
                             <Trash2 className="size-3" />
                             Remover
                         </Button>
@@ -615,7 +644,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                             <SectionBlock
                                 icon={Gem}
                                 title="Eternal Engravings"
-                                extra={<span className="text-[10px] text-muted-foreground">E30 / E60</span>}
+                                extra={<span className="text-muted-foreground text-[10px]">E30 / E60</span>}
                             >
                                 <EngravingsList engravings={engravings} />
                             </SectionBlock>
@@ -631,18 +660,20 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                                         const abilityName = localized(ability, 'name', locale) ?? ability.name;
                                         const abilityDesc = localized(ability, 'description', locale);
                                         return (
-                                            <div key={ability.id} className="min-w-0 overflow-hidden rounded-lg border bg-card p-3 text-sm">
+                                            <div key={ability.id} className="bg-card min-w-0 overflow-hidden rounded-lg border p-3 text-sm">
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <span className="font-semibold">{abilityName}</span>
                                                     <Badge variant="secondary" className="text-[10px]">
                                                         {ABILITY_TYPE_LABEL[ability.type] ?? ability.type}
                                                     </Badge>
                                                     {ability.ascension_unlock && (
-                                                        <Badge variant="outline" className="text-[10px]">{ability.ascension_unlock}</Badge>
+                                                        <Badge variant="outline" className="text-[10px]">
+                                                            {ability.ascension_unlock}
+                                                        </Badge>
                                                     )}
                                                 </div>
                                                 {abilityDesc && (
-                                                    <div className="mt-2 text-muted-foreground">
+                                                    <div className="text-muted-foreground mt-2">
                                                         <MarkdownContent>{abilityDesc}</MarkdownContent>
                                                     </div>
                                                 )}
@@ -654,40 +685,75 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                         </SectionBlock>
 
                         {/* Furniture F3/F9 */}
-                        {furnitureAbility && (() => {
-                            const faName = localized(furnitureAbility, 'name', locale) ?? furnitureAbility.name;
-                            const faF3 = localized(furnitureAbility, 'f3_description', locale);
-                            const faF9 = localized(furnitureAbility, 'f9_description', locale);
-                            return (
-                                <SectionBlock
-                                    icon={Hotel}
-                                    title="Habilidade de Móvel"
-                                    extra={
-                                        <>
-                                            <Badge variant="secondary" className="text-xs">{faName}</Badge>
-                                            {owned && <Badge variant="outline" className="text-[10px]">{userFurniture}/9</Badge>}
-                                        </>
-                                    }
-                                >
-                                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                                        <div className={cn('rounded-lg border bg-card p-3', owned && f3Unlocked && 'border-emerald-500/40 bg-emerald-500/5')}>
-                                            <Badge variant={owned && f3Unlocked ? 'default' : 'secondary'} className="gap-1">
-                                                {owned && f3Unlocked ? <Unlock className="size-3" /> : <Lock className="size-3" />}
-                                                F3 — 3/9
-                                            </Badge>
-                                            {faF3 ? <div className="mt-2 text-sm text-muted-foreground"><MarkdownContent>{faF3}</MarkdownContent></div> : <p className="mt-2 text-sm text-muted-foreground">Sem descrição.</p>}
+                        {furnitureAbility &&
+                            (() => {
+                                const faName = localized(furnitureAbility, 'name', locale) ?? furnitureAbility.name;
+                                const faF3 = localized(furnitureAbility, 'f3_description', locale);
+                                const faF9 = localized(furnitureAbility, 'f9_description', locale);
+                                return (
+                                    <SectionBlock
+                                        icon={Hotel}
+                                        title="Habilidade de Móvel"
+                                        extra={
+                                            <>
+                                                <Badge variant="secondary" className="text-xs">
+                                                    {faName}
+                                                </Badge>
+                                                {owned && (
+                                                    <Badge variant="outline" className="text-[10px]">
+                                                        {userFurniture}/9
+                                                    </Badge>
+                                                )}
+                                            </>
+                                        }
+                                    >
+                                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                            <div
+                                                className={cn(
+                                                    'bg-card rounded-lg border p-3',
+                                                    owned && f3Unlocked && 'border-emerald-500/40 bg-emerald-500/5',
+                                                )}
+                                            >
+                                                <Badge variant={owned && f3Unlocked ? 'default' : 'secondary'} className="gap-1">
+                                                    {owned && f3Unlocked ? <Unlock className="size-3" /> : <Lock className="size-3" />}
+                                                    F3 — 3/9
+                                                </Badge>
+                                                {faF3 ? (
+                                                    <div className="text-muted-foreground mt-2 text-sm">
+                                                        <MarkdownContent>{faF3}</MarkdownContent>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-muted-foreground mt-2 text-sm">Sem descrição.</p>
+                                                )}
+                                            </div>
+                                            <div
+                                                className={cn(
+                                                    'bg-card rounded-lg border p-3',
+                                                    owned && f9Unlocked && 'border-amber-400/60 bg-amber-400/5',
+                                                )}
+                                            >
+                                                <Badge
+                                                    variant={owned && f9Unlocked ? 'default' : 'secondary'}
+                                                    className={cn(
+                                                        'gap-1',
+                                                        owned && f9Unlocked && 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900',
+                                                    )}
+                                                >
+                                                    {owned && f9Unlocked ? <Unlock className="size-3" /> : <Lock className="size-3" />}
+                                                    F9 — 9/9
+                                                </Badge>
+                                                {faF9 ? (
+                                                    <div className="text-muted-foreground mt-2 text-sm">
+                                                        <MarkdownContent>{faF9}</MarkdownContent>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-muted-foreground mt-2 text-sm">Sem descrição.</p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className={cn('rounded-lg border bg-card p-3', owned && f9Unlocked && 'border-amber-400/60 bg-amber-400/5')}>
-                                            <Badge variant={owned && f9Unlocked ? 'default' : 'secondary'} className={cn('gap-1', owned && f9Unlocked && 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900')}>
-                                                {owned && f9Unlocked ? <Unlock className="size-3" /> : <Lock className="size-3" />}
-                                                F9 — 9/9
-                                            </Badge>
-                                            {faF9 ? <div className="mt-2 text-sm text-muted-foreground"><MarkdownContent>{faF9}</MarkdownContent></div> : <p className="mt-2 text-sm text-muted-foreground">Sem descrição.</p>}
-                                        </div>
-                                    </div>
-                                </SectionBlock>
-                            );
-                        })()}
+                                    </SectionBlock>
+                                );
+                            })()}
 
                         {/* Synergies */}
                         {synergies.length > 0 && (
@@ -700,7 +766,10 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                                                 key={partner.id}
                                                 type="button"
                                                 onClick={() => onNavigate?.(partner.slug)}
-                                                className={cn('flex flex-col gap-1 rounded-lg border bg-card p-2 text-left transition-colors hover:border-foreground/30', partnerFactionTheme?.cardGradient)}
+                                                className={cn(
+                                                    'bg-card hover:border-foreground/30 flex flex-col gap-1 rounded-lg border p-2 text-left transition-colors',
+                                                    partnerFactionTheme?.cardGradient,
+                                                )}
                                                 title={note ?? ''}
                                             >
                                                 <div className="flex items-center gap-2">
@@ -709,7 +778,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                                                     )}
                                                     <div className="min-w-0 flex-1">
                                                         <div className="truncate text-xs font-medium">{partner.name}</div>
-                                                        <div className="text-[10px] text-muted-foreground">peso {weight}</div>
+                                                        <div className="text-muted-foreground text-[10px]">peso {weight}</div>
                                                     </div>
                                                 </div>
                                             </button>
@@ -723,7 +792,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     <TabsContent value="historia" className="flex min-w-0 flex-col gap-2">
                         <SectionBlock icon={BookText} title="História">
                             {hasLore && localizedLore ? (
-                                <div className="rounded-lg border bg-card p-4">
+                                <div className="bg-card rounded-lg border p-4">
                                     <MarkdownContent>{localizedLore}</MarkdownContent>
                                 </div>
                             ) : (
@@ -748,7 +817,7 @@ function SectionBlock({ icon: Icon, title, extra, children }: SectionBlockProps)
     return (
         <section className="flex min-w-0 flex-col gap-2">
             <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold">
-                <Icon className="size-4 shrink-0 text-primary" />
+                <Icon className="text-primary size-4 shrink-0" />
                 <span className="break-words">{title}</span>
                 {extra}
             </h2>
@@ -758,17 +827,17 @@ function SectionBlock({ icon: Icon, title, extra, children }: SectionBlockProps)
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-    return <div className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">{children}</div>;
+    return <div className="text-muted-foreground rounded-lg border border-dashed p-3 text-center text-xs">{children}</div>;
 }
 
 function Divider() {
-    return <span className="h-6 w-px bg-border" />;
+    return <span className="bg-border h-6 w-px" />;
 }
 
 function StatColumn({ label, value }: { label: string; value: number | null }) {
     return (
         <div className="flex flex-col items-center">
-            <span className="text-[9px] uppercase text-muted-foreground">{label}</span>
+            <span className="text-muted-foreground text-[9px] uppercase">{label}</span>
             <span className="font-semibold tabular-nums">{value === null ? '—' : value.toLocaleString('pt-BR')}</span>
         </div>
     );
@@ -784,9 +853,9 @@ interface ChipProps {
 
 function Chip({ icon: Icon, label, value, extra, accent }: ChipProps) {
     return (
-        <div className={cn('flex items-center gap-1.5 rounded-full border bg-card px-2 py-1 text-xs', accent)}>
-            <Icon className="size-3 text-muted-foreground" />
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+        <div className={cn('bg-card flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs', accent)}>
+            <Icon className="text-muted-foreground size-3" />
+            <span className="text-muted-foreground text-[10px] tracking-wide uppercase">{label}</span>
             {value !== null && <span className="font-semibold tabular-nums">{value}</span>}
             {extra && <span className="flex items-center gap-1">{extra}</span>}
         </div>
@@ -830,8 +899,10 @@ function StatsGrid({ stats }: { stats: HeroStats }) {
     return (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
             {filledKeys.map((key) => (
-                <div key={key} className="rounded-lg border bg-card p-2">
-                    <div className="line-clamp-1 text-[10px] text-muted-foreground" title={STAT_LABELS[key]}>{STAT_LABELS[key]}</div>
+                <div key={key} className="bg-card rounded-lg border p-2">
+                    <div className="text-muted-foreground line-clamp-1 text-[10px]" title={STAT_LABELS[key]}>
+                        {STAT_LABELS[key]}
+                    </div>
                     <div className="mt-0.5 text-base font-semibold tabular-nums">{fmt(stats[key])}</div>
                 </div>
             ))}
@@ -850,11 +921,13 @@ function EngravingsList({ engravings }: { engravings: HeroEngraving[] }) {
             <div className={cn('rounded-lg border p-3', accent)}>
                 <div className="mb-1.5 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                        <Badge variant="default" className="font-mono text-[10px]">{title}</Badge>
+                        <Badge variant="default" className="font-mono text-[10px]">
+                            {title}
+                        </Badge>
                         <span className="text-sm font-semibold">{eng.label}</span>
                     </div>
                 </div>
-                <p className="text-xs text-muted-foreground">{eng.description}</p>
+                <p className="text-muted-foreground text-xs">{eng.description}</p>
             </div>
         );
     };
@@ -867,7 +940,7 @@ function EngravingsList({ engravings }: { engravings: HeroEngraving[] }) {
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-[10px]"
                     >
                         <ExternalLink className="size-3" />
                         afk.guide
@@ -903,9 +976,9 @@ function RatingsBySource({ ratings }: { ratings: HeroRating[] }) {
                 const sourceRatings = bySource.get(source) ?? [];
                 const url = sourceRatings.find((r) => r.source_url)?.source_url ?? null;
                 return (
-                    <div key={source} className="rounded-lg border bg-card/50 p-2">
+                    <div key={source} className="bg-card/50 rounded-lg border p-2">
                         <div className="mb-1.5 flex items-center justify-between">
-                            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <span className="text-muted-foreground text-[10px] font-semibold tracking-wide uppercase">
                                 {SOURCE_LABEL[source] ?? source}
                             </span>
                             {url && (
@@ -913,7 +986,7 @@ function RatingsBySource({ ratings }: { ratings: HeroRating[] }) {
                                     href={url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                                    className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-[10px]"
                                 >
                                     <ExternalLink className="size-3" />
                                     fonte
@@ -945,9 +1018,9 @@ function RatingsGrid({ ratings }: { ratings: HeroRating[] }) {
             <table className="w-full min-w-[420px] border-separate border-spacing-1 text-xs">
                 <thead>
                     <tr>
-                        <th className="text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Modo</th>
+                        <th className="text-muted-foreground text-left text-[10px] font-medium tracking-wide uppercase">Modo</th>
                         {stages.map((s) => (
-                            <th key={s} className="text-center text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                            <th key={s} className="text-muted-foreground text-center text-[10px] font-medium tracking-wide uppercase">
                                 {RATING_STAGE_LABEL[s]}
                             </th>
                         ))}
@@ -956,7 +1029,7 @@ function RatingsGrid({ ratings }: { ratings: HeroRating[] }) {
                 <tbody>
                     {visibleModes.map((mode) => (
                         <tr key={mode}>
-                            <td className="py-1 pr-2 text-xs text-foreground">{RATING_MODE_LABEL[mode]}</td>
+                            <td className="text-foreground py-1 pr-2 text-xs">{RATING_MODE_LABEL[mode]}</td>
                             {stages.map((stage) => {
                                 const tier = lookup[`${mode}|${stage}`];
                                 return (
@@ -971,7 +1044,7 @@ function RatingsGrid({ ratings }: { ratings: HeroRating[] }) {
                                                 {tier}
                                             </span>
                                         ) : (
-                                            <span className="text-[10px] text-muted-foreground">—</span>
+                                            <span className="text-muted-foreground text-[10px]">—</span>
                                         )}
                                     </td>
                                 );

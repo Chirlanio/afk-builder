@@ -9,9 +9,18 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ascensionStagesForTier, EQUIPMENT_LEVEL_MAX, EQUIPMENT_TIERS, EQUIPMENT_TIER_BADGE, EQUIPMENT_TIER_LABEL, FACTION_THEME, TIER_THEME, tierFromAscension } from '@/lib/afk';
+import {
+    ascensionStagesForTier,
+    EQUIPMENT_LEVEL_MAX,
+    EQUIPMENT_TIER_BADGE,
+    EQUIPMENT_TIER_LABEL,
+    EQUIPMENT_TIERS,
+    FACTION_THEME,
+    TIER_THEME,
+    tierFromAscension,
+} from '@/lib/afk';
 import { cn } from '@/lib/utils';
-import type { Artifact, Collection, EquipmentTier, FactionCode, Hero, TierCode, UserHero } from '@/types/afk';
+import type { Artifact, Collection, EquipmentTier, FactionCode, Hero, HeroStats, TierCode, UserHero } from '@/types/afk';
 
 interface Props {
     open: boolean;
@@ -39,10 +48,22 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
     const [artifactId, setArtifactId] = useState<number | null>(userHero?.artifact_id ?? null);
     const [artifactStarLevel, setArtifactStarLevel] = useState<number | null>(userHero?.artifact_star_level ?? null);
     const [collectionId, setCollectionId] = useState<number | null>(userHero?.collection_id ?? null);
-    const [weapon, setWeapon] = useState<{ tier: EquipmentTier | null; level: number | null }>({ tier: userHero?.weapon_tier ?? null, level: userHero?.weapon_level ?? null });
-    const [helmet, setHelmet] = useState<{ tier: EquipmentTier | null; level: number | null }>({ tier: userHero?.helmet_tier ?? null, level: userHero?.helmet_level ?? null });
-    const [chest, setChest] = useState<{ tier: EquipmentTier | null; level: number | null }>({ tier: userHero?.chest_tier ?? null, level: userHero?.chest_level ?? null });
-    const [boots, setBoots] = useState<{ tier: EquipmentTier | null; level: number | null }>({ tier: userHero?.boots_tier ?? null, level: userHero?.boots_level ?? null });
+    const [weapon, setWeapon] = useState<{ tier: EquipmentTier | null; level: number | null }>({
+        tier: userHero?.weapon_tier ?? null,
+        level: userHero?.weapon_level ?? null,
+    });
+    const [helmet, setHelmet] = useState<{ tier: EquipmentTier | null; level: number | null }>({
+        tier: userHero?.helmet_tier ?? null,
+        level: userHero?.helmet_level ?? null,
+    });
+    const [chest, setChest] = useState<{ tier: EquipmentTier | null; level: number | null }>({
+        tier: userHero?.chest_tier ?? null,
+        level: userHero?.chest_level ?? null,
+    });
+    const [boots, setBoots] = useState<{ tier: EquipmentTier | null; level: number | null }>({
+        tier: userHero?.boots_tier ?? null,
+        level: userHero?.boots_level ?? null,
+    });
     const [notes, setNotes] = useState<string>(userHero?.notes ?? '');
     const [saving, setSaving] = useState(false);
     const [statsModalOpen, setStatsModalOpen] = useState(false);
@@ -80,12 +101,16 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
             signature_item: signatureItem,
             furniture,
             engraving,
-            weapon_tier: weapon.tier, weapon_level: weapon.tier ? weapon.level ?? 1 : null,
-            helmet_tier: helmet.tier, helmet_level: helmet.tier ? helmet.level ?? 1 : null,
-            chest_tier: chest.tier, chest_level: chest.tier ? chest.level ?? 1 : null,
-            boots_tier: boots.tier, boots_level: boots.tier ? boots.level ?? 1 : null,
+            weapon_tier: weapon.tier,
+            weapon_level: weapon.tier ? (weapon.level ?? 1) : null,
+            helmet_tier: helmet.tier,
+            helmet_level: helmet.tier ? (helmet.level ?? 1) : null,
+            chest_tier: chest.tier,
+            chest_level: chest.tier ? (chest.level ?? 1) : null,
+            boots_tier: boots.tier,
+            boots_level: boots.tier ? (boots.level ?? 1) : null,
             artifact_id: collectionId ? null : artifactId,
-            artifact_star_level: collectionId ? null : (artifactId ? artifactStarLevel : null),
+            artifact_star_level: collectionId ? null : artifactId ? artifactStarLevel : null,
             collection_id: collectionId,
             notes: notes || null,
         };
@@ -115,9 +140,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
 
     if (!hero) return null;
 
-    const displayTierCode = tierFromAscension(
-        validStages.find((s) => s.code === ascensionCode)?.value ?? userHero?.ascension_value ?? 0,
-    );
+    const displayTierCode = tierFromAscension(validStages.find((s) => s.code === ascensionCode)?.value ?? userHero?.ascension_value ?? 0);
     const visualTier = TIER_THEME[displayTierCode];
     const selectedArtifact = artifactId ? availableArtifacts.find((a) => a.id === artifactId) : null;
 
@@ -127,11 +150,11 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                 <header className={cn('border-b p-4', factionTheme?.cardGradient)}>
                     <DialogTitle asChild>
                         <div className="flex flex-col items-center gap-1 text-center">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                            <span className="text-muted-foreground text-[10px] tracking-wider uppercase">
                                 {isEditing ? 'Editar roster' : 'Adicionar ao roster'}
                             </span>
-                            {hero.title && <p className="text-xs uppercase tracking-wider text-muted-foreground">{hero.title}</p>}
-                            <h2 className={cn('text-2xl font-bold leading-tight', factionTheme?.headerText)}>{hero.name}</h2>
+                            {hero.title && <p className="text-muted-foreground text-xs tracking-wider uppercase">{hero.title}</p>}
+                            <h2 className={cn('text-2xl leading-tight font-bold', factionTheme?.headerText)}>{hero.name}</h2>
                         </div>
                     </DialogTitle>
                 </header>
@@ -142,18 +165,10 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                         {/* Esquerda: Arma (em breve) → Capacete (em breve) → Assinatura */}
                         <div className="flex flex-col gap-2">
                             <SlotEdit icon={<Sword className="size-3" />} label="Arma">
-                                <EquipmentInputs
-                                    tier={weapon.tier}
-                                    level={weapon.level}
-                                    onChange={(tier, level) => setWeapon({ tier, level })}
-                                />
+                                <EquipmentInputs tier={weapon.tier} level={weapon.level} onChange={(tier, level) => setWeapon({ tier, level })} />
                             </SlotEdit>
                             <SlotEdit icon={<Shield className="size-3" />} label="Capacete">
-                                <EquipmentInputs
-                                    tier={helmet.tier}
-                                    level={helmet.level}
-                                    onChange={(tier, level) => setHelmet({ tier, level })}
-                                />
+                                <EquipmentInputs tier={helmet.tier} level={helmet.level} onChange={(tier, level) => setHelmet({ tier, level })} />
                             </SlotEdit>
                             <SlotEdit icon={<Crown className="size-3" />} label="Assinatura (0-40)">
                                 <Input
@@ -169,23 +184,41 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
 
                         {/* Centro: portrait + nível/ascensão */}
                         <div className="flex flex-col items-center gap-2">
-                            <div className={cn('relative aspect-[3/4] w-full overflow-hidden rounded-lg border-2', factionTheme?.cardGradient, factionTheme?.cardBorder)}>
+                            <div
+                                className={cn(
+                                    'relative aspect-[3/4] w-full overflow-hidden rounded-lg border-2',
+                                    factionTheme?.cardGradient,
+                                    factionTheme?.cardBorder,
+                                )}
+                            >
                                 {hero.portrait_url ? (
                                     <img src={hero.portrait_url} alt={hero.name} className="size-full object-contain object-bottom" />
                                 ) : (
-                                    <div className="grid size-full place-items-center text-xs text-muted-foreground">sem imagem</div>
+                                    <div className="text-muted-foreground grid size-full place-items-center text-xs">sem imagem</div>
                                 )}
                             </div>
                             <Badge className={cn('text-xs', visualTier.badge)}>{visualTier.label}</Badge>
 
                             <div className="grid w-full grid-cols-2 gap-2">
                                 <div className="space-y-1">
-                                    <Label htmlFor="rh-level" className="text-[10px] uppercase">Nível (max {maxLevel})</Label>
-                                    <Input id="rh-level" type="number" min={1} max={maxLevel} value={level} onChange={(e) => setLevel(Math.min(maxLevel, Math.max(1, Number(e.target.value) || 1)))} className="h-8" />
-                                    {errors.level && <p className="text-[10px] text-destructive">{errors.level}</p>}
+                                    <Label htmlFor="rh-level" className="text-[10px] uppercase">
+                                        Nível (max {maxLevel})
+                                    </Label>
+                                    <Input
+                                        id="rh-level"
+                                        type="number"
+                                        min={1}
+                                        max={maxLevel}
+                                        value={level}
+                                        onChange={(e) => setLevel(Math.min(maxLevel, Math.max(1, Number(e.target.value) || 1)))}
+                                        className="h-8"
+                                    />
+                                    {errors.level && <p className="text-destructive text-[10px]">{errors.level}</p>}
                                 </div>
                                 <div className="space-y-1">
-                                    <Label htmlFor="rh-asc" className="text-[10px] uppercase">Ascensão</Label>
+                                    <Label htmlFor="rh-asc" className="text-[10px] uppercase">
+                                        Ascensão
+                                    </Label>
                                     <Select value={ascensionCode || 'none'} onValueChange={(v) => setAscensionCode(v === 'none' ? '' : v)}>
                                         <SelectTrigger id="rh-asc" className="h-8 text-xs">
                                             <SelectValue placeholder="—" />
@@ -193,7 +226,9 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                                         <SelectContent>
                                             <SelectItem value="none">— —</SelectItem>
                                             {validStages.map((stage) => (
-                                                <SelectItem key={stage.code} value={stage.code}>{stage.label}</SelectItem>
+                                                <SelectItem key={stage.code} value={stage.code}>
+                                                    {stage.label}
+                                                </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -204,18 +239,10 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                         {/* Direita: Peitoral (em breve) → Bota (em breve) → Artefato OU Coleção */}
                         <div className="flex flex-col gap-2">
                             <SlotEdit icon={<Shirt className="size-3" />} label="Peitoral">
-                                <EquipmentInputs
-                                    tier={chest.tier}
-                                    level={chest.level}
-                                    onChange={(tier, level) => setChest({ tier, level })}
-                                />
+                                <EquipmentInputs tier={chest.tier} level={chest.level} onChange={(tier, level) => setChest({ tier, level })} />
                             </SlotEdit>
                             <SlotEdit icon={<Footprints className="size-3" />} label="Bota">
-                                <EquipmentInputs
-                                    tier={boots.tier}
-                                    level={boots.level}
-                                    onChange={(tier, level) => setBoots({ tier, level })}
-                                />
+                                <EquipmentInputs tier={boots.tier} level={boots.level} onChange={(tier, level) => setBoots({ tier, level })} />
                             </SlotEdit>
                             <SlotEdit icon={<Gem className="size-3" />} label="Artefato / Coleção">
                                 <Select
@@ -243,14 +270,24 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="none">— nenhum —</SelectItem>
-                                        {availableArtifacts.filter((a) => a.kind === 'dura').map((a) => (
-                                            <SelectItem key={`a-${a.id}`} value={`a:${a.id}`}>Dura's · {a.name}</SelectItem>
-                                        ))}
-                                        {availableArtifacts.filter((a) => a.kind === 'class').map((a) => (
-                                            <SelectItem key={`a-${a.id}`} value={`a:${a.id}`}>Classe · {a.name}</SelectItem>
-                                        ))}
+                                        {availableArtifacts
+                                            .filter((a) => a.kind === 'dura')
+                                            .map((a) => (
+                                                <SelectItem key={`a-${a.id}`} value={`a:${a.id}`}>
+                                                    Dura's · {a.name}
+                                                </SelectItem>
+                                            ))}
+                                        {availableArtifacts
+                                            .filter((a) => a.kind === 'class')
+                                            .map((a) => (
+                                                <SelectItem key={`a-${a.id}`} value={`a:${a.id}`}>
+                                                    Classe · {a.name}
+                                                </SelectItem>
+                                            ))}
                                         {availableCollections.map((c) => (
-                                            <SelectItem key={`c-${c.id}`} value={`c:${c.id}`}>Coleção · {c.name}</SelectItem>
+                                            <SelectItem key={`c-${c.id}`} value={`c:${c.id}`}>
+                                                Coleção · {c.name}
+                                            </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -260,7 +297,9 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                                         min={1}
                                         max={selectedArtifact.max_stars}
                                         value={artifactStarLevel ?? 1}
-                                        onChange={(e) => setArtifactStarLevel(Math.min(selectedArtifact.max_stars, Math.max(1, Number(e.target.value) || 1)))}
+                                        onChange={(e) =>
+                                            setArtifactStarLevel(Math.min(selectedArtifact.max_stars, Math.max(1, Number(e.target.value) || 1)))
+                                        }
                                         className="mt-1 h-7 text-xs"
                                         placeholder={`★ 1-${selectedArtifact.max_stars}`}
                                     />
@@ -286,8 +325,21 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                                 className="h-8"
                             />
                             <div className="flex gap-1">
-                                <Badge variant={furniture >= 3 ? 'default' : 'outline'} className={cn('h-4 px-1 text-[9px]', furniture >= 3 && 'bg-emerald-500')}>F3</Badge>
-                                <Badge variant={furniture >= 9 ? 'default' : 'outline'} className={cn('h-4 px-1 text-[9px]', furniture >= 9 && 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900')}>F9</Badge>
+                                <Badge
+                                    variant={furniture >= 3 ? 'default' : 'outline'}
+                                    className={cn('h-4 px-1 text-[9px]', furniture >= 3 && 'bg-emerald-500')}
+                                >
+                                    F3
+                                </Badge>
+                                <Badge
+                                    variant={furniture >= 9 ? 'default' : 'outline'}
+                                    className={cn(
+                                        'h-4 px-1 text-[9px]',
+                                        furniture >= 9 && 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900',
+                                    )}
+                                >
+                                    F9
+                                </Badge>
                             </div>
                         </div>
 
@@ -314,7 +366,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                             </Label>
                             <textarea
                                 id="rh-notes"
-                                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
+                                className="border-input bg-background flex min-h-[60px] w-full rounded-md border px-2 py-1 text-xs"
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
                                 maxLength={1000}
@@ -326,13 +378,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
 
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
                         {isEditing && userHero && hero && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setStatsModalOpen(true)}
-                                disabled={saving}
-                            >
+                            <Button type="button" variant="outline" size="sm" onClick={() => setStatsModalOpen(true)} disabled={saving}>
                                 <BarChart3 className="size-4" />
                                 Stats avançados
                             </Button>
@@ -356,7 +402,7 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                     open={statsModalOpen}
                     onOpenChange={setStatsModalOpen}
                     hero={hero}
-                    stats={userHero as any}
+                    stats={userHero as unknown as HeroStats}
                     endpoint={`/user/heroes/${userHero.id}/stats`}
                     contextLabel="Stats do meu roster"
                     onSaved={() => onSaved?.()}
@@ -376,8 +422,8 @@ interface SlotEditProps {
 
 function SlotEdit({ icon, label, children, disabled, expand }: SlotEditProps) {
     return (
-        <div className={cn('flex flex-col gap-1 rounded-md border bg-card p-1.5', disabled && 'opacity-50', expand && 'flex-1')}>
-            <div className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div className={cn('bg-card flex flex-col gap-1 rounded-md border p-1.5', disabled && 'opacity-50', expand && 'flex-1')}>
+            <div className="text-muted-foreground flex items-center gap-1 text-[9px] font-medium tracking-wide uppercase">
                 {icon}
                 <span className="truncate">{label}</span>
             </div>
@@ -411,7 +457,9 @@ function EquipmentInputs({ tier, level, onChange }: EquipmentInputsProps) {
                 <SelectContent>
                     <SelectItem value="none">— vazio —</SelectItem>
                     {EQUIPMENT_TIERS.map((t) => (
-                        <SelectItem key={t} value={t}>{t} · {EQUIPMENT_TIER_LABEL[t]}</SelectItem>
+                        <SelectItem key={t} value={t}>
+                            {t} · {EQUIPMENT_TIER_LABEL[t]}
+                        </SelectItem>
                     ))}
                 </SelectContent>
             </Select>

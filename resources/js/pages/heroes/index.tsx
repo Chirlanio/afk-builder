@@ -1,6 +1,3 @@
-import { Head } from '@inertiajs/react';
-import { Search, Users, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
 import { HeroCard } from '@/components/hero-card';
 import { HeroDetailModal } from '@/components/hero-detail-modal';
 import { PageShell } from '@/components/page-shell';
@@ -11,16 +8,10 @@ import AppLayout from '@/layouts/app-layout';
 import { CLASS_ICON, FACTION_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
-import type {
-    ClassCode,
-    Faction,
-    FactionCode,
-    Hero,
-    HeroClass,
-    RosterByHeroId,
-    Tier,
-    TierCode,
-} from '@/types/afk';
+import type { ClassCode, Faction, FactionCode, Hero, HeroClass, RosterByHeroId, Tier, TierCode } from '@/types/afk';
+import { Head } from '@inertiajs/react';
+import { Search, Users, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface PageProps {
     heroes: Hero[];
@@ -53,7 +44,6 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
         }
     }, []);
 
-    const factionById = useMemo(() => Object.fromEntries(factions.map((f) => [f.id, f])) as Record<number, Faction>, [factions]);
     const classById = useMemo(() => Object.fromEntries(heroClasses.map((c) => [c.id, c])) as Record<number, HeroClass>, [heroClasses]);
     const tierById = useMemo(() => Object.fromEntries(tiers.map((t) => [t.id, t])) as Record<number, Tier>, [tiers]);
 
@@ -117,10 +107,10 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                 icon={Users}
                 description={`${heroes.length} heróis no catálogo · ${ownedCount} no seu roster · ${totalShown} exibidos`}
             >
-                <div className="sticky top-0 z-10 flex flex-col gap-3 rounded-xl border bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+                <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-0 z-10 flex flex-col gap-3 rounded-xl border p-3 backdrop-blur">
                     <div className="flex flex-wrap items-center gap-2">
                         <div className="relative min-w-[220px] flex-1">
-                            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                             <Input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
@@ -129,11 +119,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                             />
                         </div>
 
-                        <Button
-                            variant={onlyOwned ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setOnlyOwned((v) => !v)}
-                        >
+                        <Button variant={onlyOwned ? 'default' : 'outline'} size="sm" onClick={() => setOnlyOwned((v) => !v)}>
                             Só meus ({ownedCount})
                         </Button>
 
@@ -146,7 +132,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-xs font-medium text-muted-foreground">Facção:</span>
+                        <span className="text-muted-foreground text-xs font-medium">Facção:</span>
                         {factions.map((faction) => {
                             const code = faction.code as FactionCode;
                             const theme = FACTION_THEME[code];
@@ -170,7 +156,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-xs font-medium text-muted-foreground">Classe:</span>
+                        <span className="text-muted-foreground text-xs font-medium">Classe:</span>
                         {heroClasses.map((heroClass) => {
                             const Icon = CLASS_ICON[heroClass.code as ClassCode];
                             const active = classFilter.has(heroClass.id);
@@ -204,7 +190,13 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
 
                         return (
                             <section key={faction.id} className="flex flex-col gap-3">
-                                <div className={cn('flex items-center justify-between rounded-lg border-l-4 px-3 py-2', theme.headerBg, theme.cardBorder)}>
+                                <div
+                                    className={cn(
+                                        'flex items-center justify-between rounded-lg border-l-4 px-3 py-2',
+                                        theme.headerBg,
+                                        theme.cardBorder,
+                                    )}
+                                >
                                     <h2 className={cn('text-lg font-semibold', theme.headerText)}>{faction.name_pt}</h2>
                                     <Badge variant="secondary" className="text-xs">
                                         {list.length} {list.length === 1 ? 'herói' : 'heróis'}
@@ -233,7 +225,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
 
                     {totalShown === 0 && (
                         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
-                            <p className="text-sm text-muted-foreground">Nenhum herói corresponde aos filtros atuais.</p>
+                            <p className="text-muted-foreground text-sm">Nenhum herói corresponde aos filtros atuais.</p>
                             {filtersActive && (
                                 <Button variant="link" onClick={clearFilters}>
                                     Limpar filtros

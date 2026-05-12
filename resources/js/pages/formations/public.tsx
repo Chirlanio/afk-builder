@@ -1,22 +1,11 @@
+import { HeroChip } from '@/components/formation-editor/hero-chip';
+import { Badge } from '@/components/ui/badge';
+import { FACTION_THEME } from '@/lib/afk';
+import { cn } from '@/lib/utils';
+import type { ChallengeType, ClassCode, Faction, FactionCode, Formation, FormationTeam, Hero, HeroClass, Tier, TierCode } from '@/types/afk';
 import { Head, Link } from '@inertiajs/react';
 import { CheckCircle2, Eye, Target } from 'lucide-react';
 import { useMemo } from 'react';
-import { HeroChip } from '@/components/formation-editor/hero-chip';
-import { Badge } from '@/components/ui/badge';
-import { CLASS_LABEL, FACTION_THEME } from '@/lib/afk';
-import { cn } from '@/lib/utils';
-import type {
-    ChallengeType,
-    ClassCode,
-    Faction,
-    FactionCode,
-    Formation,
-    FormationTeam,
-    Hero,
-    HeroClass,
-    Tier,
-    TierCode,
-} from '@/types/afk';
 
 interface PageProps {
     formation: Formation & {
@@ -39,8 +28,14 @@ function computeFactionBonus(heroes: Hero[], factionById: Record<number, Faction
     if (heroes.length < 5) return null;
 
     const counts: Record<FactionCode, number> = {
-        lightbearer: 0, mauler: 0, wilder: 0, graveborn: 0,
-        celestial: 0, hypogean: 0, dimensional: 0, draconis: 0,
+        lightbearer: 0,
+        mauler: 0,
+        wilder: 0,
+        graveborn: 0,
+        celestial: 0,
+        hypogean: 0,
+        dimensional: 0,
+        draconis: 0,
     };
 
     for (const hero of heroes) {
@@ -80,8 +75,8 @@ export default function FormationsPublic({ formation, heroes, factions, heroClas
         <>
             <Head title={formation.name} />
 
-            <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <div className="bg-background min-h-screen">
+                <header className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-0 z-10 border-b backdrop-blur">
                     <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-3">
                         <div>
                             <Link href="/" className="text-sm font-semibold">
@@ -92,8 +87,8 @@ export default function FormationsPublic({ formation, heroes, factions, heroClas
                                 Visualização pública
                             </Badge>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                            por <span className="font-medium text-foreground">{formation.user?.name ?? '—'}</span>
+                        <div className="text-muted-foreground text-xs">
+                            por <span className="text-foreground font-medium">{formation.user?.name ?? '—'}</span>
                         </div>
                     </div>
                 </header>
@@ -115,9 +110,7 @@ export default function FormationsPublic({ formation, heroes, factions, heroClas
                                 </Badge>
                             )}
                         </div>
-                        {formation.notes && (
-                            <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{formation.notes}</p>
-                        )}
+                        {formation.notes && <p className="text-muted-foreground mt-2 text-sm whitespace-pre-wrap">{formation.notes}</p>}
                     </div>
 
                     <div className="flex flex-col gap-3">
@@ -130,21 +123,19 @@ export default function FormationsPublic({ formation, heroes, factions, heroClas
                             const bonus = computeFactionBonus(heroesInTeam, factionById);
 
                             return (
-                                <div key={team.id} className="flex flex-col gap-2 rounded-xl border bg-card p-3">
+                                <div key={team.id} className="bg-card flex flex-col gap-2 rounded-xl border p-3">
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <div className="flex items-center gap-2">
-                                            <span className="grid size-7 place-items-center rounded-md bg-primary/10 text-sm font-bold text-primary">
+                                            <span className="bg-primary/10 text-primary grid size-7 place-items-center rounded-md text-sm font-bold">
                                                 {team.position}
                                             </span>
-                                            <span className="text-sm font-semibold">
-                                                {team.name ?? `Equipe ${team.position}`}
-                                            </span>
+                                            <span className="text-sm font-semibold">{team.name ?? `Equipe ${team.position}`}</span>
                                             <Badge variant="secondary" className="text-[10px]">
                                                 {heroesInTeam.length}/5
                                             </Badge>
                                         </div>
                                         {bonus && (
-                                            <Badge className={cn('gap-1 bg-amber-500/15 text-foreground', bonus.color)}>
+                                            <Badge className={cn('text-foreground gap-1 bg-amber-500/15', bonus.color)}>
                                                 <CheckCircle2 className="size-3" />
                                                 {bonus.label}
                                             </Badge>
@@ -161,7 +152,7 @@ export default function FormationsPublic({ formation, heroes, factions, heroClas
                                                 return (
                                                     <div
                                                         key={slotPos}
-                                                        className="grid size-20 place-items-center rounded-lg border-2 border-dashed border-muted-foreground/30 text-xs text-muted-foreground"
+                                                        className="border-muted-foreground/30 text-muted-foreground grid size-20 place-items-center rounded-lg border-2 border-dashed text-xs"
                                                     >
                                                         vazio
                                                     </div>
@@ -189,7 +180,7 @@ export default function FormationsPublic({ formation, heroes, factions, heroClas
                         })}
                     </div>
 
-                    <p className="mt-4 text-center text-xs text-muted-foreground">
+                    <p className="text-muted-foreground mt-4 text-center text-xs">
                         Esta visualização é read-only. Para criar suas próprias formações,{' '}
                         <Link href="/login" className="font-medium underline">
                             faça login
