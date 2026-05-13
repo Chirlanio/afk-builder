@@ -1,4 +1,4 @@
-import { RotateCcw, Sliders } from 'lucide-react';
+import { Check, Loader2, RotateCcw, Save, Sliders } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -33,7 +33,9 @@ const SLIDERS: SliderMeta[] = [
 interface Props {
     formationId: number;
     defaults: WeightOverrides;
+    savedOverrides?: Partial<WeightOverrides> | null;
     onChange: (weights: WeightOverrides, isDefault: boolean) => void;
+    onSave?: (weights: WeightOverrides, isDefault: boolean) => Promise<void> | void;
 }
 
 const SLIDER_MIN = 0;
@@ -48,26 +50,39 @@ function approximatelyEqual(a: number, b: number): boolean {
     return Math.abs(a - b) < 0.001;
 }
 
-function isDefaultWeights(weights: WeightOverrides, defaults: WeightOverrides): boolean {
-    return SLIDERS.every(({ key }) => approximatelyEqual(weights[key], defaults[key]));
+function weightsMatch(a: WeightOverrides, b: WeightOverrides): boolean {
+    return SLIDERS.every(({ key }) => approximatelyEqual(a[key], b[key]));
 }
 
-export function WeightTunerSheet({ formationId, defaults, onChange }: Props) {
+function mergeWithDefaults(partial: Partial<WeightOverrides> | null | undefined, defaults: WeightOverrides): WeightOverrides {
+    return { ...defaults, ...(partial ?? {}) };
+}
+
+export function WeightTunerSheet({ formationId, defaults, savedOverrides, onChange, onSave }: Props) {
+    // Estado "persistido": prioriza saved no DB; se ausente, defaults.
+    const persistedWeights: WeightOverrides = mergeWithDefaults(savedOverrides, defaults);
+
     const [weights, setWeights] = useState<WeightOverrides>(() => {
+        // Inicial: saved no DB > localStorage (compat 26.5) > defaults
+        if (savedOverrides && Object.keys(savedOverrides).length > 0) {
+            return mergeWithDefaults(savedOverrides, defaults);
+        }
         try {
             const stored = localStorage.getItem(storageKey(formationId));
             if (stored) {
-                const parsed = JSON.parse(stored) as Partial<WeightOverrides>;
-                return { ...defaults, ...parsed };
+                return { ...defaults, ...(JSON.parse(stored) as Partial<WeightOverrides>) };
             }
         } catch {
-            // localStorage indisponível, usa defaults
+            // ignora
         }
         return defaults;
     });
     const [open, setOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
-    const isDefault = isDefaultWeights(weights, defaults);
+    const isDefault = weightsMatch(weights, defaults);
+    const isSaved = weightsMatch(weights, persistedWeights);
+    const hasUnsavedChanges = !isSaved;
 
     useEffect(() => {
         onChange(weights, isDefault);
@@ -91,6 +106,16 @@ export function WeightTunerSheet({ formationId, defaults, onChange }: Props) {
         setWeights(defaults);
     };
 
+    const save = async () => {
+        if (!onSave) return;
+        setIsSaving(true);
+        try {
+            await onSave(weights, isDefault);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -104,8 +129,8 @@ export function WeightTunerSheet({ formationId, defaults, onChange }: Props) {
                 <SheetHeader>
                     <SheetTitle>Ajustar pesos do scoring</SheetTitle>
                     <SheetDescription>
-                        Cada componente do score é multiplicado pelo peso correspondente. Defaults vêm do tipo de desafio. Mudanças são salvas localmente
-                        e usadas só pra visualizar — a sugestão automática continua usando os defaults.
+                        Cada componente do score é multiplicado pelo peso correspondente. Defaults vêm do tipo de desafio. Use{' '}
+                        <strong>Salvar como padrão</strong> para que a sugestão automática também use estes pesos.
                     </SheetDescription>
                 </SheetHeader>
 
@@ -153,14 +178,22 @@ export function WeightTunerSheet({ formationId, defaults, onChange }: Props) {
                     })}
                 </div>
 
-                <SheetFooter className="mt-6 flex-row justify-between gap-2 sm:justify-between">
+                <SheetFooter className="mt-6 flex-row flex-wrap justify-between gap-2 sm:justify-between">
                     <Button variant="ghost" size="sm" onClick={resetAll} disabled={isDefault}>
                         <RotateCcw className="size-3.5" />
                         Resetar tudo
                     </Button>
-                    <SheetClose asChild>
-                        <Button size="sm">Fechar</Button>
-                    </SheetClose>
+                    <div className="flex items-center gap-2">
+                        {onSave && (
+                            <Button size="sm" onClick={save} disabled={isSaving || !hasUnsavedChanges} className="gap-1.5">
+                                {isSaving ? <Loader2 className="size-3.5 animate-spin" /> : isSaved ? <Check className="size-3.5" /> : <Save className="size-3.5" />}
+                                {isSaved ? 'Salvo' : 'Salvar como padrão'}
+                            </Button>
+                        )}
+                        <SheetClose asChild>
+                            <Button variant="ghost" size="sm">Fechar</Button>
+                        </SheetClose>
+                    </div>
                 </SheetFooter>
             </SheetContent>
         </Sheet>

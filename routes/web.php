@@ -62,6 +62,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('formations', [FormationController::class, 'store'])->name('formations.store');
     Route::get('formations/{formation}/edit', [FormationController::class, 'edit'])->name('formations.edit');
     Route::patch('formations/{formation}', [FormationController::class, 'update'])->name('formations.update');
+    Route::patch('formations/{formation}/scoring-weights', [FormationController::class, 'updateScoringWeights'])
+        ->name('formations.scoring-weights.update');
     Route::post('formations/{formation}/teams/{position}/suggest', [FormationController::class, 'suggestTeam'])
         ->whereNumber('position')
         ->name('formations.teams.suggest');

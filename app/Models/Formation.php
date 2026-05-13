@@ -18,11 +18,13 @@ class Formation extends Model
         'total_score',
         'share_token',
         'beast_id',
+        'scoring_weights_override',
     ];
 
     protected $casts = [
         'teams_count' => 'integer',
         'total_score' => 'integer',
+        'scoring_weights_override' => 'array',
     ];
 
     public function user(): BelongsTo

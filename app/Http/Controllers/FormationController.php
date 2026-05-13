@@ -109,11 +109,14 @@ class FormationController extends Controller
         // P4 Fase 24: matches com comps recomendados, por time da formation
         $matchesByTeam = $this->buildRecommendedMatches($formation);
 
-        // Fase 26.4: breakdown completo de score por team, para UI exibir detalhamento
+        // Fase 26.4 + 27: breakdown completo de score por team. Aplica overrides
+        // salvos no DB pra que o detalhamento reflita os pesos custom do user.
         $scoresByTeamPosition = $this->computeScoresByPosition($formation, $request->user()->id, $scorer);
 
         // Fase 26.5: pesos default do challenge_type para o slider tuner do frontend
         $scoringProfileDefaults = $this->extractScoringWeights($formation->challengeType->scoring_profile ?? []);
+        // Fase 27: overrides salvos na formation (null quando o user nunca tunou ou resetou)
+        $scoringProfileOverrides = $formation->scoring_weights_override;
 
         return Inertia::render('formations/edit', [
             'formation' => $formation,
@@ -123,6 +126,7 @@ class FormationController extends Controller
             'recommendedMatches' => $matchesByTeam,
             'scoresByTeamPosition' => $scoresByTeamPosition,
             'scoringProfileDefaults' => $scoringProfileDefaults,
+            'scoringProfileOverrides' => $scoringProfileOverrides,
             'factions' => Faction::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'color_hex', 'display_order']),
             'heroClasses' => HeroClass::orderBy('display_order')
@@ -167,6 +171,10 @@ class FormationController extends Controller
         $userHeroesById = $this->loadUserHeroes($userId);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
+        // Fase 27: aplica overrides persistidos quando presentes — breakdown reflete pesos custom.
+        if (! empty($formation->scoring_weights_override)) {
+            $profile = $profile->withOverrides($formation->scoring_weights_override);
+        }
         $ctx = ! empty($heroPoolById)
             ? $this->loadScoringContext($formation, $heroPoolById, $userHeroesById)
             : new ScoringContext;
@@ -358,8 +366,10 @@ class FormationController extends Controller
         $userHeroesById = $this->loadUserHeroes($request->user()->id);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
-        if (! empty($data['weight_overrides'])) {
-            $profile = $profile->withOverrides($data['weight_overrides']);
+        // Prioridade: body weight_overrides > formation.scoring_weights_override > defaults.
+        $effectiveOverrides = $data['weight_overrides'] ?? $formation->scoring_weights_override ?? null;
+        if (! empty($effectiveOverrides)) {
+            $profile = $profile->withOverrides($effectiveOverrides);
         }
         $ctx = $this->loadScoringContext($formation, $heroPoolById, $userHeroesById);
 
@@ -443,8 +453,10 @@ class FormationController extends Controller
         $userHeroesById = $this->loadUserHeroes($request->user()->id);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
-        if (! empty($data['weight_overrides'])) {
-            $profile = $profile->withOverrides($data['weight_overrides']);
+        // Prioridade: body weight_overrides > formation.scoring_weights_override > defaults.
+        $effectiveOverrides = $data['weight_overrides'] ?? $formation->scoring_weights_override ?? null;
+        if (! empty($effectiveOverrides)) {
+            $profile = $profile->withOverrides($effectiveOverrides);
         }
         $ctx = $this->loadScoringContext($formation, $heroPoolById, $userHeroesById);
 
@@ -493,6 +505,30 @@ class FormationController extends Controller
         return response()->json([
             'teams' => $teamsResponse,
             'total_score' => round($result['total_score'], 3),
+        ]);
+    }
+
+    /**
+     * Persiste o override de pesos do scoring na formation. Aceita objeto vazio
+     * (limpa o override e volta a usar o profile do challenge_type). Cada peso
+     * deve estar entre 0 e 3 (mesma faixa do slider e do suggest endpoint).
+     */
+    public function updateScoringWeights(Request $request, Formation $formation): JsonResponse
+    {
+        abort_unless($formation->user_id === $request->user()->id, 403);
+
+        $data = $request->validate([
+            'weights' => ['nullable', 'array'],
+            'weights.*' => ['numeric', 'min:0', 'max:3'],
+        ]);
+
+        $weights = $data['weights'] ?? null;
+        $formation->update([
+            'scoring_weights_override' => empty($weights) ? null : $weights,
+        ]);
+
+        return response()->json([
+            'scoring_weights_override' => $formation->fresh()->scoring_weights_override,
         ]);
     }
 

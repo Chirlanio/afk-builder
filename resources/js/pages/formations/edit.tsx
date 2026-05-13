@@ -50,6 +50,7 @@ interface PageProps {
     recommendedMatches?: Record<number, RecommendedMatch[]>;
     scoresByTeamPosition?: Record<number, ScoreBreakdownPayload | null>;
     scoringProfileDefaults?: WeightOverrides;
+    scoringProfileOverrides?: Partial<WeightOverrides> | null;
 }
 
 function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlotsState[] {
@@ -81,6 +82,7 @@ export default function FormationsEdit({
     recommendedMatches,
     scoresByTeamPosition,
     scoringProfileDefaults,
+    scoringProfileOverrides,
 }: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Formações', href: '/formations' },
@@ -111,7 +113,22 @@ export default function FormationsEdit({
     const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
     const [customWeights, setCustomWeights] = useState<WeightOverrides | null>(null);
     const [weightsAreDefault, setWeightsAreDefault] = useState(true);
+    const [savedOverrides, setSavedOverrides] = useState<Partial<WeightOverrides> | null>(scoringProfileOverrides ?? null);
     const autoScroll = useAutoScrollOnDrag();
+
+    const saveScoringWeights = async (weights: WeightOverrides, isDefault: boolean) => {
+        try {
+            const response = await axios.patch<{ scoring_weights_override: Partial<WeightOverrides> | null }>(
+                `/formations/${formation.id}/scoring-weights`,
+                { weights: isDefault ? null : weights },
+            );
+            setSavedOverrides(response.data.scoring_weights_override);
+            // Inertia reload pra refrescar scoresByTeamPosition com os novos pesos persistidos.
+            router.reload({ only: ['scoresByTeamPosition', 'scoringProfileOverrides'] });
+        } catch (error) {
+            console.error('Falha ao salvar pesos:', error);
+        }
+    };
 
     const enforceUnique = formation.challenge_type.teams_must_be_unique;
 
@@ -441,10 +458,12 @@ export default function FormationsEdit({
                                 <WeightTunerSheet
                                     formationId={formation.id}
                                     defaults={scoringProfileDefaults}
+                                    savedOverrides={savedOverrides}
                                     onChange={(weights, isDefault) => {
                                         setCustomWeights(weights);
                                         setWeightsAreDefault(isDefault);
                                     }}
+                                    onSave={saveScoringWeights}
                                 />
                             )}
                             <Button

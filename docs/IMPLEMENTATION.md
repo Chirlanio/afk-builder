@@ -1723,3 +1723,43 @@ Fecha a pendência da SubFase 23.2 (linha 1357): durante arrasto de herói para 
   - `pages/formations/edit.tsx` (DnD principal do app — pool de heróis × slots de team).
 - **Decisão:** scroll de viewport (window) em vez de container específico. Editor de formação tem layout fluido (`overflow-y-auto pr-1 pb-20`) onde a barra de scroll do navegador é a referência prática. Aceita customização via prop `container` no hook se algum caso futuro precisar.
 - Cobertura: ambos os DnD agora suportam arrastar pra baixo/cima da viewport sem perder o destino. Mobile já chega via `touchmove` listener.
+
+---
+
+### ✅ Fase 27 — Weight overrides persistidos no DB
+
+Conclui o ciclo de tunagem aberto pelas Fases 26.5/26.6. Os pesos custom agora persistem no DB por formação, não só em localStorage. Resolve "sem sync entre devices" e "perde tudo se limpar cache".
+
+#### Schema
+- Migration `2026_05_13_020000_add_scoring_weights_override_to_formations.php`: coluna JSON nullable `scoring_weights_override` em `formations` (após `total_score`).
+- `Formation` model: cast `'scoring_weights_override' => 'array'` + fillable.
+
+#### Endpoint `PATCH /formations/{id}/scoring-weights`
+- `name=formations.scoring-weights.update`
+- Body: `{ weights: { power_weight: 1.5, ... } | null | {} }`
+- Validação: `weights` é nullable|array; cada `weights.*` é numeric|min:0|max:3 (mesma faixa do slider e dos suggest endpoints).
+- Comportamento: array vazio ou null → limpa o override (volta a usar profile do challenge_type).
+- 403 quando outro user tenta editar.
+- Retorna `{ scoring_weights_override: <atualizado|null> }`.
+
+#### Backend `FormationController@edit`
+- Novo payload `scoringProfileOverrides` (vindo do DB; null quando não setado).
+- `computeScoresByPosition()` aplica overrides salvos via `withOverrides()` antes de calcular breakdowns — o user vê o score já refletindo seus pesos.
+
+#### Backend `suggestTeam` / `suggestAll`
+- Prioridade clarificada: `body.weight_overrides > formation.scoring_weights_override > defaults`.
+- Permite preview com pesos não-salvos (body) sem invalidar os salvos no DB.
+- Quando body omite, suggest usa os salvos (consistência com o que aparece no breakdown).
+
+#### Frontend
+- `WeightTunerSheet` ganhou prop `savedOverrides?: Partial<WeightOverrides> | null` e callback `onSave?`.
+- Inicialização: `savedOverrides do DB > localStorage (compat 26.5) > defaults`.
+- Botão **Salvar como padrão** no footer:
+  - Ícone alterna `Save → Loader2 (saving) → Check (salvo)`.
+  - Habilitado só quando weights ≠ `savedOverrides ?? defaults`.
+  - Texto "Salvo" + ícone ✓ quando state == persisted.
+- `pages/formations/edit.tsx::saveScoringWeights()` chama `PATCH`, atualiza `savedOverrides` local, e dispara `router.reload({ only: ['scoresByTeamPosition', 'scoringProfileOverrides'] })` pra refresh dos breakdowns.
+
+#### Testes
+- `FormationScoringWeightsTest` (8 cenários): persistência, omitir/array vazio limpa, peso > 3 / negativo rejeitado, 403 cross-user, payload `edit` inclui overrides quando salvos e null quando não.
+- **266 testes verdes** (+8 novos).
