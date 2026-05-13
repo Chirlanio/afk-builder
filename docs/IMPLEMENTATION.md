@@ -1666,3 +1666,28 @@ Backend calculava 7 componentes de score (faction, class, synergy, power, tier_r
 - **UI no `formations/edit.tsx`:** abaixo de cada team aparece um `<details>` collapsible "Ver score detalhado" mostrando o total inline; ao expandir, exibe `ScoreBreakdownCard`. Só aparece quando a formação não está com mudanças não-salvas (`!isDirty`) — evita confusão com valores defasados.
 - **UI no `compare.tsx`:** ScoreRow agora lista também `tier_rating`, `feature_bonus` (Destaques) e `furniture_effects` (Móveis F3/F9) que estavam ausentes na comparação.
 - **Testes:** `FormationEditScoreBreakdownTest` (2 cenários) — payload contém todos os 7 componentes numéricos; team vazio retorna null. **248 testes verdes**.
+
+#### 26.5 — Sliders UI dos pesos no editor
+
+Com o breakdown visível, fazia sentido permitir tunagem dos pesos para entender o impacto de cada componente. Implementação MVP client-side — sliders mexem em estado local, total é recalculado on-the-fly somando `component × weight`. Não muda o suggest (segue usando defaults do challenge_type).
+
+- **Backend (`FormationController@edit`):** novo payload `scoringProfileDefaults` extraído via `extractScoringWeights()` helper. Retorna os 7 pesos (com fallbacks idênticos ao `ScoringProfile` PHP) — frontend usa pra slider defaults e botão reset.
+- **Componente `WeightTunerSheet`** (`resources/js/components/weight-tuner-sheet.tsx`):
+  - Sheet (drawer) lateral com 7 sliders (`<input type="range">`, sem dep nova) cobrindo cada peso (0.0 a 3.0, step 0.1).
+  - Cada slider mostra valor atual e default; quando alterado, badge âmbar e botão ↶ para reset individual.
+  - Botão "Resetar tudo" no footer.
+  - **Persistência:** `localStorage` por `formation_id` (key `afk:weight-tuner:{id}`). Quando weights = defaults, limpa a entrada.
+  - `onChange` callback dispara em cada movimento de slider — parent decide o que fazer.
+- **`ScoreBreakdownCard` ganhou prop `weights?: WeightOverrides`**:
+  - Quando passado, recalcula total client-side somando cada `component × weights[weightKey]`.
+  - Cada linha exibe o multiplicador (×0.5, ×1.2, etc.) ao lado do valor raw.
+  - Total fica em amber e mostra o valor default tachado ao lado para comparação.
+- **Editor (`pages/formations/edit.tsx`):**
+  - Botão **Pesos** no header desktop com badge "custom" quando weights ≠ defaults.
+  - State `customWeights` + `weightsAreDefault` atualizados via callback do Sheet.
+  - Total inline no `<details>` summary recalcula client-side com os pesos custom (texto em amber quando custom).
+  - `ScoreBreakdownCard` recebe `weights` só quando ≠ defaults (evita ruído visual).
+- **Limitações conscientes do MVP:**
+  - Sliders só afetam **visualização**, não a sugestão automática. Suggest/SuggestAll continuam usando os defaults do challenge_type. Permitir overrides no backend = expansão futura.
+  - Persistência só em `localStorage` (per browser, per formation). Sem sync entre devices.
+- **Testes:** `test_edit_inclui_scoring_profile_defaults` valida os 7 pesos vindos do `ChallengeType::arena_of_heroes` no payload. **249 testes verdes**.

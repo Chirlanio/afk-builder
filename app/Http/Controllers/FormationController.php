@@ -112,6 +112,9 @@ class FormationController extends Controller
         // Fase 26.4: breakdown completo de score por team, para UI exibir detalhamento
         $scoresByTeamPosition = $this->computeScoresByPosition($formation, $request->user()->id, $scorer);
 
+        // Fase 26.5: pesos default do challenge_type para o slider tuner do frontend
+        $scoringProfileDefaults = $this->extractScoringWeights($formation->challengeType->scoring_profile ?? []);
+
         return Inertia::render('formations/edit', [
             'formation' => $formation,
             'heroPool' => $heroPool['heroes'],
@@ -119,6 +122,7 @@ class FormationController extends Controller
             'beasts' => $beasts,
             'recommendedMatches' => $matchesByTeam,
             'scoresByTeamPosition' => $scoresByTeamPosition,
+            'scoringProfileDefaults' => $scoringProfileDefaults,
             'factions' => Faction::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'color_hex', 'display_order']),
             'heroClasses' => HeroClass::orderBy('display_order')
@@ -126,6 +130,27 @@ class FormationController extends Controller
             'tiers' => Tier::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'max_level', 'display_order']),
         ]);
+    }
+
+    /**
+     * Extrai apenas os 7 pesos relevantes do scoring_profile (ignora flags
+     * como pvp/dps_focus/partition_optimization). Aplica defaults idênticos
+     * aos do PHP ScoringProfile constructor para profiles incompletos.
+     *
+     * @param  array<string, mixed>  $profile
+     * @return array<string, float>
+     */
+    private function extractScoringWeights(array $profile): array
+    {
+        return [
+            'faction_bonus_weight' => (float) ($profile['faction_bonus_weight'] ?? 1.0),
+            'class_balance_weight' => (float) ($profile['class_balance_weight'] ?? 1.0),
+            'synergy_weight' => (float) ($profile['synergy_weight'] ?? 1.0),
+            'power_weight' => (float) ($profile['power_weight'] ?? 1.0),
+            'tier_rating_weight' => (float) ($profile['tier_rating_weight'] ?? 1.0),
+            'feature_weight' => (float) ($profile['feature_weight'] ?? 0.5),
+            'furniture_effect_weight' => (float) ($profile['furniture_effect_weight'] ?? 0.4),
+        ];
     }
 
     /**

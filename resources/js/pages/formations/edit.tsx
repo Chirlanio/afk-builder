@@ -34,6 +34,7 @@ import type {
     TierCode,
 } from '@/types/afk';
 import { ScoreBreakdownCard } from '@/components/score-breakdown-card';
+import { WeightTunerSheet, type WeightOverrides } from '@/components/weight-tuner-sheet';
 
 interface PageProps {
     formation: Formation & {
@@ -47,6 +48,7 @@ interface PageProps {
     tiers: Tier[];
     recommendedMatches?: Record<number, RecommendedMatch[]>;
     scoresByTeamPosition?: Record<number, ScoreBreakdownPayload | null>;
+    scoringProfileDefaults?: WeightOverrides;
 }
 
 function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlotsState[] {
@@ -68,7 +70,17 @@ function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlo
     });
 }
 
-export default function FormationsEdit({ formation, heroPool, beasts, factions, heroClasses, tiers, recommendedMatches, scoresByTeamPosition }: PageProps) {
+export default function FormationsEdit({
+    formation,
+    heroPool,
+    beasts,
+    factions,
+    heroClasses,
+    tiers,
+    recommendedMatches,
+    scoresByTeamPosition,
+    scoringProfileDefaults,
+}: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Formações', href: '/formations' },
         { title: formation.name, href: `/formations/${formation.id}/edit` },
@@ -96,6 +108,8 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
     const [poolSheetOpen, setPoolSheetOpen] = useState(false);
     const { confirm, dialog: confirmDialog } = useConfirm();
     const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
+    const [customWeights, setCustomWeights] = useState<WeightOverrides | null>(null);
+    const [weightsAreDefault, setWeightsAreDefault] = useState(true);
 
     const enforceUnique = formation.challenge_type.teams_must_be_unique;
 
@@ -399,6 +413,16 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
                         {/* Ações desktop (md+) */}
                         <div className="hidden items-center gap-2 md:flex">
                             {isDirty && <span className="text-xs text-amber-600 dark:text-amber-400">Alterações não salvas</span>}
+                            {scoringProfileDefaults && (
+                                <WeightTunerSheet
+                                    formationId={formation.id}
+                                    defaults={scoringProfileDefaults}
+                                    onChange={(weights, isDefault) => {
+                                        setCustomWeights(weights);
+                                        setWeightsAreDefault(isDefault);
+                                    }}
+                                />
+                            )}
                             <Button
                                 variant="outline"
                                 onClick={openHistory}
@@ -539,9 +563,26 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
                                             <details className="rounded-lg border bg-card/30 text-xs">
                                                 <summary className="flex cursor-pointer items-center justify-between px-3 py-1.5 text-muted-foreground hover:text-foreground">
                                                     <span className="font-medium">Ver score detalhado</span>
-                                                    <span className="font-mono tabular-nums">{teamScore.total.toFixed(2)}</span>
+                                                    <span className={cn('font-mono tabular-nums', !weightsAreDefault && 'text-amber-400')}>
+                                                        {weightsAreDefault || !customWeights
+                                                            ? teamScore.total.toFixed(2)
+                                                            : (
+                                                                  teamScore.power * customWeights.power_weight +
+                                                                  teamScore.synergy * customWeights.synergy_weight +
+                                                                  teamScore.faction_bonus * customWeights.faction_bonus_weight +
+                                                                  teamScore.class_balance * customWeights.class_balance_weight +
+                                                                  teamScore.tier_rating * customWeights.tier_rating_weight +
+                                                                  teamScore.feature_bonus * customWeights.feature_weight +
+                                                                  teamScore.furniture_effects * customWeights.furniture_effect_weight
+                                                              ).toFixed(2)}
+                                                    </span>
                                                 </summary>
-                                                <ScoreBreakdownCard score={teamScore} compact className="border-0" />
+                                                <ScoreBreakdownCard
+                                                    score={teamScore}
+                                                    compact
+                                                    className="border-0"
+                                                    weights={weightsAreDefault ? undefined : customWeights ?? undefined}
+                                                />
                                             </details>
                                         )}
                                     </div>

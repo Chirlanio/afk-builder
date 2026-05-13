@@ -106,4 +106,30 @@ class FormationEditScoreBreakdownTest extends TestCase
                 ->where('scoresByTeamPosition.1', null)
             );
     }
+
+    public function test_edit_inclui_scoring_profile_defaults(): void
+    {
+        $user = User::factory()->create();
+        $challengeType = ChallengeType::where('code', 'arena_of_heroes')->first();
+        $formation = $user->formations()->create([
+            'challenge_type_id' => $challengeType->id,
+            'name' => 'PvP test',
+            'mode' => 'target',
+            'teams_count' => 1,
+        ]);
+        $formation->teams()->create(['position' => 1]);
+
+        $response = $this->actingAs($user)
+            ->get("/formations/{$formation->id}/edit")
+            ->assertOk();
+
+        $defaults = $response->viewData('page')['props']['scoringProfileDefaults'];
+        $this->assertSame(1.2, (float) $defaults['faction_bonus_weight']);
+        $this->assertSame(0.9, (float) $defaults['class_balance_weight']);
+        $this->assertSame(1.5, (float) $defaults['synergy_weight']);
+        $this->assertSame(1.0, (float) $defaults['power_weight']);
+        $this->assertSame(1.0, (float) $defaults['tier_rating_weight']);
+        $this->assertSame(0.5, (float) $defaults['feature_weight']);
+        $this->assertSame(0.4, (float) $defaults['furniture_effect_weight']);
+    }
 }
