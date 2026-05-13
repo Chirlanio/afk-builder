@@ -1655,3 +1655,14 @@ Fórmula antiga `signature_item * 5` era linear e ignorava o salto enorme de cus
 - **Impacto:** ranking de heróis Celestial/Hypogean com SI 31+ ganha peso adicional, refletindo o investimento real. Demais facções (cap 30) mudam pouco (~5% queda no SI 30 absoluto, neutro relativamente).
 - **Cache invalidation:** `flushCumulativeCache()` para testes; `primeCumulativeCacheForTesting($cache)` permite unit tests sem DB.
 - **Testes:** novo cenário `test_si_salto_30_para_40_reflete_custo_real` valida que diff SI 40-30 é 162 pts (era 50 pts antes — 224% mais sensível ao salto Celestial). 3 testes existentes ajustados para nova fórmula. **246 testes verdes** no projeto.
+
+#### 26.4 — Score breakdown visível no editor
+
+Backend calculava 7 componentes de score (faction, class, synergy, power, tier_rating, feature_bonus, furniture_effects) mas a UI só mostrava `total`. Tornar o detalhamento visível ajuda o user a entender o que está afetando suas formações.
+
+- **`FormationController@edit`** agora recebe `TeamScorer` via injeção e calcula `scoresByTeamPosition: array<int, breakdown|null>` (null = team vazio). Reusa o método privado `computeScoresByPosition()` que carrega heroPool + userHeroes + synergies + scoringContext igual ao `suggestTeam`. Eager-loads o `scoring_profile` do challengeType (não vinha antes no `load()`).
+- **Types: `ScoreBreakdownPayload`** centralizado em `types/afk.ts` (era duplicado/incompleto em `compare.tsx`). Inclui todos os 7 componentes + total + details opcional.
+- **Componente `ScoreBreakdownCard`** (`resources/js/components/score-breakdown-card.tsx`) — lista 7 componentes com labels PT-BR + tooltips explicativos, total em destaque. Compact mode pra popovers.
+- **UI no `formations/edit.tsx`:** abaixo de cada team aparece um `<details>` collapsible "Ver score detalhado" mostrando o total inline; ao expandir, exibe `ScoreBreakdownCard`. Só aparece quando a formação não está com mudanças não-salvas (`!isDirty`) — evita confusão com valores defasados.
+- **UI no `compare.tsx`:** ScoreRow agora lista também `tier_rating`, `feature_bonus` (Destaques) e `furniture_effects` (Móveis F3/F9) que estavam ausentes na comparação.
+- **Testes:** `FormationEditScoreBreakdownTest` (2 cenários) — payload contém todos os 7 componentes numéricos; team vazio retorna null. **248 testes verdes**.

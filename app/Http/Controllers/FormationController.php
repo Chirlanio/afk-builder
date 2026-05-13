@@ -89,14 +89,14 @@ class FormationController extends Controller
         return redirect()->route('formations.edit', $formation);
     }
 
-    public function edit(Request $request, Formation $formation): Response
+    public function edit(Request $request, Formation $formation, TeamScorer $scorer): Response
     {
         abort_unless($formation->user_id === $request->user()->id, 403);
 
         $formation->load([
-            'challengeType:id,code,name_pt,description,min_teams,max_teams,is_pvp,teams_must_be_unique',
+            'challengeType:id,code,scoring_profile,name_pt,description,min_teams,max_teams,is_pvp,teams_must_be_unique',
             'teams.teamHeroes:id,formation_team_id,hero_id,slot,row',
-            'beast:id,slug,name,strength_buff,intelligence_buff,agility_buff,portrait_url',
+            'beast:id,slug,name,strength_buff,intelligence_buff,agility_buff,portrait_url,tier',
         ]);
 
         $heroPool = $this->buildHeroPool($formation, $request->user()->id);
@@ -109,12 +109,16 @@ class FormationController extends Controller
         // P4 Fase 24: matches com comps recomendados, por time da formation
         $matchesByTeam = $this->buildRecommendedMatches($formation);
 
+        // Fase 26.4: breakdown completo de score por team, para UI exibir detalhamento
+        $scoresByTeamPosition = $this->computeScoresByPosition($formation, $request->user()->id, $scorer);
+
         return Inertia::render('formations/edit', [
             'formation' => $formation,
             'heroPool' => $heroPool['heroes'],
             'rosterByHeroId' => $heroPool['roster'],
             'beasts' => $beasts,
             'recommendedMatches' => $matchesByTeam,
+            'scoresByTeamPosition' => $scoresByTeamPosition,
             'factions' => Faction::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'color_hex', 'display_order']),
             'heroClasses' => HeroClass::orderBy('display_order')
@@ -122,6 +126,44 @@ class FormationController extends Controller
             'tiers' => Tier::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'max_level', 'display_order']),
         ]);
+    }
+
+    /**
+     * Calcula o ScoreBreakdown atual de cada team da formation. Retorna um
+     * map position => breakdown.toArray() (ou null para teams vazios).
+     *
+     * @return array<int, array<string, mixed>|null>
+     */
+    private function computeScoresByPosition(Formation $formation, int $userId, TeamScorer $scorer): array
+    {
+        $scores = [];
+
+        $heroPoolById = $this->loadHeroPool($formation, $userId);
+        $userHeroesById = $this->loadUserHeroes($userId);
+        $synergyWeights = $this->loadSynergyWeights();
+        $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
+        $ctx = ! empty($heroPoolById)
+            ? $this->loadScoringContext($formation, $heroPoolById, $userHeroesById)
+            : new ScoringContext;
+
+        foreach ($formation->teams as $team) {
+            $heroIds = $team->teamHeroes->sortBy('slot')->pluck('hero_id')->all();
+            if (empty($heroIds)) {
+                $scores[$team->position] = null;
+
+                continue;
+            }
+            $heroes = array_values(array_filter(array_map(fn ($id) => $heroPoolById[$id] ?? null, $heroIds)));
+            if (empty($heroes)) {
+                $scores[$team->position] = null;
+
+                continue;
+            }
+            $breakdown = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $formation->beast, $ctx);
+            $scores[$team->position] = $breakdown->toArray();
+        }
+
+        return $scores;
     }
 
     /**

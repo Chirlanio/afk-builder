@@ -29,9 +29,11 @@ import type {
     Hero,
     HeroClass,
     RecommendedMatch,
+    ScoreBreakdownPayload,
     Tier,
     TierCode,
 } from '@/types/afk';
+import { ScoreBreakdownCard } from '@/components/score-breakdown-card';
 
 interface PageProps {
     formation: Formation & {
@@ -44,6 +46,7 @@ interface PageProps {
     heroClasses: HeroClass[];
     tiers: Tier[];
     recommendedMatches?: Record<number, RecommendedMatch[]>;
+    scoresByTeamPosition?: Record<number, ScoreBreakdownPayload | null>;
 }
 
 function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlotsState[] {
@@ -65,7 +68,7 @@ function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlo
     });
 }
 
-export default function FormationsEdit({ formation, heroPool, beasts, factions, heroClasses, tiers, recommendedMatches }: PageProps) {
+export default function FormationsEdit({ formation, heroPool, beasts, factions, heroClasses, tiers, recommendedMatches, scoresByTeamPosition }: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Formações', href: '/formations' },
         { title: formation.name, href: `/formations/${formation.id}/edit` },
@@ -517,21 +520,33 @@ export default function FormationsEdit({ formation, heroPool, beasts, factions, 
 
                     <div className="grid flex-1 gap-3 lg:grid-cols-[1fr_320px]">
                         <div className="flex flex-col gap-3 overflow-y-auto pr-1 pb-20 lg:pb-0">
-                            {teams.map((team) => (
-                                <div key={team.position} className="flex flex-col gap-1">
-                                    <TeamRow
-                                        team={team}
-                                        heroById={heroById}
-                                        factionById={factionById}
-                                        classById={classById}
-                                        tierById={tierById}
-                                        onRemoveHero={(slotPosition) => removeFromSlot(team.position, slotPosition)}
-                                        onSuggest={() => suggestForTeam(team.position)}
-                                        isSuggesting={suggestingTeamPos === team.position}
-                                    />
-                                    <RecommendedMatchesStripe matches={recommendedMatches?.[team.position] ?? []} />
-                                </div>
-                            ))}
+                            {teams.map((team) => {
+                                const teamScore = scoresByTeamPosition?.[team.position] ?? null;
+                                return (
+                                    <div key={team.position} className="flex flex-col gap-1">
+                                        <TeamRow
+                                            team={team}
+                                            heroById={heroById}
+                                            factionById={factionById}
+                                            classById={classById}
+                                            tierById={tierById}
+                                            onRemoveHero={(slotPosition) => removeFromSlot(team.position, slotPosition)}
+                                            onSuggest={() => suggestForTeam(team.position)}
+                                            isSuggesting={suggestingTeamPos === team.position}
+                                        />
+                                        <RecommendedMatchesStripe matches={recommendedMatches?.[team.position] ?? []} />
+                                        {teamScore && !isDirty && (
+                                            <details className="rounded-lg border bg-card/30 text-xs">
+                                                <summary className="flex cursor-pointer items-center justify-between px-3 py-1.5 text-muted-foreground hover:text-foreground">
+                                                    <span className="font-medium">Ver score detalhado</span>
+                                                    <span className="font-mono tabular-nums">{teamScore.total.toFixed(2)}</span>
+                                                </summary>
+                                                <ScoreBreakdownCard score={teamScore} compact className="border-0" />
+                                            </details>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         {/* Pool lateral (desktop) */}

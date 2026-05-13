@@ -131,6 +131,19 @@ export interface HeroFeature {
     source_url?: string | null;
 }
 
+/** Componentes do score retornados por TeamScorer::score()->toArray(). */
+export interface ScoreBreakdownPayload {
+    faction_bonus: number;
+    class_balance: number;
+    synergy: number;
+    power: number;
+    tier_rating: number;
+    feature_bonus: number;
+    furniture_effects: number;
+    total: number;
+    details?: Record<string, unknown>;
+}
+
 export type TierListColor = 'rose' | 'orange' | 'amber' | 'emerald' | 'sky' | 'violet' | 'fuchsia' | 'zinc';
 
 export interface UserTierListItem {

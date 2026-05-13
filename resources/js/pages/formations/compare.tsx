@@ -14,17 +14,10 @@ import type {
     FactionCode,
     Hero,
     HeroClass,
+    ScoreBreakdownPayload,
     Tier,
     TierCode,
 } from '@/types/afk';
-
-interface ScoreBreakdownPayload {
-    faction_bonus: number;
-    class_balance: number;
-    synergy: number;
-    power: number;
-    total: number;
-}
 
 interface ComparedTeam {
     id: number;
@@ -230,6 +223,9 @@ export default function FormationsCompare({
                                             <ScoreRow label="Classes" a={a.score.class_balance} b={b.score.class_balance} />
                                             <ScoreRow label="Synergia" a={a.score.synergy} b={b.score.synergy} />
                                             <ScoreRow label="Power" a={a.score.power} b={b.score.power} />
+                                            <ScoreRow label="Tier rating" a={a.score.tier_rating ?? 0} b={b.score.tier_rating ?? 0} />
+                                            <ScoreRow label="Destaques" a={a.score.feature_bonus ?? 0} b={b.score.feature_bonus ?? 0} />
+                                            <ScoreRow label="Móveis F3/F9" a={a.score.furniture_effects ?? 0} b={b.score.furniture_effects ?? 0} />
                                             <div className="my-1 border-t" />
                                             <ScoreRow label="Total" a={a.score.total} b={b.score.total} />
                                         </>
