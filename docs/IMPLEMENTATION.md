@@ -1611,3 +1611,37 @@ Completa o item pendente da Fase 9/10: bônus específico das habilidades F3/F9 
 - `FurnitureEffectScorerTest` (13 cenários) — furniture <3/3-8/=9, modo target por tier, profile overrides, team completo, tags inválidas.
 - `ClassifyFurnitureEffectsCommandTest` (5 cenários) — popula, --force, --slug, idempotência.
 - **232 testes verdes** no projeto (200 → 232, +32).
+
+---
+
+### ✅ Fase 26 — Filtro de feature em /heroes + Signature Items costs estruturados
+
+Consome dados já capturados nas Fases 21.5 e 22.2 que não tinham UI/scoring associado.
+
+#### 26.1 — Filtro UI por feature em `/heroes`
+- Nova linha de pills **Destaque** em `pages/heroes/index.tsx` entre Classe e o grid.
+- 6 categorias: PvP Top, Twisted Realm Top, Early Carry/Support/Tank/Utility.
+- `featureFilter: Set<HeroFeatureTag>` no state; lógica de OR dentro da categoria, AND entre categorias (consistente com faction/class).
+- `HERO_FEATURE_LABEL`/`HERO_FEATURE_BADGE`/`HERO_FEATURE_TAGS` em `lib/afk.ts`.
+- `toggleFromSet` generalizado com generics `<T>` para suportar Set de qualquer tipo.
+- Teste `HeroIndexTest` (2 cenários) garante payload com features carregadas.
+
+#### 26.2 — Signature Items costs estruturados
+
+Migra os custos do guide markdown (Fase 22.2) para tabela estruturada.
+
+- **Migration `create_signature_item_costs_table`:** `level` (PK 1-40), `cost` (int nullable — levels 39-40 não documentados no guide), `emblem_type` (varchar: primordial/amplifying/faction).
+- **`SignatureItemCost` model** com constants `EMBLEM_*`, `FACTION_CAP_40 = ['celestial', 'hypogean']`, `SI_CAP_DEFAULT = 30`, `SI_CAP_EXTENDED = 40`.
+- **`SignatureItemCost::summary($current, $factionCode)`** — retorna array com `current`, `cap`, `next_level`, `next_cost`, `next_emblem_type`, `cumulative_to_cap`, `levels_remaining`, `is_capped`. Faz clamp do valor de entrada.
+- **`SignatureItemCostsSeeder`** popula 40 levels com os valores do guide (custos individuais). Levels 39-40 ficam com `cost = NULL` (não documentado).
+- **`HeroController@details`** injeta `signatureItem` no JSON, derivando cap pela facção do hero e current do `userHero.signature_item ?? 0`.
+- **UI (`hero-detail-modal.tsx`):** slot SI agora mostra `/X` dinâmico (30 ou 40) em vez de `/40` hardcoded, com badge "· N" ao lado mostrando próximo custo. Tooltip (title nativo) mostra contexto completo: tipo do emblema próximo e total cumulativo até o cap. Heróis no cap exibem "SI no cap (+X)".
+- `DatabaseSeeder` ganhou `SignatureItemCostsSeeder` no array.
+
+#### Testes
+- `SignatureItemCostsTest` (11 cenários) — summary com SI 0/10/20/30/35/40, lightbearer vs celestial, clamping acima do cap, cumulativo soma só custos documentados, payload `/heroes/{slug}/details` reflete SI do user.
+- **245 testes verdes** no projeto (232 → 245, +13).
+
+#### Observações sobre os dados
+- Levels 39-40 não documentados no guide afk.guide (campo `cost = NULL`). UI omite a linha de próximo custo nestes casos.
+- Totais por faixa do guide têm pequenas discrepâncias com a soma dos custos individuais (faixa 1-10: 190 vs 200 do guide; 11-20: 230 vs 240). Mantive os valores individuais como fonte da verdade — os agregados do guide podem ter typos.

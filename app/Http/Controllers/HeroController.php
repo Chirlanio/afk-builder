@@ -8,6 +8,7 @@ use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroClass;
 use App\Models\HeroSynergy;
+use App\Models\SignatureItemCost;
 use App\Models\Tier;
 use App\Services\Optimization\PowerCalculator;
 use Illuminate\Http\JsonResponse;
@@ -129,10 +130,10 @@ class HeroController extends Controller
             ->where('is_active', true)
             ->where(function ($q) use ($hero) {
                 $q->where('kind', Artifact::KIND_DURA)
-                  ->orWhere(function ($q2) use ($hero) {
-                      $q2->where('kind', Artifact::KIND_CLASS)
-                         ->where('hero_class_id', $hero->hero_class_id);
-                  });
+                    ->orWhere(function ($q2) use ($hero) {
+                        $q2->where('kind', Artifact::KIND_CLASS)
+                            ->where('hero_class_id', $hero->hero_class_id);
+                    });
             })
             ->orderByRaw("CASE kind WHEN 'dura' THEN 0 ELSE 1 END")
             ->orderBy('name')
@@ -174,6 +175,11 @@ class HeroController extends Controller
             ->sortByDesc('weight')
             ->values();
 
+        $signatureItemSummary = SignatureItemCost::summary(
+            $userHero?->signature_item ?? 0,
+            $hero->faction?->code,
+        );
+
         return response()->json([
             'hero' => $heroPayload,
             'userHero' => $userHeroPayload,
@@ -183,6 +189,7 @@ class HeroController extends Controller
             'ratings' => $hero->ratings,
             'engravings' => $hero->engravings,
             'features' => $hero->features,
+            'signatureItem' => $signatureItemSummary,
         ]);
     }
 }

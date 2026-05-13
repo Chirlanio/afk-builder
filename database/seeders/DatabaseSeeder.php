@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             ChallengeTypeSeeder::class,
             HeroSynergySeeder::class,
             GuideSeeder::class,
+            SignatureItemCostsSeeder::class,
         ]);
     }
 }

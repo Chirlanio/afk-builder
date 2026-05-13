@@ -81,6 +81,23 @@ interface SynergyEntry {
     note: string | null;
 }
 
+interface SignatureItemSummary {
+    current: number;
+    cap: number;
+    next_level: number | null;
+    next_cost: number | null;
+    next_emblem_type: 'primordial' | 'amplifying' | 'faction' | null;
+    cumulative_to_cap: number | null;
+    levels_remaining: number;
+    is_capped: boolean;
+}
+
+const EMBLEM_LABEL: Record<NonNullable<SignatureItemSummary['next_emblem_type']>, string> = {
+    primordial: 'Primordial',
+    amplifying: 'Amplificador',
+    faction: 'Facção',
+};
+
 interface DetailsPayload {
     hero: Hero & { faction: Faction; hero_class: HeroClass; tier: Tier };
     userHero: UserHero | null;
@@ -90,6 +107,7 @@ interface DetailsPayload {
     ratings: HeroRating[];
     engravings: HeroEngraving[];
     features: HeroFeature[];
+    signatureItem: SignatureItemSummary;
 }
 
 const FEATURE_TAG_LABEL: Record<HeroFeatureTag, string> = {
@@ -305,7 +323,7 @@ interface ContentProps {
 }
 
 function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, onMutation, onNavigate }: ContentProps) {
-    const { hero, userHero, synergies, ratings, engravings, features } = data;
+    const { hero, userHero, synergies, ratings, engravings, features, signatureItem } = data;
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     const factionTheme = FACTION_THEME[hero.faction.code as FactionCode];
@@ -413,10 +431,26 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     <EquipmentSlot icon={Shield} label="Capacete" tier={userHero?.helmet_tier ?? null} level={userHero?.helmet_level ?? null} />
                     <HeroSlotCard
                         icon={Crown}
-                        label="Item de Assinatura"
+                        label={
+                            signatureItem.is_capped
+                                ? `SI no cap (+${signatureItem.cap})`
+                                : signatureItem.next_cost !== null
+                                  ? `Próximo nível: ${signatureItem.next_cost} emblema${signatureItem.next_cost > 1 ? 's' : ''} ${EMBLEM_LABEL[signatureItem.next_emblem_type ?? 'primordial']}` +
+                                    (signatureItem.cumulative_to_cap ? ` · ${signatureItem.cumulative_to_cap} até +${signatureItem.cap}` : '')
+                                  : `Item de Assinatura (cap +${signatureItem.cap})`
+                        }
                         empty={userSI === 0}
                         valueText={userSI > 0 ? `+${userSI}` : undefined}
-                        detail={userSI > 0 && <span className="text-muted-foreground">/40</span>}
+                        detail={
+                            userSI > 0 ? (
+                                <span className="text-muted-foreground">
+                                    /{signatureItem.cap}
+                                    {!signatureItem.is_capped && signatureItem.next_cost !== null && (
+                                        <span className="ml-1 text-[8px] text-amber-400/80">· {signatureItem.next_cost}</span>
+                                    )}
+                                </span>
+                            ) : undefined
+                        }
                         accentClass={userSI > 0 ? 'border-yellow-500/60' : undefined}
                     />
                 </div>
