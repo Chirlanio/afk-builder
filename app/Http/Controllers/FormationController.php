@@ -118,6 +118,16 @@ class FormationController extends Controller
         // Fase 27: overrides salvos na formation (null quando o user nunca tunou ou resetou)
         $scoringProfileOverrides = $formation->scoring_weights_override;
 
+        // Fase 30: presets do user — globais (challenge_type_id null) + os do challenge type da formation
+        $weightPresets = $request->user()
+            ->scoringWeightPresets()
+            ->where(function ($query) use ($formation) {
+                $query->whereNull('challenge_type_id')
+                    ->orWhere('challenge_type_id', $formation->challenge_type_id);
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'challenge_type_id', 'weights']);
+
         return Inertia::render('formations/edit', [
             'formation' => $formation,
             'heroPool' => $heroPool['heroes'],
@@ -127,6 +137,7 @@ class FormationController extends Controller
             'scoresByTeamPosition' => $scoresByTeamPosition,
             'scoringProfileDefaults' => $scoringProfileDefaults,
             'scoringProfileOverrides' => $scoringProfileOverrides,
+            'weightPresets' => $weightPresets,
             'factions' => Faction::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'color_hex', 'display_order']),
             'heroClasses' => HeroClass::orderBy('display_order')

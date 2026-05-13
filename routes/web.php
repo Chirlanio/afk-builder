@@ -13,6 +13,7 @@ use App\Http\Controllers\FormationVersionController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HeroController;
 use App\Http\Controllers\RecommendedFormationController;
+use App\Http\Controllers\ScoringWeightPresetController;
 use App\Http\Controllers\UserHeroController;
 use App\Http\Controllers\UserTierListController;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +65,15 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('formations/{formation}', [FormationController::class, 'update'])->name('formations.update');
     Route::patch('formations/{formation}/scoring-weights', [FormationController::class, 'updateScoringWeights'])
         ->name('formations.scoring-weights.update');
+
+    Route::get('scoring-weight-presets', [ScoringWeightPresetController::class, 'index'])
+        ->name('scoring-weight-presets.index');
+    Route::post('scoring-weight-presets', [ScoringWeightPresetController::class, 'store'])
+        ->name('scoring-weight-presets.store');
+    Route::patch('scoring-weight-presets/{preset}', [ScoringWeightPresetController::class, 'update'])
+        ->name('scoring-weight-presets.update');
+    Route::delete('scoring-weight-presets/{preset}', [ScoringWeightPresetController::class, 'destroy'])
+        ->name('scoring-weight-presets.destroy');
     Route::post('formations/{formation}/teams/{position}/suggest', [FormationController::class, 'suggestTeam'])
         ->whereNumber('position')
         ->name('formations.teams.suggest');

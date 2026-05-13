@@ -1837,3 +1837,55 @@ Fecha a issue conhecida #5 (linha 1560 da tabela acima). Em telas `< lg`, o pool
 
 #### Issue conhecida fechada
 - Issue #5 da tabela "Issues conhecidos" foi marcada como resolvida — tabela agora tem 3 issues abertas + 2 fechadas.
+
+---
+
+### ✅ Fase 30 — Presets de pesos reutilizáveis
+
+Complementa as Fases 26.5 e 27. Antes, os pesos custom viviam só na formação corrente: criar outra formação significava re-tunar do zero. Agora o user pode salvar configurações nomeadas (ex: "PvP agressivo", "DPS Dream Realm") e aplicá-las em qualquer formação compatível.
+
+#### Schema
+- Migration `create_scoring_weight_presets_table`: `id`, `user_id` FK cascade, `name` (string 60), `challenge_type_id` FK nullable (null = global), `weights` JSON, timestamps. Unique composto `(user_id, name)` impede duplicidade de nome por user. Index `(user_id, challenge_type_id)` para query rápida do payload de edit.
+- Model `ScoringWeightPreset` com `WEIGHT_KEYS` const (whitelist das 7 chaves do scoring), cast `weights => array`, relations `user()` e `challengeType()`.
+- `User` model ganhou `scoringWeightPresets()` hasMany.
+
+#### Controller (CRUD)
+- `ScoringWeightPresetController` com 4 endpoints:
+  - `GET /scoring-weight-presets` (index) — retorna apenas presets do user autenticado, ordenados por nome.
+  - `POST /scoring-weight-presets` (store) — cria. Valida nome único por user via `Rule::unique` (defesa em profundidade junto com o unique do schema).
+  - `PATCH /scoring-weight-presets/{preset}` (update) — atualiza. Ownership via `abort_unless($preset->user_id === $request->user()->id, 403)`.
+  - `DELETE /scoring-weight-presets/{preset}` (destroy) — idem ownership.
+- **Validação dos pesos:** itera `WEIGHT_KEYS` e adiciona `weights.{key} => ['nullable','numeric','min:0','max:3']` ao array de regras. Chaves desconhecidas no payload são **silenciosamente ignoradas** pelo `validate()` — não rejeitam o request, simplesmente não chegam ao `$data`. Isso evita 422 hostis se o frontend mandar campos legados.
+
+#### Payload do `FormationController@edit`
+- Agora retorna `weightPresets`: presets filtrados ao `user_id` da requisição **+ scope** (globais OU específicos do `challenge_type_id` da formação). Presets de outros challenge types ficam fora — evita lista poluída.
+
+#### UI no `WeightTunerSheet`
+- Bloco de presets adicionado no topo do Sheet, antes dos sliders:
+  - **Dropdown "Presets"** com a lista. Cada item mostra `name` + sub-label "Global" ou "Específico do desafio". Botão lixeira inline em cada item (com `confirm()` antes de deletar).
+  - **Item "Salvar pesos atuais como preset…"** abre um mini-form inline: campo de nome (autofocus) + segmented control "Global" vs "Só para este desafio" + erro inline. Mensagem de erro do backend (ex: nome duplicado) é exibida na própria caixa.
+- Estado dos presets é controlled pelo componente pai (prop `presets` + callback `onPresetsChange`) pra que o pai recarregue Inertia se quiser.
+- Click num preset substitui imediatamente os sliders pelos pesos salvos; `onChange` dispara dirty se diferente do default.
+- Props novas: `challengeTypeId` (pra criar preset escopado), `presets`, `onPresetsChange`.
+
+#### Trade-offs registrados
+- **Por que `confirm()` nativo do browser pra deletar?** Decisão de não construir um `AlertDialog` separado: a operação é reversível (basta re-criar o preset, são 7 números), e o fluxo já está dentro de um Sheet — empilhar mais um modal/sheet ficaria pesado em mobile. Se o user pedir desfazer no futuro, dá pra trocar.
+- **Por que filtrar presets de challenge types diferentes do dropdown do edit?** Um preset de "Cursed Realm" não é semanticamente útil quando a formação é "Campaign" (os defaults do scoring profile são radicalmente diferentes — boost de `survivability` perto de zero em Campaign vs 1.2 em Cursed). Reduz ruído. O user ainda pode aplicar manualmente via apply-to-any se quiser, mas a discoverability deliberadamente prioriza presets compatíveis.
+- **Por que validar chave-por-chave em vez de `weights.* => numeric|max:3`?** A wildcard pegaria `weights.malicious_key = 99` e respondería 422 com erro hostil. Validar nome explícito ignora silenciosamente — futuro frontend pode mandar campos extras sem quebrar.
+- **Por que `name` único só por user (não global)?** Cada user tem mental model próprio (`"PvP"` pra mim significa Arena, pra você pode ser Esperia). Forçar nomes globais únicos exigiria namespace (`@user/PvP`) sem ganho.
+
+#### Testes (`ScoringWeightPresetTest`)
+- 12 cenários:
+  - `lista_apenas_presets_do_user` — isolamento básico
+  - `cria_preset_valido` — happy path
+  - `rejeita_nome_duplicado_no_mesmo_user`
+  - `dois_users_podem_ter_presets_com_mesmo_nome` — scope correto do unique
+  - `rejeita_peso_fora_do_range` (5.0 → 422)
+  - `rejeita_challenge_type_inexistente`
+  - `filtra_pesos_invalidos_silenciosamente` — `malicious_key=99` aceita, `weights` final só tem 7 chaves
+  - `atualiza_preset_proprio`
+  - `nao_atualiza_preset_de_outro_user` — 403
+  - `deleta_preset_proprio`
+  - `nao_deleta_preset_de_outro_user` — 403
+  - `edit_payload_inclui_presets_filtrados_por_challenge_type` — Global + Campaign-specific visíveis; Arena-only fora
+- **280 testes verdes** (+12 novos).

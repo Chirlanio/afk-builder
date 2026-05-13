@@ -28,6 +28,11 @@ class User extends Authenticatable
         return $this->hasMany(UserTierList::class);
     }
 
+    public function scoringWeightPresets(): HasMany
+    {
+        return $this->hasMany(ScoringWeightPreset::class);
+    }
+
     /**
      * The attributes that are mass assignable.
      *

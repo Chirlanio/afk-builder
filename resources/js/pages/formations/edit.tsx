@@ -34,7 +34,7 @@ import type {
     TierCode,
 } from '@/types/afk';
 import { ScoreBreakdownCard } from '@/components/score-breakdown-card';
-import { WeightTunerSheet, type WeightOverrides } from '@/components/weight-tuner-sheet';
+import { WeightTunerSheet, type WeightOverrides, type WeightPreset } from '@/components/weight-tuner-sheet';
 import { useAutoScrollOnDrag } from '@/hooks/use-auto-scroll-on-drag';
 
 interface PageProps {
@@ -51,6 +51,7 @@ interface PageProps {
     scoresByTeamPosition?: Record<number, ScoreBreakdownPayload | null>;
     scoringProfileDefaults?: WeightOverrides;
     scoringProfileOverrides?: Partial<WeightOverrides> | null;
+    weightPresets?: WeightPreset[];
 }
 
 function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlotsState[] {
@@ -83,6 +84,7 @@ export default function FormationsEdit({
     scoresByTeamPosition,
     scoringProfileDefaults,
     scoringProfileOverrides,
+    weightPresets = [],
 }: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Formações', href: '/formations' },
@@ -115,6 +117,7 @@ export default function FormationsEdit({
     const [customWeights, setCustomWeights] = useState<WeightOverrides | null>(null);
     const [weightsAreDefault, setWeightsAreDefault] = useState(true);
     const [savedOverrides, setSavedOverrides] = useState<Partial<WeightOverrides> | null>(scoringProfileOverrides ?? null);
+    const [presets, setPresets] = useState<WeightPreset[]>(weightPresets);
     const autoScroll = useAutoScrollOnDrag();
 
     const saveScoringWeights = async (weights: WeightOverrides, isDefault: boolean) => {
@@ -514,13 +517,16 @@ export default function FormationsEdit({
                             {scoringProfileDefaults && (
                                 <WeightTunerSheet
                                     formationId={formation.id}
+                                    challengeTypeId={formation.challenge_type_id}
                                     defaults={scoringProfileDefaults}
                                     savedOverrides={savedOverrides}
+                                    presets={presets}
                                     onChange={(weights, isDefault) => {
                                         setCustomWeights(weights);
                                         setWeightsAreDefault(isDefault);
                                     }}
                                     onSave={saveScoringWeights}
+                                    onPresetsChange={setPresets}
                                 />
                             )}
                             <Button
