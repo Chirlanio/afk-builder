@@ -292,23 +292,25 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                         <DialogTitle className="font-mono text-base">
                             {openRunDetail?.command ?? '—'}
                         </DialogTitle>
-                        <DialogDescription>
-                            {openRunDetail && (
-                                <span className="space-x-2 text-xs">
-                                    <Badge variant="outline" className={STATUS_BADGE[openRunDetail.status]}>
-                                        {STATUS_LABEL[openRunDetail.status]}
-                                    </Badge>
-                                    {openRunDetail.exit_code !== null && (
-                                        <span className="text-muted-foreground">exit={openRunDetail.exit_code}</span>
-                                    )}
-                                    {openRunDetail.duration_seconds !== null && (
-                                        <span className="text-muted-foreground">{openRunDetail.duration_seconds}s</span>
-                                    )}
-                                    {openRunDetail.user_name && (
-                                        <span className="text-muted-foreground">por {openRunDetail.user_name}</span>
-                                    )}
-                                </span>
-                            )}
+                        <DialogDescription asChild>
+                            <div>
+                                {openRunDetail && (
+                                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                                        <Badge variant="outline" className={STATUS_BADGE[openRunDetail.status]}>
+                                            {STATUS_LABEL[openRunDetail.status]}
+                                        </Badge>
+                                        {openRunDetail.exit_code !== null && (
+                                            <span className="text-muted-foreground">exit={openRunDetail.exit_code}</span>
+                                        )}
+                                        {openRunDetail.duration_seconds !== null && (
+                                            <span className="text-muted-foreground">{openRunDetail.duration_seconds}s</span>
+                                        )}
+                                        {openRunDetail.user_name && (
+                                            <span className="text-muted-foreground">por {openRunDetail.user_name}</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </DialogDescription>
                     </DialogHeader>
 
