@@ -11,10 +11,10 @@ class ScoreBreakdown
         public readonly float $power,
         public readonly float $tierRating,
         public readonly float $featureBonus,
+        public readonly float $furnitureEffects,
         public readonly float $total,
         public readonly array $details = [],
-    ) {
-    }
+    ) {}
 
     public function toArray(): array
     {
@@ -25,6 +25,7 @@ class ScoreBreakdown
             'power' => round($this->power, 3),
             'tier_rating' => round($this->tierRating, 3),
             'feature_bonus' => round($this->featureBonus, 3),
+            'furniture_effects' => round($this->furnitureEffects, 3),
             'total' => round($this->total, 3),
             'details' => $this->details,
         ];

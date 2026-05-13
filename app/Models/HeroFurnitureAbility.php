@@ -15,6 +15,11 @@ class HeroFurnitureAbility extends Model
         'f3_description_pt',
         'f9_description',
         'f9_description_pt',
+        'effects',
+    ];
+
+    protected $casts = [
+        'effects' => 'array',
     ];
 
     public function hero(): BelongsTo

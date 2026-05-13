@@ -6,16 +6,19 @@ use App\Models\Faction;
 use App\Models\Formation;
 use App\Models\Hero;
 use App\Models\HeroClass;
+use App\Models\HeroFeature;
+use App\Models\HeroFurnitureAbility;
+use App\Models\HeroRating;
 use App\Models\HeroSynergy;
 use App\Models\Tier;
 use App\Models\UserHero;
 use App\Services\Optimization\ChallengeTypeMode;
-use App\Services\Optimization\PowerCalculator;
 use App\Services\Optimization\RosterStageInferrer;
 use App\Services\Optimization\ScoringContext;
 use App\Services\Optimization\ScoringProfile;
 use App\Services\Optimization\TeamScorer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -78,7 +81,7 @@ class FormationCompareController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, Hero>  $heroesById
+     * @param  Collection<int, Hero>  $heroesById
      * @param  array<int, UserHero>  $userHeroesById
      * @param  array<string, int>  $synergyWeights
      * @return array<string, mixed>
@@ -94,18 +97,25 @@ class FormationCompareController extends Controller
 
         // Carrega ratings + features só dos heróis envolvidos nas duas formations
         $heroIdsAll = $heroesById->keys()->all();
-        $ratingsByHeroId = \App\Models\HeroRating::whereIn('hero_id', $heroIdsAll)
+        $ratingsByHeroId = HeroRating::whereIn('hero_id', $heroIdsAll)
             ->get(['id', 'hero_id', 'mode', 'stage', 'tier', 'source'])
             ->groupBy('hero_id')
             ->all();
-        $featuresByHeroId = \App\Models\HeroFeature::whereIn('hero_id', $heroIdsAll)
+        $featuresByHeroId = HeroFeature::whereIn('hero_id', $heroIdsAll)
             ->get(['id', 'hero_id', 'tag'])
             ->groupBy('hero_id')
+            ->all();
+
+        $furnitureAbilitiesByHeroId = HeroFurnitureAbility::whereIn('hero_id', $heroIdsAll)
+            ->whereNotNull('effects')
+            ->get(['id', 'hero_id', 'effects'])
+            ->keyBy('hero_id')
             ->all();
 
         $ctx = new ScoringContext(
             ratingsByHeroId: $ratingsByHeroId,
             featuresByHeroId: $featuresByHeroId,
+            furnitureAbilitiesByHeroId: $furnitureAbilitiesByHeroId,
             mode: ChallengeTypeMode::forCode($formation->challengeType->code ?? null),
             stage: (new RosterStageInferrer)->inferFromRoster($userHeroesById),
         );

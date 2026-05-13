@@ -2,17 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Beast;
 use App\Models\ChallengeType;
 use App\Models\Faction;
 use App\Models\Formation;
 use App\Models\Hero;
 use App\Models\HeroClass;
+use App\Models\HeroFeature;
+use App\Models\HeroFurnitureAbility;
+use App\Models\HeroRating;
 use App\Models\HeroSynergy;
 use App\Models\Tier;
 use App\Models\UserHero;
 use App\Services\Formations\FormationVersioning;
 use App\Services\Optimization\ChallengeTypeMode;
 use App\Services\Optimization\MultiTeamPartitioner;
+use App\Services\Optimization\RecommendedFormationMatcher;
 use App\Services\Optimization\RosterStageInferrer;
 use App\Services\Optimization\ScoringContext;
 use App\Services\Optimization\ScoringProfile;
@@ -96,7 +101,7 @@ class FormationController extends Controller
 
         $heroPool = $this->buildHeroPool($formation, $request->user()->id);
 
-        $beasts = \App\Models\Beast::query()
+        $beasts = Beast::query()
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'slug', 'name', 'strength_buff', 'intelligence_buff', 'agility_buff', 'portrait_url']);
@@ -122,7 +127,7 @@ class FormationController extends Controller
     /**
      * Calcula os top matches de comps recomendados por team da formation.
      *
-     * @return array<int, array<int, array<string, mixed>>>  position => matches[]
+     * @return array<int, array<int, array<string, mixed>>> position => matches[]
      */
     private function buildRecommendedMatches(Formation $formation): array
     {
@@ -134,7 +139,7 @@ class FormationController extends Controller
         }
 
         $heroesById = Hero::whereIn('id', $allHeroIds)->get(['id', 'slug', 'name'])->keyBy('id');
-        $matcher = new \App\Services\Optimization\RecommendedFormationMatcher;
+        $matcher = new RecommendedFormationMatcher;
 
         $matchesByTeam = [];
         foreach ($formation->teams as $team) {
@@ -473,7 +478,7 @@ class FormationController extends Controller
      * Constrói o ScoringContext (P1+P2 da Fase 24): pré-carrega ratings e features
      * dos heróis do pool, infere stage do roster do user e mapeia challenge_type → mode.
      *
-     * @param  array<int, \App\Models\Hero>  $heroPoolById
+     * @param  array<int, Hero>  $heroPoolById
      * @param  array<int, UserHero>  $userHeroesById
      */
     private function loadScoringContext(Formation $formation, array $heroPoolById, array $userHeroesById): ScoringContext
@@ -483,14 +488,20 @@ class FormationController extends Controller
             return new ScoringContext;
         }
 
-        $ratingsByHeroId = \App\Models\HeroRating::whereIn('hero_id', $heroIds)
+        $ratingsByHeroId = HeroRating::whereIn('hero_id', $heroIds)
             ->get(['id', 'hero_id', 'mode', 'stage', 'tier', 'source'])
             ->groupBy('hero_id')
             ->all();
 
-        $featuresByHeroId = \App\Models\HeroFeature::whereIn('hero_id', $heroIds)
+        $featuresByHeroId = HeroFeature::whereIn('hero_id', $heroIds)
             ->get(['id', 'hero_id', 'tag'])
             ->groupBy('hero_id')
+            ->all();
+
+        $furnitureAbilitiesByHeroId = HeroFurnitureAbility::whereIn('hero_id', $heroIds)
+            ->whereNotNull('effects')
+            ->get(['id', 'hero_id', 'effects'])
+            ->keyBy('hero_id')
             ->all();
 
         $mode = ChallengeTypeMode::forCode($formation->challengeType->code ?? null);
@@ -499,6 +510,7 @@ class FormationController extends Controller
         return new ScoringContext(
             ratingsByHeroId: $ratingsByHeroId,
             featuresByHeroId: $featuresByHeroId,
+            furnitureAbilitiesByHeroId: $furnitureAbilitiesByHeroId,
             mode: $mode,
             stage: $stage,
         );

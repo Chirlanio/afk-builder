@@ -4,10 +4,7 @@ namespace App\Services\Optimization;
 
 use App\Models\Beast;
 use App\Models\Hero;
-use App\Models\HeroFeature;
-use App\Models\HeroRating;
 use App\Models\UserHero;
-use Illuminate\Support\Collection;
 
 class TeamScorer
 {
@@ -17,8 +14,8 @@ class TeamScorer
         private readonly PowerCalculator $power,
         private readonly TierRatingScorer $tierRatingScorer = new TierRatingScorer,
         private readonly FeatureBonusCalculator $featureBonus = new FeatureBonusCalculator,
-    ) {
-    }
+        private readonly FurnitureEffectScorer $furnitureEffectScorer = new FurnitureEffectScorer,
+    ) {}
 
     /**
      * @param  Hero[]  $heroes  com faction, heroClass, tier carregados
@@ -53,12 +50,17 @@ class TeamScorer
             ? $this->featureBonus->score($heroes, $ctx->featuresByHeroId, $ctx->mode, $ctx->stage)
             : 0.0;
 
+        $furnitureEffects = ! empty($ctx->furnitureAbilitiesByHeroId)
+            ? $this->furnitureEffectScorer->score($heroes, $userHeroesById, $ctx->furnitureAbilitiesByHeroId, $profile)
+            : 0.0;
+
         $total = $factionBonus * $profile->factionBonusWeight
             + $classBalance * $profile->classBalanceWeight
             + $synergy * $profile->synergyWeight
             + $power * $profile->powerWeight
             + $tierRating * $profile->tierRatingWeight
-            + $featureBonus * $profile->featureWeight;
+            + $featureBonus * $profile->featureWeight
+            + $furnitureEffects * $profile->furnitureEffectWeight;
 
         return new ScoreBreakdown(
             factionBonus: $factionBonus,
@@ -67,6 +69,7 @@ class TeamScorer
             power: $power,
             tierRating: $tierRating,
             featureBonus: $featureBonus,
+            furnitureEffects: $furnitureEffects,
             total: $total,
             details: [
                 'faction_counts' => $counts,
@@ -144,7 +147,7 @@ class TeamScorer
         if ($top['count'] + $celestials >= 5 && $top['count'] >= 1) {
             return [
                 'score' => 1.0,
-                'pattern' => "5x {$top['code']}" . ($celestials > 0 ? " (+{$celestials} celestial)" : ''),
+                'pattern' => "5x {$top['code']}".($celestials > 0 ? " (+{$celestials} celestial)" : ''),
             ];
         }
 
@@ -191,7 +194,7 @@ class TeamScorer
         if ($counts['hypogean'] > 0) {
             $hypoBonus = $counts['hypogean'] * 0.1;
             $score += $hypoBonus;
-            $notes['hypogean_stack'] = "{$counts['hypogean']}x → +" . round($hypoBonus, 2);
+            $notes['hypogean_stack'] = "{$counts['hypogean']}x → +".round($hypoBonus, 2);
         }
 
         if ($counts['draconis'] >= 2) {

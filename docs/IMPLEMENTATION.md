@@ -305,7 +305,7 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
   - Single team, PvE, sem unicidade.
   - Scoring profile com `power_weight=1.5`, `class_balance_weight=0.7` (foco DPS, classes menos críticas), `dps_focus=true`.
   - User cria formação desse tipo no editor e usa optimizer existente (Sugerir todas / Sugerir esta equipe) — sugestões priorizam heróis de maior power e bônus de Draconis quando aplicável.
-- **Hotel Furniture per-user (rastreamento, bônus aplicados ao optimizer):** NÃO implementado — escopo grande (schema com 144 peças possíveis, UI de cadastro, integração com TeamScorer). Reservado para fase futura caso seja prioridade.
+- **Hotel Furniture per-user (rastreamento, bônus aplicados ao optimizer):** parcialmente implementado na Fase 12 (bônus +100/+200 F3/F9 no PowerCalculator) e completado na Fase 25 (effects estruturados no TeamScorer). O rastreamento granular de 144 peças individuais permanece fora de escopo — `user_heroes.furniture` (0-9) continua sendo a fonte da verdade.
 
 8 guias totais publicados em `/guias`. 11 challenge types disponíveis ao criar formação. **106 testes verdes** mantidos.
 
@@ -334,7 +334,7 @@ Não seedados (slugs ausentes na wiki sync): Saveas, Arden, Twins of Glory (enco
 - **Testes:**
   - Parser: novo cenário com 3 entradas exemplo (2 com F9, 1 só com F3); verifica nome, ability, descrições limpas (sem prefixo `[N/9 Mythic Pieces]`), F9 null quando ausente.
   - HeroShow: payload inclui `furniture_ability` quando existe; `null` quando não. **109 testes verdes** no projeto.
-- **Não implementado** (escopo futuro): bônus do Furniture aplicado ao optimizer (`TeamScorer`) — atualmente o `power_rating` do `user_heroes.furniture` (0-9) já entra na `PowerCalculator` como `furniture * 30`, mas as abilities específicas F3/F9 não influenciam o score (seria preciso modelar effects estruturados).
+- **Resolvido na Fase 25:** effects estruturados em `hero_furniture_abilities.effects` + `FurnitureEffectScorer` integrado ao `TeamScorer`. Abilities F3/F9 agora influenciam o score por tag (cc_immunity, damage_boost, etc.) ponderada pelo modo da formação.
 
 ---
 
@@ -1558,3 +1558,56 @@ No editor, `team-row.tsx::computeFactionBonus` calcula o bônus ao vivo:
 | 3 | informativa | Adrian & Elyse usa só a imagem do Adrian (escolha da wiki como "page representative image", não bug nosso) |
 | ~~4~~ | ~~baixa~~ | ~~UI de aprovação `pending_review`~~ — resolvido na 6.1. |
 | 5 | melhoria | Mobile: drag-and-drop funciona via TouchSensor mas UX não foi otimizada para touch (pool fica oculto em telas < lg) |
+
+---
+
+### ✅ Fase 25 — Furniture effects estruturados no TeamScorer
+
+Completa o item pendente da Fase 9/10: bônus específico das habilidades F3/F9 (além do +100/+200 fixo do PowerCalculator) agora entra no scoring com pesos por categoria.
+
+#### Schema
+- Migration `2026_05_13_000000_add_effects_to_hero_furniture_abilities.php`: coluna `effects` JSON nullable em `hero_furniture_abilities`. Formato: `{"f3": [tag1, tag2, ...], "f9": [...]}`. Tags são strings da taxonomia abaixo.
+- `HeroFurnitureAbility` model ganhou cast `'effects' => 'array'`.
+
+#### Taxonomia (11 tags)
+`damage_boost`, `damage_reduction`, `healing`, `cc_control`, `cc_immunity`, `dispel`, `revive`, `energy_boost`, `shield`, `survivability`, `ability_uptime`.
+
+#### Classifier
+`App\Services\Optimization\FurnitureEffectClassifier::classify($text)` — recebe descrição (F3 ou F9), retorna lista de tags via keyword/regex matching. Texto pode cair em múltiplas categorias (ex: "deals X% damage and heals" → `damage_boost` + `healing`).
+
+#### Comando `furniture:classify-effects`
+- Itera `HeroFurnitureAbility`, roda classifier sobre `f3_description` e `f9_description`, salva em `effects`.
+- Idempotente (`--force` reclassifica todos; `--slug=X` limita a um herói).
+- Reporta distribuição de tags ao final.
+- **Resultado**: 77 de 117 abilities (66%) classificadas. As 40 sem tags são effects muito específicos (marks, frenzy stacks, formação-dependentes) que não cabem em keywords genéricas — caem em score 0.0 sem prejuízo.
+
+#### Scorer
+`App\Services\Optimization\FurnitureEffectScorer::score(...)`:
+- F3 ativo quando `userHero.furniture >= 3`, F9 quando `>= 9`. F3 conta com multiplicador 0.5, F9 com 1.0 (reflete que F9 é upgrade definitivo).
+- **Modo target** (sem `UserHero`): assume F3+F9 unlocked se tier=`ascended`, só F3 se `legendary`, nada se `common`. Proxy razoável para sugerir comps ideais.
+- Soma `tagWeight × unlockMultiplier` por hero do team.
+
+#### ScoringProfile expandido
+- Nova prop `furnitureEffectWeight` (default 0.4) — peso geral do componente no total.
+- Nova prop `furnitureEffectTagWeights` (array tag => peso, merge sobre defaults).
+- Defaults: `damage_boost=1.0`, `cc_immunity=0.8`, `cc_control=0.8`, `ability_uptime=0.8`, `healing=0.7`, `damage_reduction=0.7`, `shield=0.7`, `revive=0.7`, `energy_boost=0.6`, `survivability=0.6`, `dispel=0.6`.
+
+#### Pesos por challenge type (ChallengeTypeSeeder)
+- **Arena of Heroes (PvP)**: amplifica `cc_immunity` (1.4), `dispel` (1.2), `cc_control` (1.2), `ability_uptime` (1.1).
+- **Legends Championship / Heroes of Esperia (PvP)**: similares a Arena (1.1–1.3).
+- **Dream Realm (boss DPS)**: amplifica `damage_boost` (1.5), `ability_uptime` (1.3); reduz `cc_control` (0.3), `dispel` (0.3), `revive` (0.4) (boss imune).
+- **Cursed Realm (PvE sobrevivência)**: amplifica `survivability` (1.2), `damage_reduction` (1.2), `revive` (1.2).
+- **Dragon Trial (DPS)**: amplifica `damage_boost` (1.3), reduz `cc_control` (0.4).
+- Demais modos usam defaults.
+
+#### Integração no TeamScorer
+- `TeamScorer` recebe `FurnitureEffectScorer` via construtor (com default).
+- `ScoringContext` ganhou `furnitureAbilitiesByHeroId` (carregado em `FormationController` e `FormationCompareController` via eager-load com `whereNotNull('effects')`).
+- `ScoreBreakdown` ganhou campo `furnitureEffects`.
+- Total agora soma `furnitureEffects × profile.furnitureEffectWeight`.
+
+#### Testes
+- `FurnitureEffectClassifierTest` (15 cenários) — cobre cada tag + multi-tag + ordem estável + edge cases.
+- `FurnitureEffectScorerTest` (13 cenários) — furniture <3/3-8/=9, modo target por tier, profile overrides, team completo, tags inválidas.
+- `ClassifyFurnitureEffectsCommandTest` (5 cenários) — popula, --force, --slug, idempotência.
+- **232 testes verdes** no projeto (200 → 232, +32).
