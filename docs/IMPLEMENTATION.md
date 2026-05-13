@@ -1706,3 +1706,20 @@ Extensão da 26.5: agora o `suggestTeam` e `suggestAll` aceitam `weight_override
   - `ScoringProfileWithOverridesTest` (4 cenários) — overrides parciais, preservação de flags/tagWeights, overrides vazio, string numérica.
   - `FormationSuggestWeightOverridesTest` (5 cenários) — suggest team aceita overrides, rejeita peso > 3 e < 0, suggest-all aceita, omitir usa defaults.
   - **258 testes verdes**.
+
+#### 26.7 — Auto-scroll durante DnD
+
+Fecha a pendência da SubFase 23.2 (linha 1357): durante arrasto de herói para fora da viewport, o scroll automático mantém o destino visível.
+
+- **Hook reusável `useAutoScrollOnDrag`** (`resources/js/hooks/use-auto-scroll-on-drag.ts`):
+  - Listeners globais `pointermove`/`touchmove` capturam Y do ponteiro.
+  - `requestAnimationFrame` loop quando ativo; mede distância da borda (top/bottom) do container ou da viewport.
+  - Velocidade proporcional: `((edgeThreshold - distance) / edgeThreshold) * maxSpeed` em px/frame.
+  - Defaults: `edgeThreshold = 80px`, `maxSpeed = 18px/frame`.
+  - API: `setActive(true|false)` — controlado pelo consumidor via `onDragStart`/`onDragEnd`/`onDragCancel`.
+  - Cleanup automático no unmount + ao desativar.
+- **Integrado em:**
+  - `pages/tier-lists/edit.tsx` (caso original da pendência — listas verticais grandes com vários tiers).
+  - `pages/formations/edit.tsx` (DnD principal do app — pool de heróis × slots de team).
+- **Decisão:** scroll de viewport (window) em vez de container específico. Editor de formação tem layout fluido (`overflow-y-auto pr-1 pb-20`) onde a barra de scroll do navegador é a referência prática. Aceita customização via prop `container` no hook se algum caso futuro precisar.
+- Cobertura: ambos os DnD agora suportam arrastar pra baixo/cima da viewport sem perder o destino. Mobile já chega via `touchmove` listener.

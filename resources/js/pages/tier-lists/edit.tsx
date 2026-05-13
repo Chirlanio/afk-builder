@@ -4,6 +4,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAutoScrollOnDrag } from '@/hooks/use-auto-scroll-on-drag';
 import AppLayout from '@/layouts/app-layout';
 import { TIER_LIST_COLOR_BG, TIER_LIST_COLOR_BORDER, TIER_LIST_COLORS } from '@/lib/afk';
 import { cn } from '@/lib/utils';
@@ -56,6 +57,7 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
 
     const { confirm, dialog: confirmDialog } = useConfirm();
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+    const autoScroll = useAutoScrollOnDrag();
 
     /**
      * Localiza em qual row o herói está atualmente. Retorna null se está no pool.
@@ -97,6 +99,7 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
         const heroId = Number(data.heroId);
         setActiveDrag({ kind: 'hero', id: heroId });
         setDragOriginRowId(findRowOfHero(heroId));
+        autoScroll.setActive(true);
     };
 
     /**
@@ -162,6 +165,7 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
         const originRowId = dragOriginRowId;
         setActiveDrag(null);
         setDragOriginRowId(undefined);
+        autoScroll.setActive(false);
 
         if (!over || data?.kind !== 'hero') return;
 
@@ -345,6 +349,11 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
                     onDragStart={handleDragStart}
                     onDragOver={handleDragOver}
                     onDragEnd={handleDragEnd}
+                    onDragCancel={() => {
+                        setActiveDrag(null);
+                        setDragOriginRowId(undefined);
+                        autoScroll.setActive(false);
+                    }}
                 >
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
                         {/* Tiers */}

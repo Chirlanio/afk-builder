@@ -35,6 +35,7 @@ import type {
 } from '@/types/afk';
 import { ScoreBreakdownCard } from '@/components/score-breakdown-card';
 import { WeightTunerSheet, type WeightOverrides } from '@/components/weight-tuner-sheet';
+import { useAutoScrollOnDrag } from '@/hooks/use-auto-scroll-on-drag';
 
 interface PageProps {
     formation: Formation & {
@@ -110,6 +111,7 @@ export default function FormationsEdit({
     const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
     const [customWeights, setCustomWeights] = useState<WeightOverrides | null>(null);
     const [weightsAreDefault, setWeightsAreDefault] = useState(true);
+    const autoScroll = useAutoScrollOnDrag();
 
     const enforceUnique = formation.challenge_type.teams_must_be_unique;
 
@@ -150,6 +152,7 @@ export default function FormationsEdit({
     const handleDragStart = (event: DragStartEvent) => {
         const data = event.active.data.current as { kind: string; heroId: number | null } | undefined;
         setActiveDragHeroId(data?.heroId ?? null);
+        autoScroll.setActive(true);
         // Em mobile, fechar o sheet do pool ao começar drag — assim o usuário vê
         // os slots-alvo enquanto arrasta o herói pra cima deles.
         setPoolSheetOpen(false);
@@ -157,6 +160,7 @@ export default function FormationsEdit({
 
     const handleDragEnd = (event: DragEndEvent) => {
         setActiveDragHeroId(null);
+        autoScroll.setActive(false);
         const { active, over } = event;
         if (!over) return;
 
@@ -408,7 +412,15 @@ export default function FormationsEdit({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Editar ${formation.name}`} />
 
-            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <DndContext
+                sensors={sensors}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={() => {
+                    setActiveDragHeroId(null);
+                    autoScroll.setActive(false);
+                }}
+            >
                 <div className="flex h-full flex-1 flex-col gap-4 p-3 sm:gap-6 sm:p-4 md:p-6">
                     {/* Linha 1: nome + ações primárias */}
                     <div className="flex items-start gap-2">
