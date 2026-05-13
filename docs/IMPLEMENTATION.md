@@ -1691,3 +1691,18 @@ Com o breakdown visível, fazia sentido permitir tunagem dos pesos para entender
   - Sliders só afetam **visualização**, não a sugestão automática. Suggest/SuggestAll continuam usando os defaults do challenge_type. Permitir overrides no backend = expansão futura.
   - Persistência só em `localStorage` (per browser, per formation). Sem sync entre devices.
 - **Testes:** `test_edit_inclui_scoring_profile_defaults` valida os 7 pesos vindos do `ChallengeType::arena_of_heroes` no payload. **249 testes verdes**.
+
+#### 26.6 — Suggest com pesos custom (fecha o ciclo de tunagem)
+
+Extensão da 26.5: agora o `suggestTeam` e `suggestAll` aceitam `weight_overrides` no body e usam esses pesos para o optimizer. O ciclo de tunagem está completo — user mexe sliders, clica "Sugerir", recebe sugestão otimizada pelos pesos custom.
+
+- **`ScoringProfile::withOverrides(array $overrides): self`** — método imutável que retorna nova ScoringProfile aplicando overrides nos 7 pesos. Demais campos preservados (pvp, dpsFocus, partitionOptimization, furnitureEffectTagWeights). Aceita strings numéricas (cast via float).
+- **`FormationController@suggestTeam` e `@suggestAll`:**
+  - Validação: `'weight_overrides' => ['nullable', 'array']` + `'weight_overrides.*' => ['numeric', 'min:0', 'max:3']` (mesma faixa do slider).
+  - Quando presente e não vazio, aplica `$profile = $profile->withOverrides($data['weight_overrides'])` antes de chamar o optimizer.
+  - Quando ausente, comportamento idêntico ao anterior (usa defaults do challenge_type).
+- **Frontend (`pages/formations/edit.tsx`):** ambos `suggestForTeam()` e `suggestAll()` adicionam `weight_overrides: customWeights` no body quando `!weightsAreDefault`. Mesmo state da 26.5 (vindo do `WeightTunerSheet`).
+- **Testes:**
+  - `ScoringProfileWithOverridesTest` (4 cenários) — overrides parciais, preservação de flags/tagWeights, overrides vazio, string numérica.
+  - `FormationSuggestWeightOverridesTest` (5 cenários) — suggest team aceita overrides, rejeita peso > 3 e < 0, suggest-all aceita, omitir usa defaults.
+  - **258 testes verdes**.

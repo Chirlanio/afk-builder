@@ -71,4 +71,33 @@ class ScoringProfile
     {
         return array_merge(self::DEFAULT_FURNITURE_EFFECT_TAG_WEIGHTS, $this->furnitureEffectTagWeights);
     }
+
+    /**
+     * Retorna uma nova ScoringProfile aplicando overrides sobre os 7 pesos
+     * principais. Demais campos (pvp, dpsFocus, partitionOptimization,
+     * furnitureEffectTagWeights) são preservados.
+     *
+     * Cada chave do array é opcional. Aceita as mesmas chaves snake_case do
+     * scoring_profile JSON: faction_bonus_weight, class_balance_weight,
+     * synergy_weight, power_weight, tier_rating_weight, feature_weight,
+     * furniture_effect_weight.
+     *
+     * @param  array<string, float>  $overrides
+     */
+    public function withOverrides(array $overrides): self
+    {
+        return new self(
+            factionBonusWeight: isset($overrides['faction_bonus_weight']) ? (float) $overrides['faction_bonus_weight'] : $this->factionBonusWeight,
+            classBalanceWeight: isset($overrides['class_balance_weight']) ? (float) $overrides['class_balance_weight'] : $this->classBalanceWeight,
+            synergyWeight: isset($overrides['synergy_weight']) ? (float) $overrides['synergy_weight'] : $this->synergyWeight,
+            powerWeight: isset($overrides['power_weight']) ? (float) $overrides['power_weight'] : $this->powerWeight,
+            tierRatingWeight: isset($overrides['tier_rating_weight']) ? (float) $overrides['tier_rating_weight'] : $this->tierRatingWeight,
+            featureWeight: isset($overrides['feature_weight']) ? (float) $overrides['feature_weight'] : $this->featureWeight,
+            furnitureEffectWeight: isset($overrides['furniture_effect_weight']) ? (float) $overrides['furniture_effect_weight'] : $this->furnitureEffectWeight,
+            furnitureEffectTagWeights: $this->furnitureEffectTagWeights,
+            pvp: $this->pvp,
+            dpsFocus: $this->dpsFocus,
+            partitionOptimization: $this->partitionOptimization,
+        );
+    }
 }

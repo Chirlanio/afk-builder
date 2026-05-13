@@ -328,6 +328,8 @@ class FormationController extends Controller
             'teams.*.heroes' => ['array', 'max:5'],
             'teams.*.heroes.*.slot' => ['required', 'integer', 'min:1', 'max:5'],
             'teams.*.heroes.*.hero_id' => ['required', 'integer', Rule::exists('heroes', 'id')->where('is_active', true)],
+            'weight_overrides' => ['nullable', 'array'],
+            'weight_overrides.*' => ['numeric', 'min:0', 'max:3'],
         ]);
 
         $targetTeam = collect($data['teams'])->firstWhere('position', $position);
@@ -356,6 +358,9 @@ class FormationController extends Controller
         $userHeroesById = $this->loadUserHeroes($request->user()->id);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
+        if (! empty($data['weight_overrides'])) {
+            $profile = $profile->withOverrides($data['weight_overrides']);
+        }
         $ctx = $this->loadScoringContext($formation, $heroPoolById, $userHeroesById);
 
         $result = $optimizer->optimize(
@@ -416,6 +421,8 @@ class FormationController extends Controller
             'teams.*.heroes' => ['array', 'max:5'],
             'teams.*.heroes.*.slot' => ['required', 'integer', 'min:1', 'max:5'],
             'teams.*.heroes.*.hero_id' => ['required', 'integer', Rule::exists('heroes', 'id')->where('is_active', true)],
+            'weight_overrides' => ['nullable', 'array'],
+            'weight_overrides.*' => ['numeric', 'min:0', 'max:3'],
         ]);
 
         $lockedSlotsByTeam = [];
@@ -436,6 +443,9 @@ class FormationController extends Controller
         $userHeroesById = $this->loadUserHeroes($request->user()->id);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
+        if (! empty($data['weight_overrides'])) {
+            $profile = $profile->withOverrides($data['weight_overrides']);
+        }
         $ctx = $this->loadScoringContext($formation, $heroPoolById, $userHeroesById);
 
         $result = $partitioner->optimize(

@@ -206,7 +206,10 @@ export default function FormationsEdit({
     const suggestForTeam = async (teamPos: number) => {
         setSuggestingTeamPos(teamPos);
         try {
-            const payload = {
+            const payload: {
+                teams: Array<{ position: number; heroes: Array<{ slot: number; hero_id: number }> }>;
+                weight_overrides?: WeightOverrides;
+            } = {
                 teams: teams.map((team) => ({
                     position: team.position,
                     heroes: team.slots
@@ -214,6 +217,9 @@ export default function FormationsEdit({
                         .filter((h): h is { slot: number; hero_id: number } => h.hero_id !== null),
                 })),
             };
+            if (!weightsAreDefault && customWeights) {
+                payload.weight_overrides = customWeights;
+            }
 
             const response = await axios.post<{ additions: Array<{ slot: number; hero_id: number }> }>(
                 `/formations/${formation.id}/teams/${teamPos}/suggest`,
@@ -248,7 +254,10 @@ export default function FormationsEdit({
     const suggestAll = async () => {
         setIsSuggestingAll(true);
         try {
-            const payload = {
+            const payload: {
+                teams: Array<{ position: number; heroes: Array<{ slot: number; hero_id: number }> }>;
+                weight_overrides?: WeightOverrides;
+            } = {
                 teams: teams.map((team) => ({
                     position: team.position,
                     heroes: team.slots
@@ -256,6 +265,9 @@ export default function FormationsEdit({
                         .filter((h): h is { slot: number; hero_id: number } => h.hero_id !== null),
                 })),
             };
+            if (!weightsAreDefault && customWeights) {
+                payload.weight_overrides = customWeights;
+            }
 
             const response = await axios.post<{
                 teams: Array<{ position: number; additions: Array<{ slot: number; hero_id: number }> }>;
