@@ -5,10 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import { CLASS_ICON, FACTION_THEME } from '@/lib/afk';
+import { CLASS_ICON, FACTION_THEME, HERO_FEATURE_BADGE, HERO_FEATURE_LABEL, HERO_FEATURE_TAGS } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
-import type { ClassCode, Faction, FactionCode, Hero, HeroClass, RosterByHeroId, Tier, TierCode } from '@/types/afk';
+import type { ClassCode, Faction, FactionCode, Hero, HeroClass, HeroFeatureTag, RosterByHeroId, Tier, TierCode } from '@/types/afk';
 import { Head } from '@inertiajs/react';
 import { Search, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -27,6 +27,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
     const [search, setSearch] = useState('');
     const [factionFilter, setFactionFilter] = useState<Set<number>>(new Set());
     const [classFilter, setClassFilter] = useState<Set<number>>(new Set());
+    const [featureFilter, setFeatureFilter] = useState<Set<HeroFeatureTag>>(new Set());
     const [onlyOwned, setOnlyOwned] = useState(false);
     const [openSlug, setOpenSlug] = useState<string | null>(null);
 
@@ -55,6 +56,17 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
             if (factionFilter.size > 0 && !factionFilter.has(hero.faction_id)) continue;
             if (classFilter.size > 0 && !classFilter.has(hero.hero_class_id)) continue;
             if (onlyOwned && !roster[hero.id]) continue;
+            if (featureFilter.size > 0) {
+                const tags = hero.features?.map((f) => f.tag) ?? [];
+                let matches = false;
+                for (const tag of featureFilter) {
+                    if (tags.includes(tag)) {
+                        matches = true;
+                        break;
+                    }
+                }
+                if (!matches) continue;
+            }
             if (term) {
                 const haystack = `${hero.name} ${hero.title ?? ''}`.toLowerCase();
                 if (!haystack.includes(term)) continue;
@@ -66,7 +78,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
         }
 
         return map;
-    }, [heroes, search, factionFilter, classFilter, onlyOwned, roster]);
+    }, [heroes, search, factionFilter, classFilter, featureFilter, onlyOwned, roster]);
 
     const totalShown = useMemo(() => {
         let n = 0;
@@ -78,7 +90,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
 
     const ownedCount = Object.keys(roster).length;
 
-    const toggleFromSet = (set: Set<number>, id: number, setter: (s: Set<number>) => void) => {
+    const toggleFromSet = <T,>(set: Set<T>, id: T, setter: (s: Set<T>) => void) => {
         const next = new Set(set);
         if (next.has(id)) next.delete(id);
         else next.add(id);
@@ -89,6 +101,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
         setSearch('');
         setFactionFilter(new Set());
         setClassFilter(new Set());
+        setFeatureFilter(new Set());
         setOnlyOwned(false);
     };
 
@@ -96,7 +109,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
         setOpenSlug(hero.slug);
     };
 
-    const filtersActive = search.length > 0 || factionFilter.size > 0 || classFilter.size > 0 || onlyOwned;
+    const filtersActive = search.length > 0 || factionFilter.size > 0 || classFilter.size > 0 || featureFilter.size > 0 || onlyOwned;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -174,6 +187,28 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                                 >
                                     <Icon className="size-3" />
                                     {heroClass.name_pt}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-muted-foreground text-xs font-medium">Destaque:</span>
+                        {HERO_FEATURE_TAGS.map((tag) => {
+                            const active = featureFilter.has(tag);
+                            return (
+                                <button
+                                    key={tag}
+                                    type="button"
+                                    onClick={() => toggleFromSet(featureFilter, tag, setFeatureFilter)}
+                                    className={cn(
+                                        'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all',
+                                        active
+                                            ? cn(HERO_FEATURE_BADGE[tag], 'shadow-sm')
+                                            : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground',
+                                    )}
+                                >
+                                    {HERO_FEATURE_LABEL[tag]}
                                 </button>
                             );
                         })}

@@ -1,6 +1,6 @@
+import type { ClassCode, EquipmentTier, FactionCode, HeroFeatureTag, HeroType, TierCode, TierListColor } from '@/types/afk';
 import type { LucideIcon } from 'lucide-react';
 import { Brain, Crosshair, Dumbbell, Heart, Shield, Sparkles, Sword, Wind } from 'lucide-react';
-import type { ClassCode, EquipmentTier, FactionCode, HeroType, TierCode, TierListColor } from '@/types/afk';
 
 export interface FactionTheme {
     label: string;
@@ -274,4 +274,24 @@ export const TIER_LIST_COLOR_BORDER: Record<TierListColor, string> = {
     violet: 'border-violet-500/40 bg-violet-500/5',
     fuchsia: 'border-fuchsia-500/40 bg-fuchsia-500/5',
     zinc: 'border-zinc-500/40 bg-zinc-500/5',
+};
+
+export const HERO_FEATURE_TAGS: HeroFeatureTag[] = ['pvp_top', 'twisted_realm_top', 'early_carry', 'early_support', 'early_tank', 'early_utility'];
+
+export const HERO_FEATURE_LABEL: Record<HeroFeatureTag, string> = {
+    pvp_top: 'PvP Top',
+    twisted_realm_top: 'Twisted Realm Top',
+    early_carry: 'Early Carry',
+    early_support: 'Early Support',
+    early_tank: 'Early Tank',
+    early_utility: 'Early Utility',
+};
+
+export const HERO_FEATURE_BADGE: Record<HeroFeatureTag, string> = {
+    pvp_top: 'border-rose-500/40 bg-rose-500/10 text-rose-200',
+    twisted_realm_top: 'border-violet-500/40 bg-violet-500/10 text-violet-200',
+    early_carry: 'border-amber-500/40 bg-amber-500/10 text-amber-200',
+    early_support: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200',
+    early_tank: 'border-sky-500/40 bg-sky-500/10 text-sky-200',
+    early_utility: 'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-200',
 };
