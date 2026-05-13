@@ -1645,3 +1645,13 @@ Migra os custos do guide markdown (Fase 22.2) para tabela estruturada.
 #### Observações sobre os dados
 - Levels 39-40 não documentados no guide afk.guide (campo `cost = NULL`). UI omite a linha de próximo custo nestes casos.
 - Totais por faixa do guide têm pequenas discrepâncias com a soma dos custos individuais (faixa 1-10: 190 vs 200 do guide; 11-20: 230 vs 240). Mantive os valores individuais como fonte da verdade — os agregados do guide podem ter typos.
+
+#### 26.3 — PowerCalculator usa cumulative SI cost
+
+Fórmula antiga `signature_item * 5` era linear e ignorava o salto enorme de custo dos SI +31-40 (1050 emblemas a mais, exclusivo Celestial/Hypogean). Substituída por `cumulative_cost(level) * 0.2`:
+
+- **`SignatureItemCost::cumulativeCostUpToLevel($level)`** — somatório acumulado de custos até o level, com cache estático (1 query inicial, ~40 rows). Levels 39-40 (cost=NULL) caem em fallback do level 38 (120 emblems) pra manter curva crescente.
+- **`PowerCalculator::SI_CUMULATIVE_FACTOR = 0.2`** — calibrado pra manter SI 30 em ~144 pontos (próximo dos 150 antigos). Resultado: SI 30 = 144 (era 150), SI 38 = 258 (era 190), SI 40 = 306 (era 200).
+- **Impacto:** ranking de heróis Celestial/Hypogean com SI 31+ ganha peso adicional, refletindo o investimento real. Demais facções (cap 30) mudam pouco (~5% queda no SI 30 absoluto, neutro relativamente).
+- **Cache invalidation:** `flushCumulativeCache()` para testes; `primeCumulativeCacheForTesting($cache)` permite unit tests sem DB.
+- **Testes:** novo cenário `test_si_salto_30_para_40_reflete_custo_real` valida que diff SI 40-30 é 162 pts (era 50 pts antes — 224% mais sensível ao salto Celestial). 3 testes existentes ajustados para nova fórmula. **246 testes verdes** no projeto.

@@ -40,6 +40,79 @@ class SignatureItemCost extends Model
     }
 
     /**
+     * Cache do somatório acumulado por nível. Calculado lazy na primeira
+     * chamada via 1 query (40 rows) e reutilizado pelo PowerCalculator no
+     * loop de scoring.
+     *
+     * Levels 39-40 (cost=NULL no seeder) caem no fallback do level 38 (120),
+     * mantendo a curva crescente sem inventar valor concreto.
+     *
+     * @var array<int, int>|null level => cumulative_cost
+     */
+    private static ?array $cumulativeCache = null;
+
+    /**
+     * Retorna o custo total acumulado de subir de 0 até o nível dado.
+     * Level 0 retorna 0. Levels com cost=NULL usam fallback do último custo
+     * conhecido (mantém a curva crescente até o cap +40).
+     */
+    public static function cumulativeCostUpToLevel(int $level): int
+    {
+        if ($level <= 0) {
+            return 0;
+        }
+        $level = min($level, self::SI_CAP_EXTENDED);
+
+        if (self::$cumulativeCache === null) {
+            self::$cumulativeCache = self::buildCumulativeCache();
+        }
+
+        return self::$cumulativeCache[$level] ?? 0;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private static function buildCumulativeCache(): array
+    {
+        $rows = self::query()->orderBy('level')->get(['level', 'cost']);
+
+        $cumulative = [0 => 0];
+        $running = 0;
+        $lastKnownCost = 0;
+
+        foreach ($rows as $row) {
+            $cost = $row->cost ?? $lastKnownCost;
+            if ($row->cost !== null) {
+                $lastKnownCost = $row->cost;
+            }
+            $running += $cost;
+            $cumulative[$row->level] = $running;
+        }
+
+        return $cumulative;
+    }
+
+    /**
+     * Limpa o cache estático — usado em testes que mexem no seeder.
+     */
+    public static function flushCumulativeCache(): void
+    {
+        self::$cumulativeCache = null;
+    }
+
+    /**
+     * Injeta o cache cumulativo manualmente — usado em unit tests que não
+     * têm acesso ao DB. Passa array level => cumulative_cost.
+     *
+     * @param  array<int, int>  $cache
+     */
+    public static function primeCumulativeCacheForTesting(array $cache): void
+    {
+        self::$cumulativeCache = $cache;
+    }
+
+    /**
      * Sumariza o investimento de SI para um hero/userHero.
      *
      * @param  int  $current  Nível atual de SI (0-40)

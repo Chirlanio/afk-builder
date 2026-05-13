@@ -7,6 +7,8 @@ use App\Models\Beast;
 use App\Models\Collection;
 use App\Models\Hero;
 use App\Models\HeroStat;
+use App\Models\SignatureItemCost;
+use App\Models\Tier;
 use App\Models\UserHero;
 use App\Services\Optimization\PowerCalculator;
 use PHPUnit\Framework\TestCase;
@@ -15,10 +17,34 @@ class PowerCalculatorTest extends TestCase
 {
     private PowerCalculator $calc;
 
+    /**
+     * Cumulative SI cost dos dados reais do seeder. Pre-injetado pra evitar
+     * acesso ao DB (este é unit test puro).
+     *
+     * @var array<int, int>
+     */
+    private const SI_CUMULATIVE = [
+        0 => 0, 1 => 10, 2 => 20, 3 => 30, 4 => 40, 5 => 55,
+        6 => 70, 7 => 85, 8 => 110, 9 => 140, 10 => 190,
+        11 => 200, 12 => 210, 13 => 225, 14 => 240, 15 => 260,
+        16 => 285, 17 => 310, 18 => 340, 19 => 380, 20 => 420,
+        21 => 430, 22 => 450, 23 => 470, 24 => 490, 25 => 520,
+        26 => 550, 27 => 590, 28 => 630, 29 => 670, 30 => 720,
+        31 => 770, 32 => 820, 33 => 870, 34 => 930, 35 => 1000,
+        36 => 1080, 37 => 1170, 38 => 1290, 39 => 1410, 40 => 1530,
+    ];
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->calc = new PowerCalculator;
+        SignatureItemCost::primeCumulativeCacheForTesting(self::SI_CUMULATIVE);
+    }
+
+    protected function tearDown(): void
+    {
+        SignatureItemCost::flushCumulativeCache();
+        parent::tearDown();
     }
 
     private function makeUserHero(array $attrs): UserHero
@@ -27,6 +53,7 @@ class PowerCalculatorTest extends TestCase
         foreach ($attrs as $k => $v) {
             $userHero->{$k} = $v;
         }
+
         return $userHero;
     }
 
@@ -40,8 +67,8 @@ class PowerCalculatorTest extends TestCase
             'engraving' => 60,
         ]);
 
-        // 10*100 + 240 + 30*5 + 0*30 + 60*0.5 = 1000 + 240 + 150 + 0 + 30 = 1420
-        $this->assertEqualsWithDelta(1420.0, $this->calc->forUserHero($uh), 0.001);
+        // 10*100 + 240 + SI(30)=720*0.2=144 + 0*30 + 60*0.5 = 1000 + 240 + 144 + 0 + 30 = 1414
+        $this->assertEqualsWithDelta(1414.0, $this->calc->forUserHero($uh), 0.001);
     }
 
     public function test_furniture_3_adiciona_bonus_f3(): void
@@ -68,9 +95,9 @@ class PowerCalculatorTest extends TestCase
             'engraving' => 100,
         ]);
 
-        // 16*100 + 240 + 40*5 + 9*30 + 100*0.5 + 100 (F3) + 200 (F9)
-        // = 1600 + 240 + 200 + 270 + 50 + 300 = 2660
-        $this->assertEqualsWithDelta(2660.0, $this->calc->forUserHero($uh), 0.001);
+        // 16*100 + 240 + SI(40)=1530*0.2=306 + 9*30 + 100*0.5 + 100 (F3) + 200 (F9)
+        // = 1600 + 240 + 306 + 270 + 50 + 300 = 2766
+        $this->assertEqualsWithDelta(2766.0, $this->calc->forUserHero($uh), 0.001);
     }
 
     public function test_furniture_entre_3_e_9_so_aplica_f3(): void
@@ -148,12 +175,33 @@ class PowerCalculatorTest extends TestCase
             'furniture' => 0, 'engraving' => 60,
         ]);
 
-        $this->assertEqualsWithDelta(1420.0, $this->calc->forUserHero($uh), 0.001);
+        // Mesma fórmula do test_formula_basica: SI 30 cumulativo = 720 × 0.2 = 144
+        $this->assertEqualsWithDelta(1414.0, $this->calc->forUserHero($uh), 0.001);
+    }
+
+    public function test_si_salto_30_para_40_reflete_custo_real(): void
+    {
+        // SI 30: 720 emblems × 0.2 = 144
+        $si30 = $this->makeUserHero([
+            'ascension_value' => 0, 'level' => 0, 'signature_item' => 30,
+            'furniture' => 0, 'engraving' => 0,
+        ]);
+        // SI 40: 1530 emblems × 0.2 = 306
+        $si40 = $this->makeUserHero([
+            'ascension_value' => 0, 'level' => 0, 'signature_item' => 40,
+            'furniture' => 0, 'engraving' => 0,
+        ]);
+
+        // Diferença SI 30→40 deve ser ~162 (1530-720)*0.2, refletindo os
+        // 1050 emblems a mais (faction emblems Celestial/Hypogean only).
+        // Antes do refactor (linear *5), a diferença era apenas 50 (10*5).
+        $diff = $this->calc->forUserHero($si40) - $this->calc->forUserHero($si30);
+        $this->assertEqualsWithDelta(162.0, $diff, 0.5);
     }
 
     public function test_target_baseline_soma_stats_quando_hero_tem_stats(): void
     {
-        $tier = new \App\Models\Tier(['code' => 'ascended']);
+        $tier = new Tier(['code' => 'ascended']);
         $hero = new Hero;
         $hero->setRelation('tier', $tier);
 

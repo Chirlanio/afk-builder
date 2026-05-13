@@ -7,6 +7,7 @@ use App\Models\Beast;
 use App\Models\Collection;
 use App\Models\Hero;
 use App\Models\HeroStat;
+use App\Models\SignatureItemCost;
 use App\Models\UserHero;
 
 class PowerCalculator
@@ -16,6 +17,18 @@ class PowerCalculator
         'legendary' => ['ascension' => 9, 'level' => 160],
         'ascended' => ['ascension' => 12, 'level' => 240],
     ];
+
+    /**
+     * Fator aplicado ao custo cumulativo de emblemas investidos no SI para
+     * converter em pontos de power. Calibrado para manter SI 30 em ~144
+     * (próximo dos 150 da fórmula linear antiga `signature_item * 5`), e
+     * dar peso adicional ao caminho SI 31-40 que custa 1050 emblemas a mais
+     * (exclusivo Celestial/Hypogean). Resultado típico:
+     *   SI 30 → 144 (era 150)
+     *   SI 38 → 258 (era 190)
+     *   SI 40 → 306 (era 200)
+     */
+    private const SI_CUMULATIVE_FACTOR = 0.2;
 
     /** Multiplicador default aplicado ao buff de beast (sem tier cadastrado). */
     private const BEAST_BUFF_FACTOR = 0.5;
@@ -44,9 +57,11 @@ class PowerCalculator
 
     public function forUserHero(UserHero $userHero, ?Hero $hero = null, ?Beast $beast = null): float
     {
+        $siInvested = SignatureItemCost::cumulativeCostUpToLevel((int) $userHero->signature_item);
+
         $base = $userHero->ascension_value * 100
             + $userHero->level
-            + $userHero->signature_item * 5
+            + $siInvested * self::SI_CUMULATIVE_FACTOR
             + $userHero->furniture * 30
             + $userHero->engraving * 0.5;
 
@@ -90,6 +105,7 @@ class PowerCalculator
         if ($beast->tier !== null && isset(self::BEAST_TIER_FACTOR[$beast->tier])) {
             return self::BEAST_TIER_FACTOR[$beast->tier];
         }
+
         return self::BEAST_BUFF_FACTOR;
     }
 
@@ -113,6 +129,7 @@ class PowerCalculator
         if (! $hero->relationLoaded('stats')) {
             return null;
         }
+
         return $hero->stats;
     }
 
@@ -127,6 +144,7 @@ class PowerCalculator
         if ($beast && $hero->type) {
             $base += $this->beastBuffForType($beast, $hero->type) * $this->beastFactor($beast);
         }
+
         return $base;
     }
 
@@ -199,6 +217,7 @@ class PowerCalculator
             $level = $userHero->{$slot.'_level'} ?? null;
             $sum += $this->equipmentContribution($tier, $level);
         }
+
         return $sum;
     }
 
@@ -216,6 +235,7 @@ class PowerCalculator
         if ($tierValue === 0) {
             return 0.0;
         }
+
         return $tierValue * 10.0 + max(0, min(20, $level)) * 2.0;
     }
 
