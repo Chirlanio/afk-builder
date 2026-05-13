@@ -1763,3 +1763,31 @@ Conclui o ciclo de tunagem aberto pelas Fases 26.5/26.6. Os pesos custom agora p
 #### Testes
 - `FormationScoringWeightsTest` (8 cenários): persistência, omitir/array vazio limpa, peso > 3 / negativo rejeitado, 403 cross-user, payload `edit` inclui overrides quando salvos e null quando não.
 - **266 testes verdes** (+8 novos).
+
+---
+
+### ✅ Fase 28 — Dashboard com estatísticas expandido
+
+O dashboard tinha 6 stats básicas (roster total, ascendidos, despertos, catálogo, facções, formações). Agora ganha milestones de investimento, distribuições por classe/tier, top 5 power e heroes destaque do roster.
+
+#### Novas queries no `DashboardController@index`
+- **`rosterByClass`** — agrupa user_heroes por hero_classes.code (tank/warrior/ranger/mage/support), ordena por display_order.
+- **`rosterByTier`** — agrupa por tiers.code (common/legendary/ascended).
+- **Milestones** (`stats.*`): `roster_si_30` (`signature_item >= 30`), `roster_si_40` (cap Celestial/Hypogean), `roster_f9` (`furniture >= 9`), `roster_eng_80` (`engraving >= 80`).
+- **`topPowerHeroes`** — top 5 do roster por `PowerCalculator::forUserHero()`. Eager-load completo (faction, class, tier, stats, artifact, collection) pra evitar N+1.
+- **`featuredInRoster`** — heroes do roster que têm tag PvP Top ou Twisted Realm Top (Fase 21.5). Agrupado por tag, com slug/name/portrait para link de navegação.
+
+#### UI no `pages/dashboard.tsx`
+- 2ª linha de StatCards (milestones): SI +30, Móveis F9, Inscrições 80+, Top power.
+- Seção "Distribuição por classe" e "Distribuição por tier" lado a lado, com barras de progresso percentuais.
+- Seção "Top 5 power" — cards horizontais com posição (#1-5), portrait, badges (Nv/SI/F), e número de power formatado em pt-BR. Linka pra `/heroes?open={slug}`.
+- Seção "Heroes destaque no roster" — 2 cards (PvP Top + Twisted Realm Top) com chips clicáveis. Mostra mensagem amigável quando vazio ("boa oportunidade de progressão").
+
+#### Testes (`DashboardTest`)
+- 2 cenários novos:
+  - `test_payload_inclui_estatisticas_novas_e_milestones` — fixtures: 4 heroes diversos (SI 30/40, F9, Eng 80+), 2 com features. Valida contagens, distribuições, top 5, featured agrupado por tag.
+  - `test_roster_vazio_retorna_distribuicoes_vazias` — edge case do user novo sem roster.
+- **268 testes verdes** (+2 novos).
+
+#### Performance
+- Top 5 power é calculado em PHP (não SQL) porque a fórmula combina ascension, level, SI cumulativo, equipamentos, artifact/collection, stats. Hoje 100% do roster cabe em memória; se passar de ~500 heroes (impossível no jogo) viraria gargalo — então deixei como está sem cache.
