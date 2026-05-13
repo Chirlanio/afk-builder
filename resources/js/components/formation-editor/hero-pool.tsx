@@ -25,6 +25,7 @@ interface HeroPoolProps {
     tierById: Record<number, Tier>;
     placedHeroIds: Set<number>;
     enforceUnique: boolean;
+    onTapHero?: (heroId: number) => void;
 }
 
 interface DraggableChipProps {
@@ -33,26 +34,36 @@ interface DraggableChipProps {
     classCode: ClassCode;
     tierCode: TierCode;
     disabled: boolean;
+    onTap?: () => void;
 }
 
-function DraggableChip({ hero, factionCode, classCode, tierCode, disabled }: DraggableChipProps) {
+function DraggableChip({ hero, factionCode, classCode, tierCode, disabled, onTap }: DraggableChipProps) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: `pool:${hero.id}`,
         data: { kind: 'pool', heroId: hero.id },
         disabled,
     });
 
+    // Quando onTap está definido, o chip também responde a click rápido (não-drag).
+    // O TouchSensor exige delay de 150ms pra começar drag, então um tap simples
+    // (<150ms) cai aqui sem disparar o DnD.
+    const handleClick = onTap && !disabled && !isDragging ? onTap : undefined;
+
     return (
         <div
             ref={setNodeRef}
             {...listeners}
             {...attributes}
+            onClick={handleClick}
             style={transform ? { transform: CSS.Translate.toString(transform) } : undefined}
             className={cn(
-                'cursor-grab touch-none active:cursor-grabbing',
+                'touch-none',
+                onTap && !disabled ? 'cursor-pointer active:scale-95 transition-transform' : 'cursor-grab active:cursor-grabbing',
                 isDragging && 'z-50 opacity-50',
                 disabled && 'cursor-not-allowed',
             )}
+            aria-label={onTap ? `Adicionar ${hero.name} ao próximo slot` : undefined}
+            role={onTap ? 'button' : undefined}
         >
             <HeroChip
                 hero={hero}
@@ -75,6 +86,7 @@ export function HeroPool({
     tierById,
     placedHeroIds,
     enforceUnique,
+    onTapHero,
 }: HeroPoolProps) {
     const [search, setSearch] = useState('');
     const [factionFilter, setFactionFilter] = useState<Set<number>>(new Set());
@@ -128,7 +140,7 @@ export function HeroPool({
                             type="button"
                             onClick={() => toggle(factionFilter, faction.id, setFactionFilter)}
                             className={cn(
-                                'rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors',
+                                'min-h-7 rounded-full border px-2 py-1 text-[10px] font-medium transition-colors lg:py-0.5',
                                 active
                                     ? cn(theme.cardGradient, theme.cardBorder, 'text-foreground')
                                     : 'border-border text-muted-foreground hover:border-foreground/30',
@@ -150,7 +162,7 @@ export function HeroPool({
                             type="button"
                             onClick={() => toggle(classFilter, heroClass.id, setClassFilter)}
                             className={cn(
-                                'flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors',
+                                'flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium transition-colors lg:py-0.5',
                                 active
                                     ? 'border-primary bg-primary text-primary-foreground'
                                     : 'border-border text-muted-foreground hover:border-foreground/30',
@@ -178,6 +190,7 @@ export function HeroPool({
                             classCode={klass.code as ClassCode}
                             tierCode={tier.code as TierCode}
                             disabled={disabled}
+                            onTap={onTapHero ? () => onTapHero(hero.id) : undefined}
                         />
                     );
                 })}

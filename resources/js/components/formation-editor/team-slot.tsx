@@ -85,10 +85,10 @@ export function TeamSlot({ teamPosition, slotPosition, hero, factionCode, classC
                         e.stopPropagation();
                         onRemove();
                     }}
-                    className="absolute -top-1.5 -right-1.5 z-20 grid size-5 place-items-center rounded-full bg-destructive text-destructive-foreground shadow-md hover:scale-110"
+                    className="absolute -top-2 -right-2 z-20 grid size-7 place-items-center rounded-full bg-destructive text-destructive-foreground shadow-md hover:scale-110 lg:-top-1.5 lg:-right-1.5 lg:size-5"
                     aria-label="Remover do slot"
                 >
-                    <X className="size-3" />
+                    <X className="size-4 lg:size-3" />
                 </button>
             )}
         </div>

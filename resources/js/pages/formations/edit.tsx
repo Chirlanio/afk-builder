@@ -109,6 +109,7 @@ export default function FormationsEdit({
     const [versions, setVersions] = useState<Array<{ id: number; created_at: string | null; team_count: number; hero_count: number; name: string | null }>>([]);
     const [isLoadingVersions, setIsLoadingVersions] = useState(false);
     const [poolSheetOpen, setPoolSheetOpen] = useState(false);
+    const [mobileTargetTeamPos, setMobileTargetTeamPos] = useState<number>(1);
     const { confirm, dialog: confirmDialog } = useConfirm();
     const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
     const [customWeights, setCustomWeights] = useState<WeightOverrides | null>(null);
@@ -164,6 +165,62 @@ export default function FormationsEdit({
             setIsDirty(true);
         },
         [updateSlot],
+    );
+
+    // Tap-to-add (mobile): adiciona herói ao próximo slot vazio da team alvo.
+    // Se enforceUnique e herói já está em outro slot, faz swap pro próximo livre.
+    // Retorna true se conseguiu adicionar (caller pode fechar Sheet).
+    const addHeroToTeam = useCallback(
+        (heroId: number, teamPos: number): boolean => {
+            let added = false;
+            setTeams((prev) => {
+                const team = prev.find((t) => t.position === teamPos);
+                if (!team) return prev;
+
+                const emptySlotIdx = team.slots.findIndex((s) => s.heroId === null);
+                if (emptySlotIdx === -1) return prev; // sem slot vazio
+
+                const targetSlotPos = emptySlotIdx + 1;
+
+                if (enforceUnique) {
+                    const existingPos = findHeroPosition(prev, heroId);
+                    if (existingPos) {
+                        if (existingPos.teamPos === teamPos) {
+                            return prev; // já está nesta team, no-op
+                        }
+                        // swap: limpa do slot antigo e coloca no novo
+                        let next = updateSlot(prev, existingPos.teamPos, existingPos.slotPos, null);
+                        next = updateSlot(next, teamPos, targetSlotPos, heroId);
+                        added = true;
+                        return next;
+                    }
+                }
+
+                added = true;
+                return updateSlot(prev, teamPos, targetSlotPos, heroId);
+            });
+            if (added) setIsDirty(true);
+            return added;
+        },
+        [enforceUnique, updateSlot],
+    );
+
+    const handleTapHero = useCallback(
+        (heroId: number) => {
+            // 1) tenta a team alvo selecionada; 2) se cheia, faz fallback pra primeira com slot livre
+            if (addHeroToTeam(heroId, mobileTargetTeamPos)) {
+                setPoolSheetOpen(false);
+                return;
+            }
+            const fallback = teams.find((t) => t.slots.some((s) => s.heroId === null));
+            if (fallback && fallback.position !== mobileTargetTeamPos) {
+                if (addHeroToTeam(heroId, fallback.position)) {
+                    setMobileTargetTeamPos(fallback.position);
+                    setPoolSheetOpen(false);
+                }
+            }
+        },
+        [addHeroToTeam, mobileTargetTeamPos, teams],
     );
 
     const handleDragStart = (event: DragStartEvent) => {
@@ -657,7 +714,43 @@ export default function FormationsEdit({
                                 <Users className="size-4" />
                                 Heróis disponíveis
                             </SheetTitle>
+                            <p className="text-xs text-muted-foreground">
+                                Toque num herói para adicioná-lo ao próximo slot livre, ou arraste pra um slot específico.
+                            </p>
                         </SheetHeader>
+
+                        {teams.length > 1 && (
+                            <div className="flex shrink-0 flex-wrap items-center gap-1.5 rounded-lg border bg-muted/20 p-1.5">
+                                <span className="px-1 text-[11px] font-medium text-muted-foreground">
+                                    Adicionar à:
+                                </span>
+                                {teams.map((team) => {
+                                    const filled = team.slots.filter((s) => s.heroId !== null).length;
+                                    const full = filled >= 5;
+                                    const active = mobileTargetTeamPos === team.position;
+                                    return (
+                                        <button
+                                            key={team.position}
+                                            type="button"
+                                            onClick={() => setMobileTargetTeamPos(team.position)}
+                                            disabled={full}
+                                            className={cn(
+                                                'min-h-9 rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                                                active
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : 'text-muted-foreground hover:bg-muted',
+                                                full && 'cursor-not-allowed opacity-50',
+                                            )}
+                                            aria-pressed={active}
+                                            aria-label={`Definir equipe ${team.position} como alvo (${filled}/5)`}
+                                        >
+                                            Equipe {team.position} · {filled}/5
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
                         <div className="min-h-0 flex-1 overflow-hidden">
                             <HeroPool
                                 heroes={heroPool}
@@ -668,6 +761,7 @@ export default function FormationsEdit({
                                 tierById={tierById}
                                 placedHeroIds={placedHeroIds}
                                 enforceUnique={enforceUnique}
+                                onTapHero={handleTapHero}
                             />
                         </div>
                     </SheetContent>

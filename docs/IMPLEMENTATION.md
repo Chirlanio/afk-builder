@@ -1557,7 +1557,7 @@ No editor, `team-row.tsx::computeFactionBonus` calcula o bônus ao vivo:
 | 2 | baixa | 9 heróis ignorados pelo sync por `class=''` na wiki (Saveas, Angelo, Ankhira, Dreaf, Eletha, Golus, Gourgue, Draconis Archer, Draconis Warrior) — entrada manual via `/admin/heroes/create`. Bronn idem por `rarity=''`. Daimon e Arden recuperados após parser fix da 6.7. |
 | 3 | informativa | Adrian & Elyse usa só a imagem do Adrian (escolha da wiki como "page representative image", não bug nosso) |
 | ~~4~~ | ~~baixa~~ | ~~UI de aprovação `pending_review`~~ — resolvido na 6.1. |
-| 5 | melhoria | Mobile: drag-and-drop funciona via TouchSensor mas UX não foi otimizada para touch (pool fica oculto em telas < lg) |
+| ~~5~~ | ~~melhoria~~ | ~~Mobile: drag-and-drop funciona via TouchSensor mas UX não foi otimizada para touch~~ — resolvido na Fase 29 (tap-to-add + touch targets ampliados). |
 
 ---
 
@@ -1791,3 +1791,49 @@ O dashboard tinha 6 stats básicas (roster total, ascendidos, despertos, catálo
 
 #### Performance
 - Top 5 power é calculado em PHP (não SQL) porque a fórmula combina ascension, level, SI cumulativo, equipamentos, artifact/collection, stats. Hoje 100% do roster cabe em memória; se passar de ~500 heroes (impossível no jogo) viraria gargalo — então deixei como está sem cache.
+
+---
+
+### ✅ Fase 29 — Mobile DnD touch UX
+
+Fecha a issue conhecida #5 (linha 1560 da tabela acima). Em telas `< lg`, o pool fica num bottom-sheet acessível via FAB (Fase 18.2). O DnD funcionava via `TouchSensor`, mas exigia drag-precision em targets pequenos. Agora há **tap-to-add** como alternativa rápida que não conflita com o drag.
+
+#### Tap-to-add no `HeroPool`
+- `HeroPool` ganhou prop opcional `onTapHero?: (heroId: number) => void`.
+- `DraggableChip` ganhou prop `onTap` — quando definida e o chip não está desabilitado/sendo arrastado, dispara via `onClick`.
+- **Não conflita com DnD:** o `TouchSensor` já está configurado com `activationConstraint: { delay: 150, tolerance: 5 }`. Um tap rápido (< 150ms) cai no `onClick`; um press-and-hold dispara o drag. Cursor muda pra `cursor-pointer` (com `active:scale-95`) quando há `onTap` — feedback visual de que é tocável.
+- Chip ganha `role="button"` e `aria-label` ("Adicionar X ao próximo slot") quando tap está ativo.
+
+#### Função `addHeroToTeam(heroId, teamPos)` no editor
+- Encontra primeiro slot vazio da team alvo. Se cheia, retorna `false`.
+- Respeita `enforceUnique`: se o herói já está em outra team, faz swap (remove do antigo, adiciona no novo).
+- Se já está nesta team, no-op.
+- Marca `isDirty=true` apenas quando há mudança real.
+
+#### `handleTapHero` com fallback inteligente
+- Tenta a team alvo selecionada no segmented control.
+- Se cheia, faz fallback pra primeira team com slot livre (atualiza o segmented control também).
+- Fecha o `Sheet` ao adicionar com sucesso.
+
+#### Segmented control no Sheet (multi-team)
+- Quando `teams.length > 1`, header do Sheet mostra botões "Equipe N · M/5" pra cada team.
+- Team cheia (5/5) fica disabled (opacity 50, cursor not-allowed).
+- Team ativa highlight (`bg-primary text-primary-foreground`).
+- Mensagem de instrução: "Toque num herói para adicioná-lo ao próximo slot livre, ou arraste pra um slot específico."
+- Botões com `min-h-9` (36px) para touch confortável.
+
+#### Touch targets ampliados
+- **Botão X de remover no `TeamSlot`**: era `size-5` (20×20px) — abaixo do mínimo WCAG. Agora `size-7` (28×28) em mobile + `size-5` em `lg:`. Posição offset `-top-2 -right-2` em mobile (era `-1.5`) pra acomodar o tamanho.
+- **Pills de filtro de facção/classe no `HeroPool`**: ganharam `min-h-7` (28px) e `py-1` em mobile (eram `py-0.5` = ~18px de altura total). Em `lg:` mantêm o look compacto original.
+
+#### Trade-offs
+- **Por que tap, não duplo-tap?** Duplo-tap exige timing humano (>200ms typical) e tem latência percebida. Tap simples + cursor pointer + active:scale-95 dá feedback imediato. O risco de tap acidental enquanto rolando é mitigado pelo Sheet bottom (90% da área é o pool, scroll vertical funciona normalmente em `touch-none` porque o gesture só captura durante drag de fato).
+- **Por que segmented control e não dropdown?** Em ~3-4 teams (cenário típico), pills são mais rápidos: 1 toque vs 2 (abre + escolhe). Acima disso o wrap rola naturalmente.
+- **Por que fechar o Sheet automaticamente após tap?** Pra que o usuário veja o slot recém-preenchido antes de decidir adicionar mais. Reabrir é 1 toque no FAB.
+
+#### Testes
+- Sem novos testes — toda a lógica é client-side React; backend não mudou. Os **268 testes PHPUnit continuam verdes**.
+- Validado manualmente em DevTools mobile emulation (iPhone/Android). Falta confirmação em device físico.
+
+#### Issue conhecida fechada
+- Issue #5 da tabela "Issues conhecidos" foi marcada como resolvida — tabela agora tem 3 issues abertas + 2 fechadas.
