@@ -2743,3 +2743,81 @@ Props opcionais que mantêm o card 100% retrocompatível:
 - `dedupe_ids_no_payload` — IDs duplicados no array → `affected: 1`
 
 **381 testes verdes** (+13 novos).
+
+---
+
+### ✅ Fase 46 — Histórico de power do roster (snapshots + chart)
+
+Snapshot diário automatizado do power total do roster por user + chart Recharts na dashboard mostrando evolução nos últimos 30 dias. Útil pra ver progresso de investimento ao longo do tempo (asc up, novos heroes, F9, etc).
+
+#### Schema (`roster_power_snapshots`)
+- `id`, `user_id` FK cascade, `snapshot_date` (date), `total_power` (unsigned bigint), `hero_count` (unsigned int), `top_hero_id` (FK nullable nullOnDelete), `top_hero_power` (unsigned bigint nullable), `created_at`
+- Unique `(user_id, snapshot_date)` — **1 snapshot por user por dia**
+- Index `(user_id, snapshot_date)` — queries do tipo "últimos 30 do user X"
+- Sem `updated_at` — registro é write-once por dia; re-rodar o comando faz upsert
+
+#### Model `RosterPowerSnapshot`
+- Cast `snapshot_date => 'date:Y-m-d'` — formato explícito pra `updateOrCreate` comparar igual ao `toDateString()`. Cast genérico `'date'` converte pra datetime em SQLite (text), quebra unique check.
+- Relations `user()` + `topHero()`
+- `public $timestamps = false` — só `created_at`, sem `updated_at`
+
+#### Comando artisan `roster:snapshot`
+```bash
+php artisan roster:snapshot                       # hoje, todos os users com roster
+php artisan roster:snapshot --user-id=42          # só user 42
+php artisan roster:snapshot --date=2026-01-15     # backfill data específica
+```
+
+- Itera users (todos ou `--user-id`), carrega roster com eager-load completo (faction, class, stats, artifact, collection)
+- Para cada user: soma `PowerCalculator::forUserHero()` de todos os UserHero
+- Track do top hero por power (slug + power individual)
+- `updateOrCreate` por `(user_id, snapshot_date)` — re-rodar atualiza
+- Skipa users com roster vazio
+- Imprime summary: "Snapshot 2026-05-14: 5 processados, 4 criados/atualizados, 1 skipado (roster vazio)"
+
+#### Schedule (`routes/console.php`)
+```php
+Schedule::command('roster:snapshot')->dailyAt('04:00')->withoutOverlapping()->onOneServer();
+```
+- Roda às 04:00 (após `heroes:sync` 03:30 e `heroes:resolve-images` 03:50)
+- `withoutOverlapping` + `onOneServer` evitam dupla execução
+
+#### Payload da dashboard
+`DashboardController` agora inclui `powerHistory`:
+- Últimos 30 snapshots do user (`orderByDesc + limit(30)`)
+- Re-ordenado cronologicamente com `sortBy('snapshot_date')` antes do render (chart visualiza esquerda → direita = mais antigo → mais novo)
+- Cada ponto: `{ date, total_power, hero_count }`
+
+#### Chart `RosterPowerChart` (Recharts)
+- `npm i recharts` (~50KB gzip no chunk de `dashboard`)
+- `LineChart` com:
+  - `XAxis` formatando data como `dd/mm` (com `minTickGap=20` pra evitar overlap)
+  - `YAxis` com tick formatter compacto (`12000 → 12k`, `2500000 → 2.5M`)
+  - `Tooltip` custom: data full (`dd/mm/yyyy`) + `Power total: 12.345.678` + `Heroes: 87`
+  - `Line` monotona amber, sem dots fixos, `activeDot` no hover
+- Header com **delta + variação %**: `+12.5k (+8.3%)` em emerald (alta) ou rose (baixa)
+- Empty state quando não há snapshots: instrução pra rodar o comando ou aguardar 24h
+
+#### Trade-offs
+- **Por que tabela dedicada e não calcular sob demanda?** Power exige join completo de roster + relations + computação por hero — caro pra fazer em request. Snapshot diário é assíncrono, dashboard usa lookup direto.
+- **Por que `top_hero_id` + `top_hero_power` no snapshot?** Pré-computar evita join com roster pra mostrar "MVP do dia". Trade-off: 2 colunas extras × N snapshots; aceitável dado o volume baixo (~30 por user).
+- **Por que cap em 30 snapshots na dashboard?** Sweet spot entre "mostrar evolução visível" e "chart legível". Mais que 30 vira ruído visual em telas mobile.
+- **Por que `cascade` no `top_hero_id` (nullOnDelete) em vez de `cascadeOnDelete`?** Se um hero é deletado (cleanup admin), o snapshot ainda é útil — só perde o "qual hero específico era top". Hard cascade jogaria histórico fora.
+- **Por que 04:00 e não 00:00?** Dá 1h de buffer pra `heroes:sync` (03:30) + `heroes:resolve-images` (03:50) terminarem antes — snapshots podem precisar de dados frescos do catálogo.
+- **Por que sem `created_at` cast genérico `datetime`?** Já é o default Eloquent. Tirar `updated_at` foi proposital — registros são write-once por dia.
+- **Recharts cresce ~50KB gzip no chunk de dashboard.** Aceitável: chart é a feature mais "visual" da dashboard e o chunk só carrega quando user entra lá (code-split do Vite).
+
+#### Testes (`RosterPowerSnapshotTest`)
+10 cenários:
+- `comando_cria_snapshot_para_user_com_roster` — happy path, valida total_power > 0 + top_hero_id
+- `comando_skipa_user_sem_roster` — user vazio não gera snapshot
+- `comando_e_idempotente_por_dia` — 3 runs → 1 snapshot
+- `comando_atualiza_snapshot_quando_roster_muda` — reduz SI → power do snapshot cai
+- `comando_aceita_user_id_option` — restringe a 1 user
+- `comando_aceita_date_option` — backfill funciona
+- `dashboard_inclui_power_history` — payload com ordem cronológica crescente
+- `dashboard_limite_30_snapshots` — 40 snapshots → 30 retornados
+- `dashboard_isola_history_por_user`
+- `cascade_delete_quando_user_deletado` — FK cascade funciona
+
+**391 testes verdes** (+10 novos).

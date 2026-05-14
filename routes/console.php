@@ -19,3 +19,9 @@ Schedule::command('heroes:resolve-images')
     ->withoutOverlapping()
     ->onOneServer()
     ->runInBackground();
+
+// Fase 46: snapshot diário do power do roster por user — alimenta o chart de evolução
+Schedule::command('roster:snapshot')
+    ->dailyAt('04:00')
+    ->withoutOverlapping()
+    ->onOneServer();

@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { BookOpen, ChevronRight, Crown, Flame, Gem, Heart, LayoutGrid, PenLine, Shield, Sparkles, Star, Sword, Target, Trophy, Users } from 'lucide-react';
 
+import { RosterPowerChart, type PowerHistoryPoint } from '@/components/roster-power-chart';
 import AppLayout from '@/layouts/app-layout';
 import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
@@ -67,6 +68,7 @@ interface DashboardProps {
         twisted_realm_top: FeaturedHero[];
     };
     recentFormations: RecentFormationRow[];
+    powerHistory: PowerHistoryPoint[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Dashboard', href: '/dashboard' }];
@@ -79,6 +81,7 @@ export default function Dashboard({
     topPowerHeroes,
     featuredInRoster,
     recentFormations,
+    powerHistory,
 }: DashboardProps) {
     const { auth } = usePage<SharedData>().props;
     const userName = auth.user?.name?.split(' ')[0] ?? 'Herói';
@@ -289,6 +292,9 @@ export default function Dashboard({
                         </Link>
                     </div>
                 </section>
+
+                {/* Fase 46: chart de evolução do power total ao longo dos snapshots */}
+                <RosterPowerChart history={powerHistory} />
 
                 {/* Distribuição por classe e tier */}
                 <section className="grid gap-6 md:grid-cols-2">

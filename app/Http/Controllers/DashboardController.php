@@ -72,6 +72,21 @@ class DashboardController extends Controller
         // Fase 37: contagem de favoritos do user
         $favoritesCount = $user->favoriteHeroes()->count();
 
+        // Fase 46: últimos 30 snapshots de power pra montar o chart de evolução
+        // Pega os mais recentes via DESC + limit; depois inverte pra ordem cronológica
+        // (chart mostra da esquerda → direita = mais antigo → mais novo).
+        $powerHistory = $user->rosterPowerSnapshots()
+            ->orderByDesc('snapshot_date')
+            ->limit(30)
+            ->get(['snapshot_date', 'total_power', 'hero_count'])
+            ->sortBy('snapshot_date')
+            ->values()
+            ->map(fn ($s) => [
+                'date' => $s->snapshot_date->toDateString(),
+                'total_power' => (int) $s->total_power,
+                'hero_count' => (int) $s->hero_count,
+            ]);
+
         // Fase 28: milestones — heroes com investimento maximo
         $rosterSi30 = $user->userHeroes()->where('signature_item', '>=', 30)->count();
         $rosterSi40 = $user->userHeroes()->where('signature_item', '>=', 40)->count();
@@ -171,6 +186,7 @@ class DashboardController extends Controller
                 'twisted_realm_top' => $featuredInRoster->get(HeroFeature::TAG_TWISTED_REALM_TOP, collect())->all(),
             ],
             'recentFormations' => $recentFormations,
+            'powerHistory' => $powerHistory,
         ]);
     }
 }

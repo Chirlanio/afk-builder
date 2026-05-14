@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,7 +12,7 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     public function userHeroes(): HasMany
@@ -42,6 +43,11 @@ class User extends Authenticatable
     public function favoriteHeroes(): BelongsToMany
     {
         return $this->belongsToMany(Hero::class, 'user_hero_favorites')->withTimestamps();
+    }
+
+    public function rosterPowerSnapshots(): HasMany
+    {
+        return $this->hasMany(RosterPowerSnapshot::class)->orderBy('snapshot_date');
     }
 
     /**
