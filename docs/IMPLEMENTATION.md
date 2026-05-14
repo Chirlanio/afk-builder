@@ -2451,3 +2451,91 @@ error TS2322: Type '"plus-darker"' is not assignable to type 'MixBlendMode'.
 - **Por que cast em `localized` e não generic refinement?** Generic refinement (`T extends { [K in keyof T]: T[K] }`) é mais correto mas complexo de ler. Cast pontual com comment é mais explícito sobre a intenção ("eu sei que estou indexando dinamicamente, é o uso pretendido").
 
 **345 testes verdes mantidos** (sem novos — comportamento idêntico).
+
+---
+
+### ✅ Fase 42 — Backup JSON de dados do user
+
+Página `/settings/backup` com botão de download de JSON contendo todos os dados de jogo do user. Útil para portabilidade entre instâncias (dev → prod, instância de amigo), backup pessoal antes de mexer em dados, ou recuperação após algum acidente.
+
+#### Estrutura do JSON
+```jsonc
+{
+  "schema_version": 1,
+  "exported_at": "2026-05-14T10:23:45+00:00",
+  "user": { "id": 1, "name": "...", "email": "...", "locale": "pt" },
+  "roster": [
+    {
+      "hero_slug": "thoran",
+      "level": 240, "ascension_code": "ascended_5_stars", "ascension_value": 16,
+      "signature_item": 40, "furniture": 9, "engraving": 80,
+      "weapon_tier": "...", "weapon_level": 20, // ... 4 slots de equipamento
+      "artifact_id": ..., "collection_id": ..., "artifact_star_level": ...,
+      "notes": "...",
+      "hp": ..., "attack": ..., "defense": ..., // ... 8 stats personalizadas
+    }
+  ],
+  "formations": [
+    {
+      "name": "...", "challenge_type_code": "campaign", "mode": "target",
+      "teams_count": 1, "notes": "...", "beast_slug": "...",
+      "scoring_weights_override": null,
+      "tag_names": ["speedrun"],
+      "teams": [{ "position": 1, "name": null, "heroes": [{"slot": 1, "hero_slug": "...", "row": null}] }]
+    }
+  ],
+  "tier_lists": [{ "name": "...", "rows": [{"label": "S", "color": "amber", "items": [{"hero_slug": "...", "position": 1}]}] }],
+  "formation_tags": [{ "name": "speedrun", "color": "emerald", "challenge_type_id": null }],
+  "favorite_hero_slugs": ["skreg", "thoran"],
+  "scoring_weight_presets": [{ "name": "PvP agressivo", "challenge_type_id": null, "weights": {...} }]
+}
+```
+
+#### Backend (`Settings/BackupController`)
+- **`show(Request)` → Inertia render** de `settings/backup`:
+  - Conta cada tipo de item (`roster_count`, `formations_count`, etc) pra mostrar summary
+  - Expõe `schema_version` constante pra o frontend exibir
+- **`download(Request)` → `StreamedResponse`**:
+  - Reúne payload completo via 6 builders privados (`buildRoster`, `buildFormations`, `buildTierLists`, `buildFormationTags`, `buildFavoriteSlugs`, `buildScoringWeightPresets`)
+  - `JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES` — legível humanamente, sem `ç` ou `\/`
+  - Filename: `afk-builder-backup-{user_id}-{YYYY-MM-DD-HHMMSS}.json`
+  - Stream em vez de in-memory pra suportar rosters grandes (200+ heroes × 25 fields cada) sem consumir muita RAM
+
+#### Identificadores externos (não IDs internos)
+- **Heroes** referenciados por `slug` (não `hero_id`) — slug é estável entre instâncias
+- **Challenge types** por `code` (`campaign`, `arena_of_heroes`) — idem
+- **Beasts** por `slug`
+- **Tags** por `name` (escopadas ao user, único pra ele)
+- **Artifacts/collections** ainda por ID (sem slug no schema) — limitação documentada
+
+Decisão proposital: facilita import futuro entre instâncias mesmo que IDs internos diferem.
+
+#### UI (`settings/backup.tsx`)
+- Layout consistente com profile/password (SettingsLayout + HeadingSmall)
+- Card "O que está incluído" com 6 SummaryRows (ícone + label + count tabular)
+- Texto pequeno explica `schema_version` + uso de identificadores externos
+- Card amber de heads-up reforçando que o export **não inclui senha ou dados sensíveis**
+- Botão `<a href="...backup.download" download>` — browser handle do download via header `Content-Disposition: attachment`
+
+#### Trade-offs
+- **Por que JSON e não SQL dump?** JSON é universal, legível humanamente, e mais fácil de versionar (diff) e processar (import). SQL exigiria importar exatamente o mesmo schema.
+- **Por que stream em vez de in-memory + return Response::json()?** Em rosters grandes, JSON pode passar 100KB+. `StreamedResponse` mantém o encode JSON enquanto envia bytes — não dobra a memória.
+- **Por que slugs externos em vez de IDs internos?** Portabilidade. Um backup criado na instância dev deve funcionar quando importado na instância prod, onde os IDs de Hero serão diferentes.
+- **Por que sem opção de "export parcial" (só formações, só roster)?** YAGNI. User pode editar o JSON gerado manualmente se quiser filtrar. Adicionar UI de seleção seria 3-4× mais código pra um caso de uso raro.
+- **Por que `schema_version: 1` (não 0 ou v1.0.0)?** Inteiro simples bumpa com clareza quando schema muda (1 → 2 → 3). SemVer seria sobrenotação pra esse caso.
+- **Por que não incluir import nessa fase?** Import é significativamente mais complexo (validação de schema, merge vs replace, conflitos de slug que não existem, etc). Backup primeiro garante portabilidade unidirecional (saída). Import como fase separada quando demanda real surgir.
+
+#### Testes (`BackupTest`)
+10 cenários:
+- `guest_recebe_login_redirect` — ambos endpoints (show e download) protegidos
+- `page_renderiza_com_summary` — counts corretos no Inertia payload
+- `download_retorna_json_com_schema_correto` — Content-Type, Content-Disposition, schema_version, todas as 6 chaves principais
+- `download_inclui_roster_completo` — fields completos com SI 40, F9, E80, notes
+- `download_inclui_formacao_com_teams_e_tags` — teams aninhados + tag_names array
+- `download_inclui_tier_list_com_rows_e_items` — rows com items por hero
+- `download_inclui_favoritos_como_slugs` — array flat de slugs
+- `download_inclui_presets_de_peso` — name, challenge_type_id, weights array
+- `dados_sao_isolados_por_user` — userA cria roster, userB exporta vazio
+- `filename_inclui_user_id_e_timestamp` — regex match no Content-Disposition
+
+**355 testes verdes** (+10 novos).

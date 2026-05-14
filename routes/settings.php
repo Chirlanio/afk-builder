@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\BackupController;
 use App\Http\Controllers\Settings\LocaleController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -17,6 +18,9 @@ Route::middleware('auth')->group(function () {
     Route::put('settings/password', [PasswordController::class, 'update'])->name('password.update');
 
     Route::patch('settings/locale', [LocaleController::class, 'update'])->name('locale.update');
+
+    Route::get('settings/backup', [BackupController::class, 'show'])->name('backup.show');
+    Route::get('settings/backup/download', [BackupController::class, 'download'])->name('backup.download');
 
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/appearance');
