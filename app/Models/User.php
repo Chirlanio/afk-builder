@@ -33,6 +33,11 @@ class User extends Authenticatable
         return $this->hasMany(ScoringWeightPreset::class);
     }
 
+    public function formationTags(): HasMany
+    {
+        return $this->hasMany(FormationTag::class);
+    }
+
     /**
      * The attributes that are mass assignable.
      *

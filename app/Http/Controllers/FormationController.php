@@ -38,7 +38,10 @@ class FormationController extends Controller
     {
         $formations = $request->user()
             ->formations()
-            ->with('challengeType:id,code,name_pt,min_teams,max_teams,is_pvp')
+            ->with([
+                'challengeType:id,code,name_pt,min_teams,max_teams,is_pvp',
+                'tags:id,name,color',
+            ])
             ->orderByDesc('updated_at')
             ->get([
                 'id',
@@ -73,9 +76,16 @@ class FormationController extends Controller
                 'name_pt' => $ct->name_pt,
             ]);
 
+        // Fase 35: lista de tags do user pra filtro na index
+        $availableTags = $request->user()
+            ->formationTags()
+            ->orderBy('name')
+            ->get(['id', 'name', 'color']);
+
         return Inertia::render('formations/index', [
             'formations' => $formations,
             'availableChallengeTypes' => $availableChallengeTypes,
+            'availableTags' => $availableTags,
         ]);
     }
 
@@ -129,6 +139,7 @@ class FormationController extends Controller
             'challengeType:id,code,scoring_profile,name_pt,description,min_teams,max_teams,is_pvp,teams_must_be_unique',
             'teams.teamHeroes:id,formation_team_id,hero_id,slot,row',
             'beast:id,slug,name,strength_buff,intelligence_buff,agility_buff,portrait_url,tier',
+            'tags:id,name,color',
         ]);
 
         $heroPool = $this->buildHeroPool($formation, $request->user()->id);
@@ -150,6 +161,12 @@ class FormationController extends Controller
         // Fase 27: overrides salvos na formation (null quando o user nunca tunou ou resetou)
         $scoringProfileOverrides = $formation->scoring_weights_override;
 
+        // Fase 35: todas as tags do user (pra Popover de seleção no editor)
+        $availableTags = $request->user()
+            ->formationTags()
+            ->orderBy('name')
+            ->get(['id', 'name', 'color']);
+
         // Fase 30: presets do user — globais (challenge_type_id null) + os do challenge type da formation
         $weightPresets = $request->user()
             ->scoringWeightPresets()
@@ -170,6 +187,7 @@ class FormationController extends Controller
             'scoringProfileDefaults' => $scoringProfileDefaults,
             'scoringProfileOverrides' => $scoringProfileOverrides,
             'weightPresets' => $weightPresets,
+            'availableTags' => $availableTags,
             'factions' => Faction::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'color_hex', 'display_order']),
             'heroClasses' => HeroClass::orderBy('display_order')
@@ -285,6 +303,11 @@ class FormationController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'beast_id' => ['nullable', 'integer', Rule::exists('beasts', 'id')->where('is_active', true)],
+            'tag_ids' => ['nullable', 'array'],
+            'tag_ids.*' => [
+                'integer',
+                Rule::exists('formation_tags', 'id')->where('user_id', $request->user()->id),
+            ],
             'teams' => ['required', 'array', 'min:'.$formation->teams_count, 'max:'.$formation->teams_count],
             'teams.*.position' => ['required', 'integer', 'min:1', 'max:'.$formation->teams_count],
             'teams.*.name' => ['nullable', 'string', 'max:60'],
@@ -329,6 +352,11 @@ class FormationController extends Controller
                 'notes' => $data['notes'] ?? null,
                 'beast_id' => $data['beast_id'] ?? null,
             ]);
+
+            // Fase 35: sync tags (full-replace, igual ao padrão dos teams)
+            if (array_key_exists('tag_ids', $data)) {
+                $formation->tags()->sync($data['tag_ids'] ?? []);
+            }
 
             $teamsByPosition = $formation->teams()->get()->keyBy('position');
 

@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { FileText, Filter, GitCompareArrows, PawPrint, Plus, Search, Share2, Swords, Target, Trash2, X } from 'lucide-react';
+import { FileText, Filter, GitCompareArrows, PawPrint, Plus, Search, Share2, Swords, Tag, Target, Trash2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
@@ -10,11 +10,13 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
+import { tagColorClasses, type FormationTagPayload } from '@/components/formation-tags-menu';
 import type { ChallengeType, Formation, FormationMode } from '@/types/afk';
 
 interface FormationListItem extends Formation {
     challenge_type: ChallengeType;
     has_notes: boolean;
+    tags: FormationTagPayload[];
 }
 
 interface AvailableChallengeType {
@@ -26,6 +28,7 @@ interface AvailableChallengeType {
 interface PageProps {
     formations: FormationListItem[];
     availableChallengeTypes: AvailableChallengeType[];
+    availableTags: FormationTagPayload[];
 }
 
 type ModeFilter = FormationMode | 'all';
@@ -34,6 +37,7 @@ type BoolFilter = 'all' | 'yes' | 'no';
 interface FilterState {
     search: string;
     challengeTypeIds: Set<number>;
+    tagIds: Set<number>;
     mode: ModeFilter;
     hasBeast: BoolFilter;
     hasShare: BoolFilter;
@@ -43,6 +47,7 @@ interface FilterState {
 const INITIAL_FILTERS: FilterState = {
     search: '',
     challengeTypeIds: new Set(),
+    tagIds: new Set(),
     mode: 'all',
     hasBeast: 'all',
     hasShare: 'all',
@@ -51,7 +56,7 @@ const INITIAL_FILTERS: FilterState = {
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Formações', href: '/formations' }];
 
-export default function FormationsIndex({ formations, availableChallengeTypes }: PageProps) {
+export default function FormationsIndex({ formations, availableChallengeTypes, availableTags }: PageProps) {
     const [selected, setSelected] = useState<number[]>([]);
     const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS);
     const { confirm, dialog: confirmDialog } = useConfirm();
@@ -61,6 +66,11 @@ export default function FormationsIndex({ formations, availableChallengeTypes }:
         return formations.filter((f) => {
             if (term && !f.name.toLowerCase().includes(term)) return false;
             if (filters.challengeTypeIds.size > 0 && !filters.challengeTypeIds.has(f.challenge_type_id)) return false;
+            if (filters.tagIds.size > 0) {
+                const fTagIds = new Set(f.tags?.map((t) => t.id) ?? []);
+                const hasAny = [...filters.tagIds].some((id) => fTagIds.has(id));
+                if (!hasAny) return false;
+            }
             if (filters.mode !== 'all' && f.mode !== filters.mode) return false;
             if (filters.hasBeast === 'yes' && f.beast_id === null) return false;
             if (filters.hasBeast === 'no' && f.beast_id !== null) return false;
@@ -74,6 +84,7 @@ export default function FormationsIndex({ formations, availableChallengeTypes }:
 
     const hasActiveFilters = filters.search !== ''
         || filters.challengeTypeIds.size > 0
+        || filters.tagIds.size > 0
         || filters.mode !== 'all'
         || filters.hasBeast !== 'all'
         || filters.hasShare !== 'all'
@@ -109,6 +120,15 @@ export default function FormationsIndex({ formations, availableChallengeTypes }:
             if (next.has(id)) next.delete(id);
             else next.add(id);
             return { ...prev, challengeTypeIds: next };
+        });
+    };
+
+    const toggleTag = (id: number) => {
+        setFilters((prev) => {
+            const next = new Set(prev.tagIds);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return { ...prev, tagIds: next };
         });
     };
 
@@ -163,9 +183,11 @@ export default function FormationsIndex({ formations, availableChallengeTypes }:
                     <FilterBar
                         filters={filters}
                         availableChallengeTypes={availableChallengeTypes}
+                        availableTags={availableTags}
                         hasActiveFilters={hasActiveFilters}
                         onSearchChange={(v) => setFilters((p) => ({ ...p, search: v }))}
                         onToggleChallengeType={toggleChallengeType}
+                        onToggleTag={toggleTag}
                         onCycleMode={cycleMode}
                         onCycleBool={cycleBool}
                         onReset={resetFilters}
@@ -281,6 +303,24 @@ export default function FormationsIndex({ formations, availableChallengeTypes }:
                                         )}
                                     </div>
 
+                                    {formation.tags && formation.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1">
+                                            {formation.tags.map((tag) => {
+                                                const c = tagColorClasses(tag.color);
+                                                return (
+                                                    <Badge
+                                                        key={tag.id}
+                                                        variant="outline"
+                                                        className={cn('gap-1 text-[10px]', c.bg, c.text, c.border)}
+                                                    >
+                                                        <span className={cn('size-1.5 rounded-full', c.dot)} aria-hidden />
+                                                        {tag.name}
+                                                    </Badge>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
                                     <p className="text-xs text-muted-foreground">
                                         Atualizada {new Date(formation.updated_at).toLocaleDateString('pt-BR')}
                                     </p>
@@ -298,9 +338,11 @@ export default function FormationsIndex({ formations, availableChallengeTypes }:
 interface FilterBarProps {
     filters: FilterState;
     availableChallengeTypes: AvailableChallengeType[];
+    availableTags: FormationTagPayload[];
     hasActiveFilters: boolean;
     onSearchChange: (v: string) => void;
     onToggleChallengeType: (id: number) => void;
+    onToggleTag: (id: number) => void;
     onCycleMode: () => void;
     onCycleBool: (key: 'hasBeast' | 'hasShare' | 'hasNotes') => void;
     onReset: () => void;
@@ -309,9 +351,11 @@ interface FilterBarProps {
 function FilterBar({
     filters,
     availableChallengeTypes,
+    availableTags,
     hasActiveFilters,
     onSearchChange,
     onToggleChallengeType,
+    onToggleTag,
     onCycleMode,
     onCycleBool,
     onReset,
@@ -355,6 +399,36 @@ function FilterBar({
                                 aria-pressed={active}
                             >
                                 {ct.name_pt}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
+            {availableTags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                    <span className="self-center px-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <Tag className="-mt-0.5 mr-1 inline size-2.5" />
+                        Tags:
+                    </span>
+                    {availableTags.map((tag) => {
+                        const c = tagColorClasses(tag.color);
+                        const active = filters.tagIds.has(tag.id);
+                        return (
+                            <button
+                                key={tag.id}
+                                type="button"
+                                onClick={() => onToggleTag(tag.id)}
+                                className={cn(
+                                    'flex min-h-7 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                                    active
+                                        ? cn(c.bg, c.text, c.border, 'ring-1 ring-current')
+                                        : 'border-border text-muted-foreground hover:border-foreground/30',
+                                )}
+                                aria-pressed={active}
+                            >
+                                <span className={cn('size-1.5 rounded-full', c.dot)} aria-hidden />
+                                {tag.name}
                             </button>
                         );
                     })}

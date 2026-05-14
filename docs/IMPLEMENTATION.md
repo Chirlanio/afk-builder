@@ -2065,3 +2065,74 @@ Heróis exclusivos ganham anel colorido (`ring-2 ring-sky-400` ou `ring-amber-40
 
 #### Sem testes novos
 A Fase 11 já cobria o payload backend (`FormationCompareTest`: 3 cenários verificando scores por equipe + ownership). O diff é puramente visual — toda a lógica é `useMemo` sobre dados que já existem. **300 testes verdes mantidos**.
+
+---
+
+### ✅ Fase 35 — Tags em formações (M2M)
+
+Tags livres por user pra categorizar formações ("counter-Twins", "speedrun", "safe", "PvP-rank-1"). Complementa os filtros booleanos da Fase 33 com taxonomia personalizada.
+
+#### Schema
+- **`formation_tags`** (escopo por user): `user_id` FK cascade, `name` (string 30), `color` (string 16, default `'amber'`). Unique `(user_id, name)` — mesmo nome OK entre users diferentes.
+- **`formation_tag_assignments`** (pivot): `formation_id` + `formation_tag_id` ambas FK cascade. Unique `(formation_id, formation_tag_id)` + index em `formation_tag_id`. **Cascata bilateral**: deletar formação ou tag remove o assignment automaticamente.
+
+#### Cores fixas (whitelist)
+- 8 cores pré-definidas: `amber, sky, emerald, rose, violet, orange, fuchsia, slate`.
+- Validação backend via `Rule::in(FormationTag::COLORS)`.
+- Mapeamento centralizado em `components/formation-tags-menu.tsx#COLOR_CLASSES` com 4 variantes (`bg`, `text`, `border`, `dot`) por cor — reutilizável em qualquer lugar que renderize uma tag via helper exportado `tagColorClasses()`.
+
+#### Controller `FormationTagController` (CRUD)
+- `GET /formation-tags` — lista as do user ordenadas por nome.
+- `POST /formation-tags` — cria. Validação: nome único por user, cor da whitelist (default amber).
+- `PATCH /formation-tags/{tag}` — renomeia/troca cor. Ownership 403.
+- `DELETE /formation-tags/{tag}` — apaga. Pivot cascata remove assignments automaticamente.
+
+#### Sync via `FormationController.update`
+- Aceita `tag_ids` array opcional. Validação:
+  ```php
+  'tag_ids.*' => ['integer', Rule::exists('formation_tags', 'id')->where('user_id', $request->user()->id)],
+  ```
+  — bloqueia attach de tag de outro user (defense in depth contra IDs adivinhados).
+- Usa `$formation->tags()->sync($data['tag_ids'] ?? [])` — full-replace dentro da transação do update existente.
+- `array_key_exists` checa se o frontend mandou o campo — `null` ou ausente preservam o estado atual; `[]` limpa.
+
+#### Componente `FormationTagsMenu`
+- DropdownMenu (não Popover — Popover não existia no projeto) com:
+  - **`DropdownMenuCheckboxItem`** por tag, com `onSelect={(e) => e.preventDefault()}` pra manter o menu aberto após toggle (UX de "marcar várias" sem reabrir).
+  - Cada item: dot colorido + nome + botão lixeira inline (com `confirm()` antes de deletar — operação destrutiva).
+  - Item final "Criar nova tag" expande inline com input (max 30 chars), 8 swatches de cor (size-5, ring no ativo), Enter pra salvar, Escape pra cancelar.
+- **Auto-add ao criar**: tag recém-criada já é adicionada à seleção ativa do user (UX intuitiva — quem criou queria usar).
+
+#### Integração no editor
+- `FormationTagsMenu` no header desktop com badge contador `{N}` quando há tags selecionadas.
+- Tags selecionadas aparecem como badges coloridas na "Linha 2" do header (junto com challenge type, mode, etc).
+- `tag_ids: selectedTagIds` enviado no payload do save.
+- Marca `isDirty=true` ao alterar seleção.
+
+#### Filtro na index
+- Bloco "Tags:" no FilterBar (só aparece quando `availableTags.length > 0`).
+- Multi-select com OR — formação casa se tem **pelo menos uma** das tags filtradas.
+- Tags ativas no filtro ganham `ring-1 ring-current` pra distinção visual.
+- Tags renderizadas também como badges no card da formação (entre badges de propriedades e data).
+
+#### Trade-offs
+- **Por que cores fixas e não color picker arbitrário?** Theme consistency com o design system (cada cor já mapeia pras 4 classes Tailwind necessárias). Color picker exigiria 4× mais classes geradas dinamicamente ou inline styles — bagunça.
+- **Por que filtro OR e não AND entre tags?** OR cobre o caso comum ("mostre as que são X **ou** Y"). AND seria menos descobrível ("mostre as que são X **e** Y simultaneamente" — raro). Pode virar AND no futuro com toggle se demanda aparecer.
+- **Por que `name` único por user e não global?** Mesma lógica dos presets da Fase 30 — cada user tem mental model próprio. "speedrun" pra mim pode significar Dream Realm, pra outro Cursed Realm.
+- **Por que `confirm()` nativo pra deletar?** Operação destrutiva mas barata (recriar é 1 clique), e o fluxo já está dentro de um menu — empilhar AlertDialog em DropdownMenu fica frágil em mobile.
+
+#### Testes (`FormationTagTest`)
+15 cenários:
+- `lista_apenas_tags_do_user` — isolamento
+- `cria_tag` + `cor_default_quando_omitida`
+- `rejeita_cor_invalida` + `rejeita_nome_duplicado_por_user`
+- `users_diferentes_podem_ter_nome_igual` — scope correto do unique
+- `atualiza_tag_propria` + `nao_atualiza_tag_de_outro_user` (403)
+- `deleta_tag_propria` + `deleta_tag_remove_de_formacoes` (cascata pivot)
+- `update_formation_sincroniza_tags` — happy path do sync
+- `update_remove_tag_quando_tag_ids_vazio` — clear funciona
+- `update_rejeita_tag_de_outro_user` — defense in depth
+- `index_inclui_tags_e_available_tags`
+- `edit_inclui_tags_da_formation_e_available_tags`
+
+**315 testes verdes** (+15 novos).

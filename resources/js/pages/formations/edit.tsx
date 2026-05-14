@@ -35,6 +35,7 @@ import type {
 } from '@/types/afk';
 import { ScoreBreakdownCard } from '@/components/score-breakdown-card';
 import { FormationNotesSheet } from '@/components/formation-notes-sheet';
+import { FormationTagsMenu, tagColorClasses, type FormationTagPayload } from '@/components/formation-tags-menu';
 import { WeightTunerSheet, type WeightOverrides, type WeightPreset } from '@/components/weight-tuner-sheet';
 import { useAutoScrollOnDrag } from '@/hooks/use-auto-scroll-on-drag';
 
@@ -42,6 +43,7 @@ interface PageProps {
     formation: Formation & {
         challenge_type: ChallengeType;
         teams: FormationTeam[];
+        tags?: FormationTagPayload[];
     };
     heroPool: Hero[];
     beasts: Beast[];
@@ -53,6 +55,7 @@ interface PageProps {
     scoringProfileDefaults?: WeightOverrides;
     scoringProfileOverrides?: Partial<WeightOverrides> | null;
     weightPresets?: WeightPreset[];
+    availableTags?: FormationTagPayload[];
 }
 
 function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlotsState[] {
@@ -86,6 +89,7 @@ export default function FormationsEdit({
     scoringProfileDefaults,
     scoringProfileOverrides,
     weightPresets = [],
+    availableTags = [],
 }: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Formações', href: '/formations' },
@@ -121,6 +125,10 @@ export default function FormationsEdit({
     const [weightsAreDefault, setWeightsAreDefault] = useState(true);
     const [savedOverrides, setSavedOverrides] = useState<Partial<WeightOverrides> | null>(scoringProfileOverrides ?? null);
     const [presets, setPresets] = useState<WeightPreset[]>(weightPresets);
+    const [tags, setTags] = useState<FormationTagPayload[]>(availableTags);
+    const [selectedTagIds, setSelectedTagIds] = useState<number[]>(
+        formation.tags ? formation.tags.map((t) => t.id) : [],
+    );
     const autoScroll = useAutoScrollOnDrag();
 
     const saveScoringWeights = async (weights: WeightOverrides, isDefault: boolean) => {
@@ -463,6 +471,7 @@ export default function FormationsEdit({
             name,
             notes: notes.trim() === '' ? null : notes,
             beast_id: beastId,
+            tag_ids: selectedTagIds,
             teams: teams.map((team) => ({
                 position: team.position,
                 name: team.name,
@@ -532,6 +541,15 @@ export default function FormationsEdit({
                                     onPresetsChange={setPresets}
                                 />
                             )}
+                            <FormationTagsMenu
+                                availableTags={tags}
+                                selectedTagIds={selectedTagIds}
+                                onSelectionChange={(next) => {
+                                    setSelectedTagIds(next);
+                                    setIsDirty(true);
+                                }}
+                                onTagsChange={setTags}
+                            />
                             <Button
                                 variant="outline"
                                 onClick={() => setNotesSheetOpen(true)}
@@ -632,6 +650,23 @@ export default function FormationsEdit({
                             <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
                                 Heróis únicos por equipe
                             </Badge>
+                        )}
+
+                        {/* Tags selecionadas (Fase 35) */}
+                        {selectedTagIds.length > 0 && tags.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1">
+                                {selectedTagIds.map((id) => {
+                                    const tag = tags.find((t) => t.id === id);
+                                    if (!tag) return null;
+                                    const c = tagColorClasses(tag.color);
+                                    return (
+                                        <Badge key={id} variant="outline" className={cn('gap-1 text-[10px]', c.bg, c.text, c.border)}>
+                                            <span className={cn('size-1.5 rounded-full', c.dot)} aria-hidden />
+                                            {tag.name}
+                                        </Badge>
+                                    );
+                                })}
+                            </div>
                         )}
 
                         {/* Beast ativo — vai pro fim da row em qualquer largura */}

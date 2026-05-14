@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Formation extends Model
@@ -50,5 +51,15 @@ class Formation extends Model
     public function beast(): BelongsTo
     {
         return $this->belongsTo(Beast::class);
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            FormationTag::class,
+            'formation_tag_assignments',
+            'formation_id',
+            'formation_tag_id',
+        )->withTimestamps();
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FormationCompareController;
 use App\Http\Controllers\FormationController;
 use App\Http\Controllers\FormationShareController;
+use App\Http\Controllers\FormationTagController;
 use App\Http\Controllers\FormationVersionController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HeroController;
@@ -67,6 +68,15 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('formations/{formation}', [FormationController::class, 'update'])->name('formations.update');
     Route::patch('formations/{formation}/scoring-weights', [FormationController::class, 'updateScoringWeights'])
         ->name('formations.scoring-weights.update');
+
+    Route::get('formation-tags', [FormationTagController::class, 'index'])
+        ->name('formation-tags.index');
+    Route::post('formation-tags', [FormationTagController::class, 'store'])
+        ->name('formation-tags.store');
+    Route::patch('formation-tags/{tag}', [FormationTagController::class, 'update'])
+        ->name('formation-tags.update');
+    Route::delete('formation-tags/{tag}', [FormationTagController::class, 'destroy'])
+        ->name('formation-tags.destroy');
 
     Route::get('scoring-weight-presets', [ScoringWeightPresetController::class, 'index'])
         ->name('scoring-weight-presets.index');
