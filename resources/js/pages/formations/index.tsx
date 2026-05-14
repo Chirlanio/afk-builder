@@ -1,29 +1,83 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { GitCompareArrows, Plus, Swords, Target, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { FileText, Filter, GitCompareArrows, PawPrint, Plus, Search, Share2, Swords, Target, Trash2, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
-import type { ChallengeType, Formation } from '@/types/afk';
+import type { ChallengeType, Formation, FormationMode } from '@/types/afk';
 
 interface FormationListItem extends Formation {
     challenge_type: ChallengeType;
+    has_notes: boolean;
+}
+
+interface AvailableChallengeType {
+    id: number;
+    code: string;
+    name_pt: string;
 }
 
 interface PageProps {
     formations: FormationListItem[];
+    availableChallengeTypes: AvailableChallengeType[];
 }
+
+type ModeFilter = FormationMode | 'all';
+type BoolFilter = 'all' | 'yes' | 'no';
+
+interface FilterState {
+    search: string;
+    challengeTypeIds: Set<number>;
+    mode: ModeFilter;
+    hasBeast: BoolFilter;
+    hasShare: BoolFilter;
+    hasNotes: BoolFilter;
+}
+
+const INITIAL_FILTERS: FilterState = {
+    search: '',
+    challengeTypeIds: new Set(),
+    mode: 'all',
+    hasBeast: 'all',
+    hasShare: 'all',
+    hasNotes: 'all',
+};
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Formações', href: '/formations' }];
 
-export default function FormationsIndex({ formations }: PageProps) {
+export default function FormationsIndex({ formations, availableChallengeTypes }: PageProps) {
     const [selected, setSelected] = useState<number[]>([]);
+    const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS);
     const { confirm, dialog: confirmDialog } = useConfirm();
+
+    const filtered = useMemo(() => {
+        const term = filters.search.trim().toLowerCase();
+        return formations.filter((f) => {
+            if (term && !f.name.toLowerCase().includes(term)) return false;
+            if (filters.challengeTypeIds.size > 0 && !filters.challengeTypeIds.has(f.challenge_type_id)) return false;
+            if (filters.mode !== 'all' && f.mode !== filters.mode) return false;
+            if (filters.hasBeast === 'yes' && f.beast_id === null) return false;
+            if (filters.hasBeast === 'no' && f.beast_id !== null) return false;
+            if (filters.hasShare === 'yes' && !f.share_token) return false;
+            if (filters.hasShare === 'no' && f.share_token) return false;
+            if (filters.hasNotes === 'yes' && !f.has_notes) return false;
+            if (filters.hasNotes === 'no' && f.has_notes) return false;
+            return true;
+        });
+    }, [formations, filters]);
+
+    const hasActiveFilters = filters.search !== ''
+        || filters.challengeTypeIds.size > 0
+        || filters.mode !== 'all'
+        || filters.hasBeast !== 'all'
+        || filters.hasShare !== 'all'
+        || filters.hasNotes !== 'all';
 
     const remove = async (formation: FormationListItem) => {
         const ok = await confirm({
@@ -49,6 +103,31 @@ export default function FormationsIndex({ formations }: PageProps) {
         router.visit(`/formations/compare/${selected[0]}/${selected[1]}`);
     };
 
+    const toggleChallengeType = (id: number) => {
+        setFilters((prev) => {
+            const next = new Set(prev.challengeTypeIds);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return { ...prev, challengeTypeIds: next };
+        });
+    };
+
+    const cycleMode = () => {
+        setFilters((prev) => ({
+            ...prev,
+            mode: prev.mode === 'all' ? 'target' : prev.mode === 'target' ? 'real' : 'all',
+        }));
+    };
+
+    const cycleBool = (key: 'hasBeast' | 'hasShare' | 'hasNotes') => {
+        setFilters((prev) => ({
+            ...prev,
+            [key]: prev[key] === 'all' ? 'yes' : prev[key] === 'yes' ? 'no' : 'all',
+        }));
+    };
+
+    const resetFilters = () => setFilters(INITIAL_FILTERS);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Formações" />
@@ -59,7 +138,9 @@ export default function FormationsIndex({ formations }: PageProps) {
                 description={
                     formations.length === 0
                         ? 'Você ainda não criou nenhuma formação.'
-                        : `${formations.length} ${formations.length === 1 ? 'formação' : 'formações'}.`
+                        : hasActiveFilters
+                            ? `${filtered.length} de ${formations.length} formações`
+                            : `${formations.length} ${formations.length === 1 ? 'formação' : 'formações'}.`
                 }
                 actions={
                     <>
@@ -78,6 +159,19 @@ export default function FormationsIndex({ formations }: PageProps) {
                     </>
                 }
             >
+                {formations.length > 0 && (
+                    <FilterBar
+                        filters={filters}
+                        availableChallengeTypes={availableChallengeTypes}
+                        hasActiveFilters={hasActiveFilters}
+                        onSearchChange={(v) => setFilters((p) => ({ ...p, search: v }))}
+                        onToggleChallengeType={toggleChallengeType}
+                        onCycleMode={cycleMode}
+                        onCycleBool={cycleBool}
+                        onReset={resetFilters}
+                    />
+                )}
+
                 {selected.length > 0 && (
                     <p className="text-xs text-muted-foreground">
                         {selected.length === 1
@@ -99,69 +193,98 @@ export default function FormationsIndex({ formations }: PageProps) {
                             </Link>
                         </Button>
                     </div>
+                ) : filtered.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
+                        <Filter className="size-10 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                            Nenhuma formação casa com os filtros atuais.
+                        </p>
+                        <Button variant="outline" onClick={resetFilters}>
+                            <X className="size-4" />
+                            Limpar filtros
+                        </Button>
+                    </div>
                 ) : (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {formations.map((formation) => {
+                        {filtered.map((formation) => {
                             const isSelected = selected.includes(formation.id);
                             return (
-                            <div
-                                key={formation.id}
-                                className={cn(
-                                    'group flex flex-col gap-2 rounded-xl border bg-card p-4 transition-colors',
-                                    isSelected ? 'border-primary ring-1 ring-primary' : 'hover:border-foreground/20',
-                                )}
-                            >
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="flex flex-1 items-start gap-2">
-                                        <Checkbox
-                                            checked={isSelected}
-                                            onCheckedChange={() => toggleSelected(formation.id)}
-                                            aria-label={`Selecionar ${formation.name} para comparar`}
-                                            className="mt-0.5"
-                                        />
-                                        <Link
-                                            href={`/formations/${formation.id}/edit`}
-                                            className="flex-1 truncate text-base font-semibold hover:underline"
+                                <div
+                                    key={formation.id}
+                                    className={cn(
+                                        'group flex flex-col gap-2 rounded-xl border bg-card p-4 transition-colors',
+                                        isSelected ? 'border-primary ring-1 ring-primary' : 'hover:border-foreground/20',
+                                    )}
+                                >
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="flex flex-1 items-start gap-2">
+                                            <Checkbox
+                                                checked={isSelected}
+                                                onCheckedChange={() => toggleSelected(formation.id)}
+                                                aria-label={`Selecionar ${formation.name} para comparar`}
+                                                className="mt-0.5"
+                                            />
+                                            <Link
+                                                href={`/formations/${formation.id}/edit`}
+                                                className="flex-1 truncate text-base font-semibold hover:underline"
+                                            >
+                                                {formation.name}
+                                            </Link>
+                                        </div>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            onClick={() => remove(formation)}
+                                            className="size-7 opacity-0 transition-opacity group-hover:opacity-100"
+                                            aria-label="Remover"
                                         >
-                                            {formation.name}
-                                        </Link>
+                                            <Trash2 className="size-3.5" />
+                                        </Button>
                                     </div>
-                                    <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        onClick={() => remove(formation)}
-                                        className="size-7 opacity-0 transition-opacity group-hover:opacity-100"
-                                        aria-label="Remover"
-                                    >
-                                        <Trash2 className="size-3.5" />
-                                    </Button>
-                                </div>
 
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                    <Badge variant="secondary" className="gap-1">
-                                        <Swords className="size-3" />
-                                        {formation.challenge_type.name_pt}
-                                    </Badge>
-                                    {formation.mode === 'target' && (
-                                        <Badge variant="outline" className="gap-1">
-                                            <Target className="size-3" />
-                                            Alvo
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        <Badge variant="secondary" className="gap-1">
+                                            <Swords className="size-3" />
+                                            {formation.challenge_type.name_pt}
                                         </Badge>
-                                    )}
-                                    <Badge variant="outline">
-                                        {formation.teams_count} {formation.teams_count === 1 ? 'equipe' : 'equipes'}
-                                    </Badge>
-                                    {formation.challenge_type.is_pvp && (
-                                        <Badge variant="outline" className="border-rose-500/40 text-rose-600 dark:text-rose-400">
-                                            PvP
+                                        {formation.mode === 'target' && (
+                                            <Badge variant="outline" className="gap-1">
+                                                <Target className="size-3" />
+                                                Alvo
+                                            </Badge>
+                                        )}
+                                        <Badge variant="outline">
+                                            {formation.teams_count} {formation.teams_count === 1 ? 'equipe' : 'equipes'}
                                         </Badge>
-                                    )}
-                                </div>
+                                        {formation.challenge_type.is_pvp && (
+                                            <Badge variant="outline" className="border-rose-500/40 text-rose-600 dark:text-rose-400">
+                                                PvP
+                                            </Badge>
+                                        )}
+                                        {formation.beast_id !== null && (
+                                            <Badge variant="outline" className="gap-1 border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+                                                <PawPrint className="size-3" />
+                                                Beast
+                                            </Badge>
+                                        )}
+                                        {formation.share_token && (
+                                            <Badge variant="outline" className="gap-1 border-sky-500/40 text-sky-600 dark:text-sky-400">
+                                                <Share2 className="size-3" />
+                                                Pública
+                                            </Badge>
+                                        )}
+                                        {formation.has_notes && (
+                                            <Badge variant="outline" className="gap-1 border-amber-500/40 text-amber-600 dark:text-amber-400">
+                                                <FileText className="size-3" />
+                                                Notas
+                                            </Badge>
+                                        )}
+                                    </div>
 
-                                <p className="text-xs text-muted-foreground">
-                                    Atualizada {new Date(formation.updated_at).toLocaleDateString('pt-BR')}
-                                </p>
-                            </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Atualizada {new Date(formation.updated_at).toLocaleDateString('pt-BR')}
+                                    </p>
+                                </div>
                             );
                         })}
                     </div>
@@ -169,5 +292,136 @@ export default function FormationsIndex({ formations }: PageProps) {
             </PageShell>
             {confirmDialog}
         </AppLayout>
+    );
+}
+
+interface FilterBarProps {
+    filters: FilterState;
+    availableChallengeTypes: AvailableChallengeType[];
+    hasActiveFilters: boolean;
+    onSearchChange: (v: string) => void;
+    onToggleChallengeType: (id: number) => void;
+    onCycleMode: () => void;
+    onCycleBool: (key: 'hasBeast' | 'hasShare' | 'hasNotes') => void;
+    onReset: () => void;
+}
+
+function FilterBar({
+    filters,
+    availableChallengeTypes,
+    hasActiveFilters,
+    onSearchChange,
+    onToggleChallengeType,
+    onCycleMode,
+    onCycleBool,
+    onReset,
+}: FilterBarProps) {
+    return (
+        <div className="flex flex-col gap-3 rounded-xl border bg-card p-3">
+            <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                    <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        value={filters.search}
+                        onChange={(e) => onSearchChange(e.target.value)}
+                        placeholder="Buscar por nome..."
+                        className="h-9 pl-8 text-sm"
+                    />
+                </div>
+                {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={onReset} className="shrink-0">
+                        <X className="size-3.5" />
+                        Limpar
+                    </Button>
+                )}
+            </div>
+
+            {availableChallengeTypes.length > 1 && (
+                <div className="flex flex-wrap gap-1">
+                    <span className="self-center px-1 text-[11px] uppercase tracking-wide text-muted-foreground">Desafio:</span>
+                    {availableChallengeTypes.map((ct) => {
+                        const active = filters.challengeTypeIds.has(ct.id);
+                        return (
+                            <button
+                                key={ct.id}
+                                type="button"
+                                onClick={() => onToggleChallengeType(ct.id)}
+                                className={cn(
+                                    'min-h-7 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                                    active
+                                        ? 'border-primary bg-primary text-primary-foreground'
+                                        : 'border-border text-muted-foreground hover:border-foreground/30',
+                                )}
+                                aria-pressed={active}
+                            >
+                                {ct.name_pt}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
+            <div className="flex flex-wrap gap-1.5">
+                <CycleButton
+                    icon={Target}
+                    label="Modo"
+                    state={
+                        filters.mode === 'all' ? 'Todos' : filters.mode === 'target' ? 'Alvo' : 'Real'
+                    }
+                    active={filters.mode !== 'all'}
+                    onClick={onCycleMode}
+                />
+                <CycleButton
+                    icon={PawPrint}
+                    label="Beast"
+                    state={filters.hasBeast === 'all' ? 'Todos' : filters.hasBeast === 'yes' ? 'Com' : 'Sem'}
+                    active={filters.hasBeast !== 'all'}
+                    onClick={() => onCycleBool('hasBeast')}
+                />
+                <CycleButton
+                    icon={Share2}
+                    label="Pública"
+                    state={filters.hasShare === 'all' ? 'Todos' : filters.hasShare === 'yes' ? 'Sim' : 'Não'}
+                    active={filters.hasShare !== 'all'}
+                    onClick={() => onCycleBool('hasShare')}
+                />
+                <CycleButton
+                    icon={FileText}
+                    label="Notas"
+                    state={filters.hasNotes === 'all' ? 'Todos' : filters.hasNotes === 'yes' ? 'Com' : 'Sem'}
+                    active={filters.hasNotes !== 'all'}
+                    onClick={() => onCycleBool('hasNotes')}
+                />
+            </div>
+        </div>
+    );
+}
+
+interface CycleButtonProps {
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    state: string;
+    active: boolean;
+    onClick: () => void;
+}
+
+function CycleButton({ icon: Icon, label, state, active, onClick }: CycleButtonProps) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={cn(
+                'flex min-h-7 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
+                active
+                    ? 'border-primary bg-primary/15 text-primary'
+                    : 'border-border text-muted-foreground hover:border-foreground/30',
+            )}
+            aria-pressed={active}
+            aria-label={`Filtro ${label}: ${state}`}
+        >
+            <Icon className="size-3" />
+            <span>{label}:</span>
+            <span className="font-semibold">{state}</span>
+        </button>
     );
 }

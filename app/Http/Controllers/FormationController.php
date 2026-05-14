@@ -40,10 +40,42 @@ class FormationController extends Controller
             ->formations()
             ->with('challengeType:id,code,name_pt,min_teams,max_teams,is_pvp')
             ->orderByDesc('updated_at')
-            ->get(['id', 'name', 'mode', 'teams_count', 'total_score', 'challenge_type_id', 'updated_at']);
+            ->get([
+                'id',
+                'name',
+                'mode',
+                'teams_count',
+                'total_score',
+                'challenge_type_id',
+                'beast_id',
+                'share_token',
+                'notes',
+                'updated_at',
+            ])
+            ->map(function (Formation $f) {
+                // Não enviar o corpo da nota (pode ser grande); só sinalizar presença.
+                $hasNotes = ! empty(trim((string) $f->notes));
+                $f->makeHidden(['notes']);
+                $f->setAttribute('has_notes', $hasNotes);
+
+                return $f;
+            });
+
+        // Lista de challenge types em uso (pra filter dropdown) — só aqueles com formações
+        $availableChallengeTypes = $formations
+            ->pluck('challengeType')
+            ->filter()
+            ->unique('id')
+            ->values()
+            ->map(fn ($ct) => [
+                'id' => $ct->id,
+                'code' => $ct->code,
+                'name_pt' => $ct->name_pt,
+            ]);
 
         return Inertia::render('formations/index', [
             'formations' => $formations,
+            'availableChallengeTypes' => $availableChallengeTypes,
         ]);
     }
 

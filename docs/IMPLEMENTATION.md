@@ -1978,3 +1978,45 @@ Fecha o ciclo da feature de notas: schema (`formations.notes TEXT NULL`), valida
 - `outro_user_nao_atualiza_notes` — ownership 403
 
 **295 testes verdes** (+6 novos).
+
+---
+
+### ✅ Fase 33 — Filtros avançados em /formations
+
+Antes a index apenas listava ordenada por `updated_at`. Com muitas formações fica difícil achar a certa. Agora há busca + filtros por atributos.
+
+#### Decisão: filtragem client-side
+Formações escalam pouco por user (típico: 10-50, raro >100). Trazer todas + filtrar em memória é mais responsivo (zero round-trip ao filtrar) e mais simples (estado local, sem URL state sync).
+
+#### Backend (`FormationController@index`)
+- Payload da formação agora inclui `beast_id`, `share_token`, `notes`, mas:
+  - **`notes` não vai no JSON** — usa `makeHidden(['notes'])` e expõe um campo derivado `has_notes: bool` via `setAttribute`. Privacy + tamanho de payload.
+  - `has_notes` é `true` quando `trim($notes) !== ''` — strings whitespace-only contam como vazias.
+- Novo campo `availableChallengeTypes` — lista deduplicada dos challenge types que o user **realmente tem formações**. Evita poluir o filtro com 14 desafios quando o user só usa 2.
+
+#### UI (`pages/formations/index.tsx`)
+- **`FilterBar` inline** com 3 linhas:
+  1. **Busca por nome** — input com ícone Search; case-insensitive `String.includes`.
+  2. **Pills de challenge type** (só aparece se houver >1 disponível) — multi-select; OR dentro do grupo.
+  3. **CycleButtons** — botões "ciclo de 3 estados" (Todos → Sim/Com → Não/Sem → Todos) para `mode`, `hasBeast`, `hasShare`, `hasNotes`. Compacto e mobile-friendly.
+- **Empty states diferenciados**:
+  - 0 formações totais → "Crie sua primeira" + botão criar
+  - 0 formações pós-filtro → "Nenhuma casa" + botão "Limpar filtros"
+- **Header dinâmico**: "X de Y formações" quando há filtros ativos, "N formações" caso contrário.
+- **Badges nos cards**: Adicionados Beast (emerald), Pública (sky), Notas (amber) — feedback visual de quais campos cada formação tem.
+
+#### Trade-offs
+- **Por que client-side e não query params?** Volumetria baixa + UX instantânea (sem flash de loading). Trade-off: filtros não persistem entre páginas/refresh. Para volume maior valeria server-side com URL state.
+- **Por que CycleButton de 3 estados em vez de checkbox/select?** Compacto (1 toque cicla), espaço-eficiente em mobile, e bool ternário (Sim/Não/Todos) cobre exatamente o caso. Checkbox seria menos preciso ("desmarcar" não significa "filtrar pelo oposto").
+- **Por que `availableChallengeTypes` baseado no que o user tem?** Mostrar 14 challenge types ao filtrar quando o user só tem formações em 2 polui — escolha de UI que prioriza signal sobre exhaustividade.
+- **Por que `makeHidden(['notes'])`?** O conteúdo da nota pode ser ~2KB e a index tem N formações. Para um user com 50 formações + nota cheia, isso seria 100KB extras desnecessários (filtragem só precisa saber se existe). E expor notas privadas no payload da index sem o user pedir é desnecessário.
+
+#### Testes (`FormationIndexTest`)
+5 cenários:
+- `index_retorna_campos_necessarios_para_filtros` — `beast_id`, `share_token`, `has_notes` presentes; **`notes` ausente** do payload
+- `has_notes_e_false_quando_notas_estao_vazias_ou_whitespace` — null, "   \n\t  ", e "algo" tratados corretamente
+- `available_challenge_types_inclui_apenas_os_com_formacoes` — campaign + arena_of_heroes presentes; dream_realm ausente
+- `available_challenge_types_deduplica` — 3 formations no mesmo type → 1 entry
+- `outro_user_nao_ve_formacoes` — isolamento (também testa `availableChallengeTypes` vazio)
+
+**300 testes verdes** 🎯 (+5 novos, marco redondo).
