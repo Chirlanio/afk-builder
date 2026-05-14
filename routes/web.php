@@ -17,6 +17,7 @@ use App\Http\Controllers\HeroFavoriteController;
 use App\Http\Controllers\HeroUsageController;
 use App\Http\Controllers\RecommendedFormationController;
 use App\Http\Controllers\ScoringWeightPresetController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\UserHeroController;
 use App\Http\Controllers\UserTierListController;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +36,8 @@ Route::get('/tier/{token}', [UserTierListController::class, 'publicShow'])
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('search', [SearchController::class, 'index'])->name('search');
 
     Route::get('heroes', [HeroController::class, 'index'])->name('heroes.index');
     Route::get('heroes/usage', [HeroUsageController::class, 'index'])->name('heroes.usage');

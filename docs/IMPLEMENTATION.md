@@ -2277,3 +2277,58 @@ Badge dinâmico no item "Aprovar heróis" da sidebar mostrando a contagem de her
 - `guest_nao_recebe_dados_admin` — testa via `/login` (única rota acessível a guest); admin sempre null
 
 **331 testes verdes** (+5 novos).
+
+---
+
+### ✅ Fase 39 — Search global (Cmd+K)
+
+Modal de busca acessível por atalho Cmd+K (Mac) / Ctrl+K (outros) em qualquer página do app, com input + lista agrupada por 4 categorias: heroes, formations, tier lists e guides.
+
+#### Backend (`SearchController`)
+- Endpoint `GET /search?q=X` retorna JSON com 4 listas.
+- `MIN_QUERY_LENGTH = 2` — queries curtas retornam resultados vazios (evita full-table scan em "a", "e").
+- `MAX_PER_CATEGORY = 5` — limite por categoria mantém payload pequeno e foca em "achar rápido" (não "explorar").
+- **Escape de wildcards**: `str_replace(['%', '_'], ['\%', '\_'], $query)` antes do `LIKE` — usuário digitando "100%_carry" não vira pattern errado.
+- **Heroes**: catálogo público filtrado por `is_active=true AND pending_review=false`. Busca em `name`, `title`, `slug`.
+- **Formations / Tier Lists**: escopadas por user via relationship — não vaza dados entre users.
+- **Guides**: públicos a todos os authenticated users. Busca em `title`, `title_pt`, `slug`.
+- Resposta unificada: `{ id, label, sublabel?, url, image_url? }` — frontend não precisa de lógica por categoria.
+
+#### Frontend (`GlobalSearchDialog`)
+- Dialog Radix com `max-h-[80vh]` e `sm:max-w-2xl`. Input com ícone Search à esquerda + Loader2 ou clear button à direita.
+- **Busca debounced 200ms** — evita request a cada tecla.
+- **AbortController** cancela request anterior quando uma nova começa — previne race conditions ("usuário digita 'tho' depois 'thor' rápido; sem cancel, resposta de 'tho' chegaria depois e sobrescreveria").
+- **Resultados flatten + activeIndex**: lista visual hierárquica (cabeçalho de categoria + items), mas internamente um array linear pra navegação por teclado uniforme.
+- **Navegação por teclado**:
+  - `↑/↓` cicla pelos itens (wrap-around)
+  - `Enter` abre o item ativo via `router.visit()`
+  - `Esc` fecha (Radix default)
+- **Mouse hover sincroniza `activeIndex`** — UX consistente entre teclado e mouse.
+- Empty state distinto: "Digite ao menos 2 caracteres" (query curta) vs "Nada encontrado para 'X'" (query válida sem matches).
+- Footer com hint de teclado (`↑↓ Navegar`, `Enter Abrir`, `Esc Fechar`).
+
+#### Integração no layout
+- `AppSidebarLayout` ganhou state `searchOpen` + `useEffect` que registra listener global de `keydown` pra Cmd+K / Ctrl+K (detectado via `metaKey || ctrlKey`).
+- `AppSidebarHeader` ganhou prop opcional `onOpenSearch` — quando passada, renderiza botão "Buscar… ⌘K" no canto direito do header.
+- **Detecção de plataforma**: `isMac` checa `navigator.platform` em runtime pra mostrar `⌘` em Mac e `Ctrl` em outros — não polui shared data.
+
+#### Trade-offs
+- **Por que server-side em vez de pre-fetch + client filter?** Pre-fetch funcionaria pra heroes (catálogo ~250 itens, ~50KB), mas formações + tier lists crescem indefinidamente e mistura backend (formations escopadas por user) com cache complica invalidação. Server-side é mais simples e escalável.
+- **Por que `LIKE %x%` em vez de fulltext search?** Volume modesto (centenas de heroes, dezenas de formações por user). `LIKE` com índice em colunas relevantes (já existe pra slug/name) é suficiente. Fulltext seria sobrengenharia.
+- **Por que limite 5 por categoria (não scroll infinito)?** Search global é "encontrar rápido a coisa exata que tenho em mente", não "explorar". Top 5 é mais do que suficiente pra esse caso; se precisa explorar, vai pra página dedicada.
+- **Por que debounce de 200ms (não 500ms)?** 200ms é o sweet spot entre cancelar typing e dar feedback responsivo. 500ms começa a parecer "travado".
+- **Por que `AbortController` em vez de só ignorar respostas tardias?** Cancel real economiza tráfego e libera PHP-FPM mais cedo. No client, `axios.isCancel` distingue erro de cancelamento.
+- **Por que botão de header + atalho (não só atalho)?** Discoverability — usuários novos não sabem do Cmd+K até descobrirem. Botão visível com o atalho impresso ensina e funciona como fallback.
+
+#### Testes (`GlobalSearchTest`)
+8 cenários:
+- `guest_recebe_401` — auth obrigatório
+- `query_curta_retorna_resultados_vazios` — min 2 chars
+- `busca_heroi_por_name` — happy path + verifica URL `?open={slug}`
+- `nao_retorna_heroi_pending_ou_inativo` — só catálogo público
+- `busca_formacao_apenas_do_user` — isolamento (2 users com mesmo nome de formação)
+- `busca_tier_list_apenas_do_user` — idem
+- `busca_guide_publico` — disponível a qualquer authenticated
+- `limite_de_5_resultados_por_categoria` — 7 heroes criados → 5 retornados
+
+**339 testes verdes** (+8 novos).
