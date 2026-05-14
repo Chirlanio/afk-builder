@@ -2182,3 +2182,60 @@ Feature 100% client-side, baseada em DOM Canvas API que não é testável em PHP
 - Portraits CDN Fandom podem falhar CORS — mensagem orienta retry; sem solução perfeita sem proxy backend.
 - `text-overflow: ellipsis` em nomes muito longos truncados ainda; sem wrap multi-linha pra manter alinhamento visual.
 - Em mobile o feed pode demorar ~2-3s (canvas pesado); botão mostra Loader durante.
+
+---
+
+### ✅ Fase 37 — Sistema de favoritos para heróis
+
+Toggle "❤️ favorito" no modal de detalhes de cada herói, com filtro dedicado na `/heroes` e contador no dashboard. Feature simples e leve — útil pra marcar heróis que o user planeja investir ou que está pesquisando ativamente.
+
+#### Schema
+- **`user_hero_favorites`** — pivot puro: `user_id` + `hero_id` ambas FK com cascade delete bilateral. Unique `(user_id, hero_id)` + index em `hero_id` (pra queries reversas no futuro).
+- **Sem model dedicado** — relacionamento M2M via `belongsToMany` no `User`. Pivot table não tem atributos próprios além de timestamps, então não vale criar uma classe Model só pra ela.
+
+#### Controller `HeroFavoriteController`
+- 2 endpoints **idempotentes** (segurança contra retries de rede / double-click):
+  - `POST /heroes/{hero}/favorite` — `syncWithoutDetaching([$hero->id])` (não duplica)
+  - `DELETE /heroes/{hero}/favorite` — `detach($hero->id)` (no-op se já não existe)
+- Resposta sempre retorna `{ is_favorited: bool, favorites_count: int }` — frontend pode atualizar contagem global sem refetch.
+
+#### Payloads atualizados
+- **`HeroController@index`** ganhou `favoriteHeroIds: number[]` — Set de IDs marcados como favorito pra renderização eficiente do filtro.
+- **`HeroController@details`** ganhou `isFavorited: boolean` — usado pelo modal pra estado inicial do botão.
+- **`DashboardController@index`** ganhou `stats.favorites_count` — feed o novo StatCard.
+
+#### UI no `HeroDetailModal`
+- Botão coração no canto superior esquerdo do header (canto direito é o close do dialog) — `absolute top-3 left-3 size-9 rounded-full`.
+- **Update otimista**: ao clicar, troca o estado local imediatamente; só faz rollback se a request falhar. Sensação instantânea mesmo com latência.
+- Disparo de `router.reload({ only: ['favoriteHeroIds'] })` após sucesso pra atualizar o filtro da `/heroes` sem reload completo.
+- Tonalidade rose quando favoritado (heart filled), muted quando não.
+- **`onToggleFavorite` + `favoriting` passados como props** ao `HeroDetailContent` — função filha não pode acessar state do parent diretamente em React. Decisão deliberada pra manter o estado da chamada axios próximo ao state `data`.
+
+#### Filtro na `/heroes`
+- Novo botão pill "❤️ Favoritos (N)" ao lado do "Só meus" — variant `default` quando ativo, com tonalidade rose customizada (`bg-rose-500/15 text-rose-600`).
+- State `onlyFavorites` integrado ao `useMemo` filter + `filtersActive` + `clearFilters`.
+- Contagem `favoriteSet.size` no label do botão pra info passiva.
+
+#### Dashboard
+- Novo `StatCard` na segunda linha de stats: ícone Heart + valor `stats.favorites_count` + sub "Heróis marcados" + accent rose (`from-rose-500/20 to-rose-500/0`).
+
+#### Trade-offs
+- **Por que sem model dedicado?** Pivot puro (só FKs + timestamps) — criar `UserHeroFavorite extends Model` adiciona arquivo e indireção sem ganho. `belongsToMany` é a abstração certa.
+- **Por que `POST` + `DELETE` em vez de um único `PUT`/`PATCH` de toggle?** Verbos HTTP fiéis à operação (REST). `POST favorite` = "marca como favorito" (idempotente via `syncWithoutDetaching`); `DELETE` = "desmarca" (idempotente via `detach`). Toggle puro seria mais conciso mas confunde o que o cliente está pedindo.
+- **Por que update otimista no modal?** Latência percebida zero. Risco baixo: se falhar, rollback restaura. O backend é idempotente, então retry é seguro.
+- **Por que prop drilling pra `onToggleFavorite` em vez de useContext?** Component pair muito acoplado (parent + child no mesmo arquivo). Context daria overhead sem benefício.
+
+#### Testes (`HeroFavoriteTest`)
+11 cenários:
+- `marca_heroi_como_favorito` — happy path POST + payload
+- `marcar_duas_vezes_e_idempotente` — `syncWithoutDetaching` não duplica
+- `remove_dos_favoritos` — happy path DELETE
+- `remover_quando_nao_e_favorito_e_idempotente` — `detach` no-op
+- `favoritos_sao_isolados_por_user`
+- `index_inclui_favorite_hero_ids` — payload de `/heroes`
+- `details_inclui_is_favorited` + `details_is_favorited_false_quando_nao_favoritado`
+- `dashboard_inclui_favorites_count`
+- `guest_nao_pode_favoritar` — 401
+- `deletar_heroi_cascateia_favoritos` — `onDelete cascade` na migration
+
+**326 testes verdes** (+11 novos).

@@ -8,6 +8,7 @@ import {
     Flame,
     Footprints,
     Gem,
+    Heart,
     Hotel,
     Loader2,
     Lock,
@@ -108,6 +109,7 @@ interface DetailsPayload {
     engravings: HeroEngraving[];
     features: HeroFeature[];
     signatureItem: SignatureItemSummary;
+    isFavorited: boolean;
 }
 
 const FEATURE_TAG_LABEL: Record<HeroFeatureTag, string> = {
@@ -223,6 +225,30 @@ export function HeroDetailModal({ slug, open, onOpenChange, onNavigate }: HeroDe
     const [loading, setLoading] = useState(false);
     const [rosterOpen, setRosterOpen] = useState(false);
     const [statsOpen, setStatsOpen] = useState(false);
+    const [favoriting, setFavoriting] = useState(false);
+
+    const toggleFavorite = useCallback(async () => {
+        if (!data) return;
+        const wasFavorited = data.isFavorited;
+        // Otimistic update
+        setData({ ...data, isFavorited: !wasFavorited });
+        setFavoriting(true);
+        try {
+            if (wasFavorited) {
+                await axios.delete(`/heroes/${data.hero.id}/favorite`);
+            } else {
+                await axios.post(`/heroes/${data.hero.id}/favorite`);
+            }
+            // Inertia partial reload pra refrescar favoriteHeroIds na /heroes
+            router.reload({ only: ['favoriteHeroIds'] });
+        } catch (err) {
+            // Rollback otimista em caso de erro
+            console.error('Falha ao favoritar:', err);
+            setData((curr) => (curr ? { ...curr, isFavorited: wasFavorited } : curr));
+        } finally {
+            setFavoriting(false);
+        }
+    }, [data]);
 
     const { auth } = usePage<SharedData>().props;
     const locale = (auth.user?.locale ?? 'en') as Locale;
@@ -283,6 +309,8 @@ export function HeroDetailModal({ slug, open, onOpenChange, onNavigate }: HeroDe
                             onEditStats={() => setStatsOpen(true)}
                             onMutation={onMutation}
                             onNavigate={onNavigate}
+                            onToggleFavorite={toggleFavorite}
+                            favoriting={favoriting}
                         />
                     )}
                 </DialogContent>
@@ -320,9 +348,11 @@ interface ContentProps {
     onEditStats: () => void;
     onMutation: () => Promise<void> | void;
     onNavigate?: (slug: string) => void;
+    onToggleFavorite: () => void;
+    favoriting: boolean;
 }
 
-function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, onMutation, onNavigate }: ContentProps) {
+function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, onMutation, onNavigate, onToggleFavorite, favoriting }: ContentProps) {
     const { hero, userHero, synergies, ratings, engravings, features, signatureItem } = data;
     const { confirm, dialog: confirmDialog } = useConfirm();
 
@@ -364,7 +394,24 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
 
             {/* Header centralizado: tier+stars > title > name > badges
                 Obs: DialogTitle (sr-only) está no DialogContent. Aqui é só a apresentação visual. */}
-            <header className={cn('border-b p-4 pr-12', factionTheme.cardGradient)}>
+            <header className={cn('relative border-b p-4 pr-12', factionTheme.cardGradient)}>
+                {/* Botão favorito (Fase 37) — canto superior esquerdo, em paralelo ao close (pr-12 reservado pelo close) */}
+                <button
+                    type="button"
+                    onClick={onToggleFavorite}
+                    disabled={favoriting}
+                    className={cn(
+                        'absolute top-3 left-3 z-10 grid size-9 place-items-center rounded-full border bg-background/70 backdrop-blur transition-colors',
+                        data.isFavorited
+                            ? 'border-rose-500/40 text-rose-500 hover:bg-rose-500/10'
+                            : 'border-border text-muted-foreground hover:text-foreground',
+                    )}
+                    aria-label={data.isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                    aria-pressed={data.isFavorited}
+                    title={data.isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                >
+                    <Heart className={cn('size-4', data.isFavorited && 'fill-current')} />
+                </button>
                 <div className="flex flex-col items-center gap-1.5 text-center">
                     {/* Tier + Stars */}
                     <div className="flex items-center gap-2">

@@ -55,12 +55,19 @@ class HeroController extends Controller
             ])
             ->keyBy('hero_id');
 
+        // Fase 37: favoritos do user
+        $favoriteHeroIds = $request->user()
+            ->favoriteHeroes()
+            ->pluck('heroes.id')
+            ->all();
+
         return Inertia::render('heroes/index', [
             'heroes' => $heroes,
             'factions' => $factions,
             'heroClasses' => $heroClasses,
             'tiers' => $tiers,
             'roster' => $roster,
+            'favoriteHeroIds' => $favoriteHeroIds,
         ]);
     }
 
@@ -180,6 +187,11 @@ class HeroController extends Controller
             $hero->faction?->code,
         );
 
+        $isFavorited = $request->user()
+            ->favoriteHeroes()
+            ->where('heroes.id', $hero->id)
+            ->exists();
+
         return response()->json([
             'hero' => $heroPayload,
             'userHero' => $userHeroPayload,
@@ -190,6 +202,7 @@ class HeroController extends Controller
             'engravings' => $hero->engravings,
             'features' => $hero->features,
             'signatureItem' => $signatureItemSummary,
+            'isFavorited' => $isFavorited,
         ]);
     }
 }

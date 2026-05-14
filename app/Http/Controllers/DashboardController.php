@@ -69,6 +69,9 @@ class DashboardController extends Controller
             ->whereRaw("LOWER(REPLACE(heroes.name, ' ', '-')) <> heroes.slug")
             ->count();
 
+        // Fase 37: contagem de favoritos do user
+        $favoritesCount = $user->favoriteHeroes()->count();
+
         // Fase 28: milestones — heroes com investimento maximo
         $rosterSi30 = $user->userHeroes()->where('signature_item', '>=', 30)->count();
         $rosterSi40 = $user->userHeroes()->where('signature_item', '>=', 40)->count();
@@ -154,6 +157,7 @@ class DashboardController extends Controller
                 'roster_si_40' => $rosterSi40,
                 'roster_f9' => $rosterF9,
                 'roster_eng_80' => $rosterEng80,
+                'favorites_count' => $favoritesCount,
                 'catalog_total' => $catalogTotal,
                 'factions_count' => $factionsCount,
                 'formations_total' => $formationsTotal,

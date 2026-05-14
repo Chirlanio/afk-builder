@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { ClassCode, Faction, FactionCode, Hero, HeroClass, HeroFeatureTag, RosterByHeroId, Tier, TierCode } from '@/types/afk';
 import { Head } from '@inertiajs/react';
-import { Search, Users, X } from 'lucide-react';
+import { Heart, Search, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 interface PageProps {
@@ -19,17 +19,21 @@ interface PageProps {
     heroClasses: HeroClass[];
     tiers: Tier[];
     roster: RosterByHeroId;
+    favoriteHeroIds: number[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Heróis', href: '/heroes' }];
 
-export default function HeroesIndex({ heroes, factions, heroClasses, tiers, roster }: PageProps) {
+export default function HeroesIndex({ heroes, factions, heroClasses, tiers, roster, favoriteHeroIds }: PageProps) {
     const [search, setSearch] = useState('');
     const [factionFilter, setFactionFilter] = useState<Set<number>>(new Set());
     const [classFilter, setClassFilter] = useState<Set<number>>(new Set());
     const [featureFilter, setFeatureFilter] = useState<Set<HeroFeatureTag>>(new Set());
     const [onlyOwned, setOnlyOwned] = useState(false);
+    const [onlyFavorites, setOnlyFavorites] = useState(false);
     const [openSlug, setOpenSlug] = useState<string | null>(null);
+
+    const favoriteSet = useMemo(() => new Set(favoriteHeroIds), [favoriteHeroIds]);
 
     // Abre modal automaticamente quando o índice é carregado com ?open=slug
     // (deep link a partir de /heroes/{slug} legacy ou compartilhamento).
@@ -56,6 +60,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
             if (factionFilter.size > 0 && !factionFilter.has(hero.faction_id)) continue;
             if (classFilter.size > 0 && !classFilter.has(hero.hero_class_id)) continue;
             if (onlyOwned && !roster[hero.id]) continue;
+            if (onlyFavorites && !favoriteSet.has(hero.id)) continue;
             if (featureFilter.size > 0) {
                 const tags = hero.features?.map((f) => f.tag) ?? [];
                 let matches = false;
@@ -78,7 +83,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
         }
 
         return map;
-    }, [heroes, search, factionFilter, classFilter, featureFilter, onlyOwned, roster]);
+    }, [heroes, search, factionFilter, classFilter, featureFilter, onlyOwned, onlyFavorites, favoriteSet, roster]);
 
     const totalShown = useMemo(() => {
         let n = 0;
@@ -103,13 +108,14 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
         setClassFilter(new Set());
         setFeatureFilter(new Set());
         setOnlyOwned(false);
+        setOnlyFavorites(false);
     };
 
     const openHero = (hero: Hero) => {
         setOpenSlug(hero.slug);
     };
 
-    const filtersActive = search.length > 0 || factionFilter.size > 0 || classFilter.size > 0 || featureFilter.size > 0 || onlyOwned;
+    const filtersActive = search.length > 0 || factionFilter.size > 0 || classFilter.size > 0 || featureFilter.size > 0 || onlyOwned || onlyFavorites;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -134,6 +140,16 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
 
                         <Button variant={onlyOwned ? 'default' : 'outline'} size="sm" onClick={() => setOnlyOwned((v) => !v)}>
                             Só meus ({ownedCount})
+                        </Button>
+                        <Button
+                            variant={onlyFavorites ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setOnlyFavorites((v) => !v)}
+                            className={cn('gap-1.5', onlyFavorites && 'bg-rose-500/15 text-rose-600 hover:bg-rose-500/20 dark:text-rose-300')}
+                            aria-pressed={onlyFavorites}
+                        >
+                            <Heart className={cn('size-3.5', onlyFavorites && 'fill-current')} />
+                            Favoritos ({favoriteSet.size})
                         </Button>
 
                         {filtersActive && (

@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { BookOpen, ChevronRight, Crown, Flame, Gem, LayoutGrid, PenLine, Shield, Sparkles, Star, Sword, Target, Trophy, Users } from 'lucide-react';
+import { BookOpen, ChevronRight, Crown, Flame, Gem, Heart, LayoutGrid, PenLine, Shield, Sparkles, Star, Sword, Target, Trophy, Users } from 'lucide-react';
 
 import AppLayout from '@/layouts/app-layout';
 import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
@@ -15,6 +15,7 @@ interface DashboardStats {
     roster_si_40: number;
     roster_f9: number;
     roster_eng_80: number;
+    favorites_count: number;
     catalog_total: number;
     factions_count: number;
     formations_total: number;
@@ -193,6 +194,13 @@ export default function Dashboard({
                         value={topPowerHeroes[0]?.power ?? 0}
                         sub={topPowerHeroes[0]?.hero_name ?? 'Sem heróis ainda'}
                         accent="from-sky-500/20 to-sky-500/0 border-sky-500/30 text-sky-300"
+                    />
+                    <StatCard
+                        icon={<Heart className="size-5" />}
+                        label="Favoritos"
+                        value={stats.favorites_count}
+                        sub="Heróis marcados"
+                        accent="from-rose-500/20 to-rose-500/0 border-rose-500/30 text-rose-300"
                     />
                 </section>
 

@@ -13,6 +13,7 @@ use App\Http\Controllers\FormationTagController;
 use App\Http\Controllers\FormationVersionController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HeroController;
+use App\Http\Controllers\HeroFavoriteController;
 use App\Http\Controllers\HeroUsageController;
 use App\Http\Controllers\RecommendedFormationController;
 use App\Http\Controllers\ScoringWeightPresetController;
@@ -37,6 +38,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('heroes', [HeroController::class, 'index'])->name('heroes.index');
     Route::get('heroes/usage', [HeroUsageController::class, 'index'])->name('heroes.usage');
+    Route::post('heroes/{hero}/favorite', [HeroFavoriteController::class, 'store'])
+        ->name('heroes.favorite.store');
+    Route::delete('heroes/{hero}/favorite', [HeroFavoriteController::class, 'destroy'])
+        ->name('heroes.favorite.destroy');
     Route::get('heroes/{slug}/details', [HeroController::class, 'details'])
         ->where('slug', '[a-z0-9-]+')
         ->name('heroes.details');
