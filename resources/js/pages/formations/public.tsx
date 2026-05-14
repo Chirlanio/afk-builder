@@ -1,4 +1,5 @@
 import { HeroChip } from '@/components/formation-editor/hero-chip';
+import { MarkdownContent } from '@/components/markdown-content';
 import { Badge } from '@/components/ui/badge';
 import { FACTION_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
@@ -110,7 +111,11 @@ export default function FormationsPublic({ formation, heroes, factions, heroClas
                                 </Badge>
                             )}
                         </div>
-                        {formation.notes && <p className="text-muted-foreground mt-2 text-sm whitespace-pre-wrap">{formation.notes}</p>}
+                        {formation.notes && (
+                            <div className="mt-3 rounded-lg border bg-muted/30 p-3 text-muted-foreground">
+                                <MarkdownContent>{formation.notes}</MarkdownContent>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-col gap-3">

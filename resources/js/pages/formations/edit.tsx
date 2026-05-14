@@ -1,7 +1,7 @@
 import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { Copy, History, Link2, Loader2, MoreHorizontal, PawPrint, RotateCcw, Save, Share2, Sparkles, Target, Trash2, Users } from 'lucide-react';
+import { Copy, FileText, History, Link2, Loader2, MoreHorizontal, PawPrint, RotateCcw, Save, Share2, Sparkles, Target, Trash2, Users } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
 import { HeroPool } from '@/components/formation-editor/hero-pool';
@@ -34,6 +34,7 @@ import type {
     TierCode,
 } from '@/types/afk';
 import { ScoreBreakdownCard } from '@/components/score-breakdown-card';
+import { FormationNotesSheet } from '@/components/formation-notes-sheet';
 import { WeightTunerSheet, type WeightOverrides, type WeightPreset } from '@/components/weight-tuner-sheet';
 import { useAutoScrollOnDrag } from '@/hooks/use-auto-scroll-on-drag';
 
@@ -97,6 +98,7 @@ export default function FormationsEdit({
     const tierById = useMemo(() => Object.fromEntries(tiers.map((t) => [t.id, t])) as Record<number, Tier>, [tiers]);
 
     const [name, setName] = useState(formation.name);
+    const [notes, setNotes] = useState<string>(formation.notes ?? '');
     const [beastId, setBeastId] = useState<number | null>(formation.beast_id ?? null);
     const [teams, setTeams] = useState<TeamSlotsState[]>(() => teamsFromFormation(formation.teams, formation.teams_count));
     const [isDirty, setIsDirty] = useState(false);
@@ -111,6 +113,7 @@ export default function FormationsEdit({
     const [versions, setVersions] = useState<Array<{ id: number; created_at: string | null; team_count: number; hero_count: number; name: string | null }>>([]);
     const [isLoadingVersions, setIsLoadingVersions] = useState(false);
     const [poolSheetOpen, setPoolSheetOpen] = useState(false);
+    const [notesSheetOpen, setNotesSheetOpen] = useState(false);
     const [mobileTargetTeamPos, setMobileTargetTeamPos] = useState<number>(1);
     const { confirm, dialog: confirmDialog } = useConfirm();
     const [activeDragHeroId, setActiveDragHeroId] = useState<number | null>(null);
@@ -458,7 +461,7 @@ export default function FormationsEdit({
 
         const payload = {
             name,
-            notes: formation.notes,
+            notes: notes.trim() === '' ? null : notes,
             beast_id: beastId,
             teams: teams.map((team) => ({
                 position: team.position,
@@ -531,6 +534,16 @@ export default function FormationsEdit({
                             )}
                             <Button
                                 variant="outline"
+                                onClick={() => setNotesSheetOpen(true)}
+                                disabled={isSaving}
+                                className="gap-1.5"
+                            >
+                                <FileText className="size-4" />
+                                Notas
+                                {notes.trim().length > 0 && <span className="ml-1 size-1.5 rounded-full bg-amber-400" aria-hidden />}
+                            </Button>
+                            <Button
+                                variant="outline"
                                 onClick={openHistory}
                                 disabled={isSaving}
                             >
@@ -572,6 +585,11 @@ export default function FormationsEdit({
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => setNotesSheetOpen(true)} disabled={isSaving}>
+                                        <FileText className="size-4" />
+                                        Notas
+                                        {notes.trim().length > 0 && <span className="ml-auto size-1.5 rounded-full bg-amber-400" aria-hidden />}
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onClick={openHistory} disabled={isSaving}>
                                         <History className="size-4" />
                                         Histórico
@@ -782,6 +800,17 @@ export default function FormationsEdit({
                 >
                     <Users className="size-6" />
                 </button>
+
+                <FormationNotesSheet
+                    value={notes}
+                    open={notesSheetOpen}
+                    onOpenChange={setNotesSheetOpen}
+                    hideTrigger
+                    onChange={(v) => {
+                        setNotes(v);
+                        setIsDirty(true);
+                    }}
+                />
 
                 <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
                     <DialogContent>

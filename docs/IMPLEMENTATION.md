@@ -1937,3 +1937,44 @@ Item novo "Uso de heróis" com ícone `BarChart3` posicionado entre "Heróis" e 
 - `roster_vazio_retorna_estados_vazios` — edge case
 
 **289 testes verdes** (+9 novos).
+
+---
+
+### ✅ Fase 32 — Notas em formações (UI completa)
+
+Fecha o ciclo da feature de notas: schema (`formations.notes TEXT NULL`), validação backend (`max:2000`) e render público (`whitespace-pre-wrap`) já existiam desde a Fase 4, mas **faltava a UI de edição** — o campo era sempre `null` na prática. Agora há editor markdown com preview e o render público usa o renderizador markdown completo do app.
+
+#### Novo componente `FormationNotesSheet`
+- Sheet lateral (`side=right`, `sm:max-w-xl`) com 2 modos via segmented control:
+  - **Editar**: `<textarea>` mono-fonte 12px, autosize via flex; placeholder com exemplo realista de estratégia (`# Estratégia, ## Quando usar, ## Riscos`).
+  - **Preview**: `<MarkdownContent>` (mesmo componente usado em guides, lore e habilidades) — assim o user vê exatamente o que verá quem abrir o link público.
+- Contador de caracteres `N / 2000` no rodapé; vira destrutivo + bold acima do limite.
+- **Modo controlled opcional**: aceita `open` + `onOpenChange` props e `hideTrigger`. Permite a mesma instância ser acionada por múltiplos triggers (ex: botão desktop + item de dropdown mobile) sem duplicar o sheet.
+
+#### Integração no editor
+- State `notes` controlado em `formations/edit.tsx`, inicializa com `formation.notes ?? ''`.
+- Botão "Notas" no header desktop (ícone `FileText`) com **bolinha amber** indicando presença de conteúdo.
+- Item "Notas" no `DropdownMenu` mobile (mesma indicação de bolinha).
+- Submit: envia `notes.trim() === '' ? null : notes` — string vazia vira `null` no DB (consistente com nullable column).
+- Marca `isDirty=true` ao alterar conteúdo.
+
+#### Render público melhorado (`formations/public.tsx`)
+- Substituído `<p className="whitespace-pre-wrap">` por `<MarkdownContent>` dentro de um container `rounded-lg border bg-muted/30 p-3`.
+- Markdown formatado (headers, listas, bold/italic, links, tabelas via GFM) renderiza com o mesmo design dos guias.
+
+#### Trade-offs
+- **Por que apenas 1 instância controlled em vez de 2 com triggers internos?** Duas instâncias significariam 2 estados de `open` que poderiam conflitar (abrir os 2 simultaneamente, race conditions ao escrever). Uma instância + prop `hideTrigger` mantém SSOT.
+- **Por que segmented control em vez de split-pane lado a lado?** Em mobile, split-pane fica claustrofóbico (~150px de cada lado). Segmented dá 100% da largura pra cada modo. Em desktop seria possível split, mas optei por consistência cross-device.
+- **Por que não autosave no `onChange`?** O save da formação já é manual (botão "Salvar" no header). Autosave separado pra notes criaria 2 fluxos de salvamento — confuso.
+- **Por que aceitar markdown e não rich text editor?** Markdown é portável, copy-pastable, sem JS adicional de WYSIWYG (~100KB+ de bundle). Public render já usa `react-markdown` (instalado pra guias). Custo marginal de bundle: zero.
+
+#### Testes (`FormationNotesTest`)
+6 cenários:
+- `update_aceita_notas_markdown` — round-trip de markdown via `PATCH /formations/{id}`
+- `update_aceita_notes_null` — clear funciona
+- `update_rejeita_notes_acima_de_2000_chars` — validação `max:2000`
+- `pagina_publica_mostra_notas` — `/f/{token}` retorna `notes` no payload
+- `edit_payload_inclui_notes_atuais` — `/formations/{id}/edit` carrega `notes` pré-existentes
+- `outro_user_nao_atualiza_notes` — ownership 403
+
+**295 testes verdes** (+6 novos).
