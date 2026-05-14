@@ -5,7 +5,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Library, ListChecks, Package, PawPrint, RefreshCw, ShieldCheck, Sparkles, Swords, Users } from 'lucide-react';
+import { BarChart3, BookOpen, Folder, LayoutGrid, Library, ListChecks, Package, PawPrint, RefreshCw, ShieldCheck, Sparkles, Swords, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const baseNavItems: NavItem[] = [
@@ -18,6 +18,11 @@ const baseNavItems: NavItem[] = [
         title: 'Heróis',
         url: '/heroes',
         icon: Users,
+    },
+    {
+        title: 'Uso de heróis',
+        url: '/heroes/usage',
+        icon: BarChart3,
     },
     {
         title: 'Formações',

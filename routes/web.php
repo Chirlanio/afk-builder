@@ -12,6 +12,7 @@ use App\Http\Controllers\FormationShareController;
 use App\Http\Controllers\FormationVersionController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HeroController;
+use App\Http\Controllers\HeroUsageController;
 use App\Http\Controllers\RecommendedFormationController;
 use App\Http\Controllers\ScoringWeightPresetController;
 use App\Http\Controllers\UserHeroController;
@@ -34,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('heroes', [HeroController::class, 'index'])->name('heroes.index');
+    Route::get('heroes/usage', [HeroUsageController::class, 'index'])->name('heroes.usage');
     Route::get('heroes/{slug}/details', [HeroController::class, 'details'])
         ->where('slug', '[a-z0-9-]+')
         ->name('heroes.details');

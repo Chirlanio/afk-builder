@@ -1889,3 +1889,51 @@ Complementa as Fases 26.5 e 27. Antes, os pesos custom viviam só na formação 
   - `nao_deleta_preset_de_outro_user` — 403
   - `edit_payload_inclui_presets_filtrados_por_challenge_type` — Global + Campaign-specific visíveis; Arena-only fora
 - **280 testes verdes** (+12 novos).
+
+---
+
+### ✅ Fase 31 — Estatísticas de uso de heróis
+
+Nova página `/heroes/usage` que cruza roster com formações pra revelar **onde está seu investimento real** vs **onde estão suas escolhas táticas**. Útil pra revisar se heróis com SI alto realmente justificam o investimento ou se estão parados no banco.
+
+#### Controller `HeroUsageController@index`
+4 queries cruzando `formation_team_heroes` → `formation_teams` → `formations` filtrado por `user_id`:
+
+1. **Top 10 mais utilizados** — `GROUP BY hero_id, COUNT(*) team_count, COUNT(DISTINCT formation_id) formation_count, COUNT(DISTINCT challenge_type_id)`. Desempate: team_count > formation_count.
+2. **Roster nunca usado** — `array_diff(rosterHeroIds, usedHeroIds)`. Mostra os primeiros 50; expõe `never_used_total` no header. Inclui `level`, `signature_item`, `furniture`, `engraving` do `UserHero` pra contexto.
+3. **Investidos + esquecidos** (red flag) — UserHeroes com `signature_item ≥ 20 OR furniture ≥ 3 OR engraving ≥ 60` e zero uso. Sort interno: `SI × 10 + furniture × 50 + engraving` (furniture pesa mais porque é o investimento de "endgame deliberado"). Limite 10.
+4. **Top 5 por challenge type** — join adicional em `challenge_types`. Agrupa por code, ordena por team_count dentro de cada bucket. Mostra apenas challenge types onde o user tem formações (challenge types não usados ficam fora).
+
+Eager-load completo das relations `faction:id,code,name_pt`, `heroClass:id,code,name_pt`, `tier:id,code,name_pt` numa única query por seção.
+
+#### UI `pages/heroes/usage.tsx`
+Layout em seções verticais (mobile-friendly):
+- **4 StatCards** no topo: heróis utilizados, roster total, nunca usados (tone amber se > 0), investidos+esquecidos (tone rose se > 0).
+- **Top 10 mais utilizados** — grid 2 cols com #rank, avatar, contador "N times em M formações" + "X desafios" quando > 1, badge count grande na direita.
+- **Investidos + esquecidos** (só aparece se houver) — card destacado em rose-950 com avisos visuais. Subtexto explica o critério.
+- **Top 5 por tipo de desafio** — grid 2 cols, cada bucket é um card com nome do challenge type + lista compacta dos 5.
+- **Nunca usados no roster** — grid 2→6 cols com avatar central + nome + tier badge. Mostra header com "Mostrando os 50 primeiros de N" quando aplicável.
+
+Todos os cards linkam pra `/heroes?open={slug}` (deep-link pro modal de detalhes existente).
+
+#### Sidebar
+Item novo "Uso de heróis" com ícone `BarChart3` posicionado entre "Heróis" e "Formações" — agrupamento natural (todos relacionados ao roster).
+
+#### Trade-offs
+- **Por que `IN_FORMATION` e não "in active formation"?** Não existe conceito de "formação ativa" no app — qualquer formação salva conta. Se o user limpar formações antigas, o reset é automático.
+- **Por que mostrar `never_used_total` mas só listar os 50 primeiros?** Em rosters acima de 150 heróis, listar tudo polui a tela sem agregar (o usuário não vai escanear todos). O total no header diz "tem N esperando você" sem entrar em cada um.
+- **Por que SI ≥ 20 OR F ≥ 3 OR Eng ≥ 60 como threshold de "investido"?** SI 20 = ~360 cumulativos (já é gasto sério); F3 = primeiro F bonus; Eng 60 = level 2 fora de free. Heroes abaixo disso são roster casual — não são "investimento desperdiçado", só "ainda não trabalhado".
+- **Por que sort do invested_forgotten dá `furniture × 50` peso?** Furniture é o eixo mais caro e mais lento de subir; um F9 idle representa muito mais "dor" que um SI 30 idle.
+
+#### Testes (`HeroUsageTest`)
+9 cenários cobrindo:
+- `guest_redirecionado_para_login` + `autenticado_acessa_pagina` — autenticação básica
+- `top_used_conta_corretamente` — hero em 2 formações de 2 challenges diferentes
+- `never_used_lista_heroes_do_roster_fora_de_formacoes` — exclui hero usado
+- `invested_forgotten_destaca_heroes_com_si_alto_sem_uso` — só "rich" entra, "basic" fica fora
+- `hero_em_formacao_nao_aparece_em_invested_forgotten` — mesmo com SI 40 + F9 + Eng 80
+- `usage_by_challenge_type_agrupa_e_ordena_por_uso` — campaign tem heroA (2×) > heroB (1×), arena só heroB
+- `payload_isola_dados_por_user` — formação do userA não vaza pro userB
+- `roster_vazio_retorna_estados_vazios` — edge case
+
+**289 testes verdes** (+9 novos).
