@@ -2020,3 +2020,48 @@ Formações escalam pouco por user (típico: 10-50, raro >100). Trazer todas + f
 - `outro_user_nao_ve_formacoes` — isolamento (também testa `availableChallengeTypes` vazio)
 
 **300 testes verdes** 🎯 (+5 novos, marco redondo).
+
+---
+
+### ✅ Fase 34 — Diff visual em /formations/compare
+
+A página `/formations/compare/{a}/{b}` (existente desde Fase 11) já mostrava scoring lado a lado com vencedor em verde por linha. Agora há **análise diff real**: delta numérico, barras de progresso, contadores de "wins por componente", e quais heróis são exclusivos vs comuns.
+
+#### `ScoreRow` reformulado
+- **Antes**: 1 linha com `a | label | b`, vencedor em verde.
+- **Agora**: 2 linhas empilhadas:
+  1. Valores numéricos com ícone `+` no vencedor.
+  2. **Barra de progresso ratio** (proporção visual de A vs B) com **Δ delta** no centro, ou "=" em caso de empate.
+- Suporta prop `bold` pra destacar Total.
+
+#### Resumo de componentes vencedores (card global)
+Cálculo agregado sobre todos os teams: para cada um dos 7 componentes, soma o valor across teams e compara A vs B. Mostra:
+- "A venceu: N/7" (sky)
+- "Empate: N/7" (muted)
+- "B venceu: N/7" (amber)
+
+Texto de leitura: *"{Nome} tem total +X.XX pontos a mais"* quando há winner total.
+
+#### Composição: comum vs exclusivos
+Card global com 3 grupos:
+- **Só na A** (sky border) — heroes que só aparecem em formação A
+- **Em ambas** (emerald border) — heroes presentes nas 2
+- **Só na B** (amber border) — heroes que só aparecem em formação B
+
+Cada grupo renderiza chips com `HeroChip` size sm. Empty state minimalista quando vazio.
+
+#### Highlight nos teams
+Heróis exclusivos ganham anel colorido (`ring-2 ring-sky-400` ou `ring-amber-400`) com `ring-offset` pra destacar do card. Tooltip `title` explica "Exclusivo de A/B".
+
+#### Cabeçalho das 2 formações
+- Cada card agora tem **badge A/B** (sky/amber) no topo pra identificação rápida.
+- O card da **formação com maior total** ganha background tonal (`bg-sky-500/5` ou `bg-amber-500/5`) + borda + badge **"Total maior"** com ícone Trophy.
+
+#### Trade-offs
+- **Wins por componente: soma ou média?** Soma é proxy razoável quando teams têm tamanhos similares. Média ponderada por team-size daria igual peso a teams pequenos/grandes, o que é menos intuitivo. Soma reflete "presença efetiva" do componente.
+- **Por que mostrar Δ pequenos como Δ0.00 e não "−"?** Diferenças <0.01 são raras mas existem em float arithmetic; mostrar "Δ0.00" preserva consistência visual em vez de criar regra especial.
+- **Por que sky/amber pra A/B em vez de blue/red?** Vermelho seria interpretado como "ruim/perda" mesmo quando B venceu — confunde semântica. Sky/amber são neutros, distintos e legíveis em ambos temas.
+- **Por que destacar heroes exclusivos com ring em vez de opacity nos comuns?** Ring é aditivo (chama atenção pro que importa); opacity dim seria subtrativo (apaga informação útil). Para diff, "o que é diferente" é o sinal valioso.
+
+#### Sem testes novos
+A Fase 11 já cobria o payload backend (`FormationCompareTest`: 3 cenários verificando scores por equipe + ownership). O diff é puramente visual — toda a lógica é `useMemo` sobre dados que já existem. **300 testes verdes mantidos**.
