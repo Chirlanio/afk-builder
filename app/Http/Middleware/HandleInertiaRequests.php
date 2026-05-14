@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Hero;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -38,12 +39,24 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
+        $user = $request->user();
+
+        // Fase 38: contagem de heróis em pending_review pra admins. Query barata (count com index),
+        // mas evitamos rodar pra não-admins. Usa Inertia closure (lazy) pra que partial reloads
+        // não invalidem o cache do shared data desnecessariamente.
+        $pendingHeroesCount = ($user && $user->is_admin)
+            ? fn () => Hero::where('pending_review', true)->count()
+            : null;
+
         return array_merge(parent::share($request), [
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+            ],
+            'admin' => [
+                'pending_heroes_count' => $pendingHeroesCount,
             ],
         ]);
     }

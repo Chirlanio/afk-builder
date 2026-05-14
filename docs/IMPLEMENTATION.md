@@ -2239,3 +2239,41 @@ Toggle "❤️ favorito" no modal de detalhes de cada herói, com filtro dedicad
 - `deletar_heroi_cascateia_favoritos` — `onDelete cascade` na migration
 
 **326 testes verdes** (+11 novos).
+
+---
+
+### ✅ Fase 38 — Notificações de pending_review (admins)
+
+Badge dinâmico no item "Aprovar heróis" da sidebar mostrando a contagem de heróis em `pending_review`. Resolve a UX de "admin precisa lembrar de checar /admin/heroes/pending periodicamente" — agora o número fica visível em qualquer página.
+
+#### Backend (`HandleInertiaRequests`)
+- Shared data ganhou key `admin.pending_heroes_count`:
+  - **Closure (Inertia lazy prop)**: `fn () => Hero::where('pending_review', true)->count()` — só é resolvida quando o frontend pede a prop. Para **first-render** sempre executa (toda página recebe shared data), mas para **partial reloads** (`router.reload({ only: ['x'] })`) NÃO executa se `admin` não está no set, evitando query desperdiçada.
+  - Só atribui closure se `$user && $user->is_admin === true` — não-admins recebem `null`.
+- Wrap com `'admin' => ['pending_heroes_count' => ...]` permite expandir esse namespace com outros contadores admin no futuro (ex: stuck sync jobs, failed jobs).
+
+#### Frontend
+- **`SharedData` type** ganhou `admin?: { pending_heroes_count: number | null }`.
+- **`NavItem` type** ganhou `badgeCount?: number | null` + `badgeTone?: 'amber' | 'rose'` opcionais — abstração genérica que pode ser usada por outros itens no futuro.
+- **`NavMain`** renderiza badge condicional (`typeof === 'number' && > 0`):
+  - `min-w-[20px]` pra acomodar números de 1 a 3 dígitos
+  - Tonalidade rose pra "atenção" (pending) vs amber default
+  - `aria-label` com cardinalidade correta (`1 pendente` vs `N pendentes`)
+- **`AppSidebar`** decora o item `/admin/heroes/pending` com `badgeCount: pendingCount` + `badgeTone: 'rose'` apenas — outros itens admin ficam sem decoração.
+
+#### Trade-offs
+- **Por que closure (lazy) em vez de int direto?** Em partial reloads (saves, etc), Inertia só resolve props pedidos. Sem closure, a query roda em todo request admin mesmo quando ninguém precisa. Com closure, só roda em first-render ou quando alguém pede `only: ['admin']`.
+- **Por que key `admin` em vez de `pending_heroes_count` plano?** Namespace pra expansão. Hoje só pending_review; amanhã pode ter `stuck_jobs_count`, `failed_emails_count`. Agrupar evita poluição do shared data flat.
+- **Por que `badgeCount` no `NavItem` em vez de prop dedicada no SidebarMenuButton?** Abstração genérica reutilizável. Se outro item admin precisar de badge depois, é só adicionar `badgeCount` ao definir o item — zero novo código no NavMain.
+- **Por que rose e não amber?** Pending_review tem caráter de "ação requerida agora" (admin precisa decidir). Amber é warning passivo; rose é "atenção real". Decisão alinhada com o tom usado em "Investidos+esquecidos" da Fase 31.
+- **Por que mostrar só quando > 0?** Badge "0" é ruído visual sem informação — admin já sabe que está zerado pela ausência. Hide quando não há nada urgente, show quando há.
+
+#### Testes (`AdminPendingBadgeTest`)
+5 cenários:
+- `admin_recebe_pending_count_no_shared_data` — count correto pra 3 heróis pending
+- `admin_sem_pendentes_recebe_zero` — zero quando não há pending
+- `nao_admin_recebe_null` — sem vazamento pra usuário regular
+- `aprovar_heroi_reduz_o_contador` — flow real: dashboard mostra 1 → aprovação → dashboard mostra 0
+- `guest_nao_recebe_dados_admin` — testa via `/login` (única rota acessível a guest); admin sempre null
+
+**331 testes verdes** (+5 novos).

@@ -83,8 +83,17 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
-    const { auth } = usePage<SharedData>().props;
-    const mainNavItems = auth.user?.is_admin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
+    const { auth, admin } = usePage<SharedData>().props;
+    const pendingCount = admin?.pending_heroes_count ?? null;
+
+    // Decorar item "Aprovar heróis" com badge dinâmico baseado em shared data
+    const decoratedAdminItems = adminNavItems.map((item) =>
+        item.url === '/admin/heroes/pending'
+            ? { ...item, badgeCount: pendingCount, badgeTone: 'rose' as const }
+            : item,
+    );
+
+    const mainNavItems = auth.user?.is_admin ? [...baseNavItems, ...decoratedAdminItems] : baseNavItems;
 
     return (
         <Sidebar collapsible="icon" variant="inset">
