@@ -12,6 +12,7 @@ use App\Http\Controllers\FormationShareController;
 use App\Http\Controllers\FormationTagController;
 use App\Http\Controllers\FormationVersionController;
 use App\Http\Controllers\GuideController;
+use App\Http\Controllers\HeroBulkActionController;
 use App\Http\Controllers\HeroController;
 use App\Http\Controllers\HeroFavoriteController;
 use App\Http\Controllers\HeroUsageController;
@@ -45,6 +46,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('heroes.favorite.store');
     Route::delete('heroes/{hero}/favorite', [HeroFavoriteController::class, 'destroy'])
         ->name('heroes.favorite.destroy');
+    Route::post('heroes/bulk/favorites', [HeroBulkActionController::class, 'favorites'])
+        ->name('heroes.bulk.favorites');
+    Route::post('heroes/bulk/roster', [HeroBulkActionController::class, 'roster'])
+        ->name('heroes.bulk.roster');
     Route::get('heroes/{slug}/details', [HeroController::class, 'details'])
         ->where('slug', '[a-z0-9-]+')
         ->name('heroes.details');

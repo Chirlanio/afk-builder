@@ -9,8 +9,9 @@ import { CLASS_ICON, FACTION_THEME, HERO_FEATURE_BADGE, HERO_FEATURE_LABEL, HERO
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { ClassCode, Faction, FactionCode, Hero, HeroClass, HeroFeatureTag, RosterByHeroId, Tier, TierCode } from '@/types/afk';
-import { Head } from '@inertiajs/react';
-import { Heart, Search, Users, X } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
+import { CheckSquare, Heart, HeartOff, Loader2, MinusCircle, PlusCircle, Search, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 interface PageProps {
@@ -34,6 +35,60 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
     const [openSlug, setOpenSlug] = useState<string | null>(null);
 
     const favoriteSet = useMemo(() => new Set(favoriteHeroIds), [favoriteHeroIds]);
+
+    // Fase 45: modo seleção em lote
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [bulkProcessing, setBulkProcessing] = useState(false);
+
+    const exitSelectionMode = () => {
+        setSelectionMode(false);
+        setSelectedIds(new Set());
+    };
+
+    const toggleSelected = (heroId: number) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(heroId)) next.delete(heroId);
+            else next.add(heroId);
+            return next;
+        });
+    };
+
+    // Esc cancela seleção em qualquer página (Fase 44 ignora hook em inputs;
+    // aqui escutamos diretamente porque é específico desta página)
+    useEffect(() => {
+        if (!selectionMode) return;
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                exitSelectionMode();
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [selectionMode]);
+
+    const runBulkAction = async (
+        endpoint: 'favorites' | 'roster',
+        action: 'add' | 'remove',
+    ) => {
+        if (selectedIds.size === 0 || bulkProcessing) return;
+        setBulkProcessing(true);
+        try {
+            await axios.post(`/heroes/bulk/${endpoint}`, {
+                hero_ids: [...selectedIds],
+                action,
+            });
+            // Refrescar payload pra atualizar favoriteHeroIds + roster
+            router.reload({ only: ['favoriteHeroIds', 'roster'] });
+            exitSelectionMode();
+        } catch (err) {
+            console.error('Bulk action failed:', err);
+        } finally {
+            setBulkProcessing(false);
+        }
+    };
 
     // Abre modal automaticamente quando o índice é carregado com ?open=slug
     // (deep link a partir de /heroes/{slug} legacy ou compartilhamento).
@@ -158,6 +213,17 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                                 Limpar
                             </Button>
                         )}
+
+                        <Button
+                            variant={selectionMode ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => (selectionMode ? exitSelectionMode() : setSelectionMode(true))}
+                            className="gap-1.5"
+                            aria-pressed={selectionMode}
+                        >
+                            <CheckSquare className="size-3.5" />
+                            {selectionMode ? `Cancelar (${selectedIds.size})` : 'Selecionar'}
+                        </Button>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -266,6 +332,9 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                                                 tierCode={tier.code as TierCode}
                                                 userHero={roster[hero.id]}
                                                 onClick={() => openHero(hero)}
+                                                selectionMode={selectionMode}
+                                                isSelected={selectedIds.has(hero.id)}
+                                                onToggleSelect={() => toggleSelected(hero.id)}
                                             />
                                         );
                                     })}
@@ -293,6 +362,70 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                 onOpenChange={(o) => !o && setOpenSlug(null)}
                 onNavigate={(slug) => setOpenSlug(slug)}
             />
+
+            {/* Fase 45: barra flutuante de ações em lote */}
+            {selectionMode && selectedIds.size > 0 && (
+                <div
+                    className="fixed bottom-4 left-1/2 z-40 w-[calc(100vw-2rem)] max-w-3xl -translate-x-1/2 rounded-2xl border bg-card shadow-2xl backdrop-blur"
+                    role="toolbar"
+                    aria-label="Ações em lote"
+                >
+                    <div className="flex flex-wrap items-center gap-2 p-3">
+                        <span className="text-sm font-semibold">
+                            {selectedIds.size} {selectedIds.size === 1 ? 'selecionado' : 'selecionados'}
+                        </span>
+                        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => runBulkAction('favorites', 'add')}
+                                disabled={bulkProcessing}
+                                className="gap-1.5"
+                            >
+                                {bulkProcessing ? <Loader2 className="size-3.5 animate-spin" /> : <Heart className="size-3.5" />}
+                                Favoritar
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => runBulkAction('favorites', 'remove')}
+                                disabled={bulkProcessing}
+                                className="gap-1.5"
+                            >
+                                <HeartOff className="size-3.5" />
+                                Desfavoritar
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => runBulkAction('roster', 'add')}
+                                disabled={bulkProcessing}
+                                className="gap-1.5"
+                            >
+                                <PlusCircle className="size-3.5" />
+                                Add no roster
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => runBulkAction('roster', 'remove')}
+                                disabled={bulkProcessing}
+                                className="gap-1.5 text-rose-600 hover:bg-rose-500/10 dark:text-rose-300"
+                            >
+                                <MinusCircle className="size-3.5" />
+                                Remover roster
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={exitSelectionMode} className="gap-1.5">
+                                <X className="size-3.5" />
+                                <span className="sr-only sm:not-sr-only">Cancelar</span>
+                            </Button>
+                        </div>
+                    </div>
+                    <p className="border-t px-3 py-1.5 text-[10px] text-muted-foreground">
+                        Pressione <kbd className="rounded border bg-muted px-1 font-mono">Esc</kbd> para cancelar.
+                    </p>
+                </div>
+            )}
         </AppLayout>
     );
 }

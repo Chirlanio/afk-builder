@@ -1,4 +1,4 @@
-import { CheckCircle2, Flame } from 'lucide-react';
+import { Check, CheckCircle2, Flame } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME, tierFromAscension } from '@/lib/afk';
 import { cn } from '@/lib/utils';
@@ -11,9 +11,23 @@ interface HeroCardProps {
     tierCode: TierCode;
     userHero?: UserHero;
     onClick: () => void;
+    /** Quando true, o card atua como selecionável: click vira toggle de seleção e mostra checkbox overlay. */
+    selectionMode?: boolean;
+    isSelected?: boolean;
+    onToggleSelect?: () => void;
 }
 
-export function HeroCard({ hero, factionCode, classCode, tierCode, userHero, onClick }: HeroCardProps) {
+export function HeroCard({
+    hero,
+    factionCode,
+    classCode,
+    tierCode,
+    userHero,
+    onClick,
+    selectionMode = false,
+    isSelected = false,
+    onToggleSelect,
+}: HeroCardProps) {
     const factionTheme = FACTION_THEME[factionCode];
     // Quando o herói está no roster, mostramos o tier ATINGIDO (baseado na
     // ascensão atual). Sem roster, mostramos o max potencial do herói.
@@ -24,10 +38,12 @@ export function HeroCard({ hero, factionCode, classCode, tierCode, userHero, onC
     const owned = userHero !== undefined;
     const awakened = hero.is_awakened;
 
+    const handleClick = selectionMode && onToggleSelect ? onToggleSelect : onClick;
+
     return (
         <button
             type="button"
-            onClick={onClick}
+            onClick={handleClick}
             className={cn(
                 'group relative flex w-full flex-col overflow-hidden rounded-xl transition-all duration-200',
                 factionTheme.cardGradient,
@@ -36,9 +52,26 @@ export function HeroCard({ hero, factionCode, classCode, tierCode, userHero, onC
                     : cn('border-2', factionTheme.cardBorder, factionTheme.cardHoverGlow, 'hover:shadow-lg'),
                 'hover:scale-[1.03]',
                 owned ? 'ring-2 ring-emerald-500/70 ring-offset-1 ring-offset-background' : 'opacity-90 hover:opacity-100',
+                selectionMode && isSelected && 'ring-4 ring-primary ring-offset-2 ring-offset-background scale-[1.02]',
+                selectionMode && !isSelected && 'opacity-70',
             )}
             aria-label={`${hero.name}${hero.title ? ` — ${hero.title}` : ''}${awakened ? ' (despertado)' : ''}`}
+            aria-pressed={selectionMode ? isSelected : undefined}
         >
+            {/* Checkbox overlay no modo seleção — substitui visualmente o feedback de owned */}
+            {selectionMode && (
+                <div
+                    className={cn(
+                        'absolute top-1.5 right-1.5 z-20 grid size-6 place-items-center rounded-full border-2 transition-colors',
+                        isSelected
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-white/60 bg-black/50 text-transparent',
+                    )}
+                    aria-hidden
+                >
+                    <Check className="size-3.5" />
+                </div>
+            )}
             <div className="absolute top-1.5 left-1.5 z-10">
                 {awakened ? (
                     <span className="flex items-center gap-1 rounded-md bg-gradient-to-r from-rose-500 via-amber-400 to-rose-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">

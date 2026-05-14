@@ -2674,3 +2674,72 @@ Bindings são **declarativos**: a mesma constante alimenta o hook e o modal de h
 
 #### Sem novos testes
 **368 testes verdes mantidos**.
+
+---
+
+### ✅ Fase 45 — Bulk edit no roster (multi-select)
+
+Modo seleção em `/heroes` com checkbox em cada card e barra flutuante de ações em lote — UX similar ao Gmail. Reduz fricção de operações repetitivas (marcar 10 heroes como favoritos, adicionar 20 ao roster antes de tunar individualmente, etc).
+
+#### Backend — `HeroBulkActionController`
+2 endpoints com payload uniforme `{hero_ids: number[], action: 'add'|'remove'}`:
+
+- **`POST /heroes/bulk/favorites`** — `syncWithoutDetaching` em add (idempotente) ou `detach` em remove
+- **`POST /heroes/bulk/roster`**:
+  - `add`: cria `UserHero` com defaults (level 1, asc 0, SI 0, F 0, E 0) pra cada `hero_id` que ainda não está no roster
+  - `remove`: `delete()` de cada `UserHero` que está no roster
+
+**Validações**:
+- `hero_ids: required|array|min:1|max:200` — limite previne abuso e queries gigantes
+- `hero_ids.*: integer|min:1`
+- `action: required|in:add,remove`
+- `array_unique` interno dedupa IDs no payload antes de processar
+- `Hero::whereIn('id', $ids)->pluck('id')` filtra IDs realmente existentes — evita attach com FK inválida ou crashes
+- Resposta inclui `affected` (quantos realmente mudaram) + count atualizado da seção relevante
+
+#### `HeroCard` com selection mode
+Props opcionais que mantêm o card 100% retrocompatível:
+- `selectionMode: boolean` — quando true, click vira toggle de seleção (não abre modal)
+- `isSelected: boolean` + `onToggleSelect: () => void`
+
+**Visual em selection mode**:
+- Checkbox overlay no canto superior direito (substitui posição do tier badge no detalhe), preenchido em primary quando selecionado
+- Card selecionado: `ring-4 ring-primary` + `scale-[1.02]`
+- Card não-selecionado: `opacity-70` — destaca os escolhidos
+- `aria-pressed={isSelected}` em selection mode (substitui o aria-pressed default)
+
+#### `/heroes` — toggle modo + barra de ações
+- **Botão "Selecionar" no header** — quando ativo vira "Cancelar (N)" mostrando contagem
+- **Barra flutuante fixed bottom** com 5 ações (Favoritar / Desfavoritar / Add no roster / Remover roster / Cancelar)
+  - `bottom-4 left-1/2 -translate-x-1/2 max-w-3xl` — centralizada, max 768px
+  - Cancelar com ícone X só (texto `sr-only` em mobile)
+  - Remover do roster com tonalidade rose pra signalar destrutivo
+  - Hint "Esc para cancelar" no rodapé
+- **`Esc` cancela seleção** via listener `keydown` registrado quando `selectionMode` é true (specific desta página, não vai pro `useGlobalShortcuts` da Fase 44 pois é contextual)
+- **Reload partial** pós-ação: `router.reload({ only: ['favoriteHeroIds', 'roster'] })` — atualiza state sem reload completo
+
+#### Trade-offs
+- **Por que `affected` no response e não fail-on-conflict?** Add em hero já no roster ou favoritar duplicado não é erro — é no-op. Idempotência simplifica retry e double-click. Resposta com `affected` informa o que realmente mudou.
+- **Por que filtrar `Hero::whereIn` em vez de `Rule::exists` no validator?** Validator rejeitaria o request inteiro se 1 ID for inválido — o frontend teria que descobrir qual era e retentar. Filtrar internamente + retornar `affected` é mais friendly: "20 IDs enviados, 18 afetados, 2 ignorados (IDs inválidos)".
+- **Por que limite de 200 por request?** Lookup table típica do user fica em centenas; 200 cobre uso real com folga. Acima disso virariam queries pesadas no DB. UI não permite passar isso (catálogo tem ~250 heroes).
+- **Por que add no roster usa defaults e não dados específicos?** Bulk é pra criar shells rápidos; usuário depois ajusta cada um no modal de detalhes. Sobrecarregar bulk com 25 campos opcionais é confuso.
+- **Por que opacity 70% nos não-selecionados em vez de hide?** Hide quebra mental model — usuário não vê o catálogo. Atenuar prioriza visualmente os escolhidos sem ocultar contexto.
+- **Por que listener Esc específico da página em vez de global?** Esc tem semântica contextual: aqui cancela seleção; em outras páginas pode fechar modal. Global ficaria ambíguo. Hook da Fase 44 trata navegação (`G letra`), não cancelamento de estado local.
+
+#### Testes (`HeroBulkActionTest`)
+13 cenários:
+- `guest_recebe_401`
+- `bulk_favorita_em_lote` — 3 heroes → 3 favoritos, count correto
+- `bulk_favorita_e_idempotente` — re-favoritar não duplica
+- `bulk_desfavorita` — remove em lote
+- `bulk_filtra_ids_inexistentes` — IDs 99999 ignorados, `affected: 1` quando só 1 era real
+- `bulk_add_no_roster` — cria UserHero com defaults (level 1, SI 0)
+- `bulk_add_no_roster_skipa_ja_existentes` — hero com SI 40 preservado, novo add não sobrescreve
+- `bulk_remove_do_roster` — delete em lote
+- `rejeita_action_invalida` — `action: invalid` → 422
+- `rejeita_hero_ids_vazio` → 422
+- `rejeita_acima_de_200_ids` → 422
+- `isola_por_user`
+- `dedupe_ids_no_payload` — IDs duplicados no array → `affected: 1`
+
+**381 testes verdes** (+13 novos).
