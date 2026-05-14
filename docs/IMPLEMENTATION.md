@@ -2621,3 +2621,56 @@ Fecha o ciclo de portabilidade aberto pela Fase 42. Upload de arquivo JSON na me
 - `replace_remove_tags_existentes_antes_de_importar` — wipe correto
 
 **368 testes verdes** (+13 novos).
+
+---
+
+### ✅ Fase 44 — Atalhos de teclado globais
+
+Atalhos cross-page estilo Linear/GitHub: **leader key `G`** seguida de letra navega pra área. `?` abre modal listando todos. Cmd+K (search da Fase 39) também documentado no help.
+
+#### Sistema de leader key
+- **`G`** ativa o leader (state interno + timeout 1500ms)
+- Próxima tecla dentro do timeout: combo `g <letra>` é resolvido contra `SHORTCUTS`
+- Sem timeout, **outras teclas** durante o estado leader também resetam (não fica "preso")
+- Implementação compacta com `useRef` (não causa re-render por keystroke)
+
+#### Bindings declarativos (`SHORTCUTS` em `use-global-shortcuts.ts`)
+| Combo | Descrição |
+|-------|-----------|
+| `g d` | → /dashboard |
+| `g h` | → /heroes |
+| `g u` | → /heroes/usage |
+| `g f` | → /formations |
+| `g c` | → /formations/recommended (comps prontos) |
+| `g t` | → /tier-lists |
+| `g g` | → /guias |
+| `g s` | → /settings/profile |
+| `?` | abrir modal de ajuda |
+| Cmd/Ctrl+K | abrir busca global (Fase 39) |
+
+Bindings são **declarativos**: a mesma constante alimenta o hook e o modal de help. Mudar uma entrada propaga para os dois.
+
+#### Hook `useGlobalShortcuts`
+- Registra um único `keydown` listener em `window`
+- **Ignora eventos quando user está digitando** (`input`, `textarea`, `select`, `contenteditable`). Tecla `g` enquanto edita formação não navega.
+- **Ignora atalhos com modifier** (`Cmd`/`Ctrl`/`Alt`) exceto Cmd+K que tem tratamento próprio — evita conflito com atalhos do browser (Ctrl+P, Cmd+R, etc).
+- Action pode ser string (`router.visit`) ou função arbitrária — flexível pra atalhos não-navegacionais futuros.
+- Aceita prop `disabled` — desabilitado enquanto modal de search/help está aberto (evita roubar `g` lá dentro).
+
+#### Modal `KeyboardShortcutsHelp`
+- Lista os bindings agrupados em "Navegação" + "Geral"
+- Inclui também atalhos não-gerenciados pelo hook (Cmd+K, ?, Esc) hardcoded pra o user ver tudo num lugar só
+- Cada combo renderiza como `<kbd>` separado por "depois": `g h` → `[G] depois [H]`
+- Disparado por `?`, botão Keyboard no header (desktop), ou Esc fecha
+- Footer com lembrete: "atalhos desativados em campos de texto"
+
+#### Trade-offs
+- **Por que leader key e não combinações com modifier?** Cmd/Ctrl + letra esbarra constantemente em atalhos do browser (Cmd+H minimiza Mac, Cmd+T abre tab, etc). Leader key é convenção de apps "power user" (Linear, Notion, GitHub) — descobrível via `?` e familiar pra quem usa esses.
+- **Por que `g` e não outra letra?** Convenção GitHub/Linear. Curto, fácil de teclar com indicador esquerdo, raramente conflita com início de palavras importantes.
+- **Por que 1500ms de timeout?** Suficiente pra typing relaxado (testei manualmente), curto pra não deixar o estado "preso" indefinidamente se user abandonar.
+- **Por que `useRef` em vez de `useState` pro leader?** State causaria re-render a cada keystroke do `g` — desperdício. Ref muta sem re-render.
+- **Por que `disabled` quando modal aberto e não dentro do hook que checa modal aberto?** Inversão de controle: o layout sabe quais modais estão abertos, hook não deveria conhecer essa estrutura. Prop fica honesta e desacoplada.
+- **Por que sem testes PHP?** Feature 100% client-side, sem backend novo. Lógica do hook é simples o suficiente que TS type check + uso real cobrem; testes JS exigiriam Vitest setup novo (~30min de configuração) pra ganho marginal.
+
+#### Sem novos testes
+**368 testes verdes mantidos**.

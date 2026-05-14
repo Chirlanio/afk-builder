@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { Keyboard, Search } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
@@ -6,11 +6,12 @@ import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
 interface Props {
     breadcrumbs?: BreadcrumbItemType[];
     onOpenSearch?: () => void;
+    onOpenHelp?: () => void;
 }
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 
-export function AppSidebarHeader({ breadcrumbs = [], onOpenSearch }: Props) {
+export function AppSidebarHeader({ breadcrumbs = [], onOpenSearch, onOpenHelp }: Props) {
     return (
         <header className="border-sidebar-border/50 flex h-16 shrink-0 items-center gap-2 border-b px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4">
             <div className="flex flex-1 items-center gap-2">
@@ -29,6 +30,17 @@ export function AppSidebarHeader({ breadcrumbs = [], onOpenSearch }: Props) {
                     <kbd className="hidden rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] md:inline">
                         {isMac ? '⌘' : 'Ctrl'} K
                     </kbd>
+                </button>
+            )}
+            {onOpenHelp && (
+                <button
+                    type="button"
+                    onClick={onOpenHelp}
+                    className="hidden items-center gap-1.5 rounded-md border bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:flex"
+                    aria-label="Atalhos de teclado (?)"
+                    title="Atalhos de teclado (?)"
+                >
+                    <Keyboard className="size-3.5" />
                 </button>
             )}
         </header>
