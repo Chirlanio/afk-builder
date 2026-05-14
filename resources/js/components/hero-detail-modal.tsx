@@ -578,19 +578,20 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                                     value={userEngraving > 0 ? `+${userEngraving}` : '—'}
                                     accent={userEngraving > 0 ? 'border-blue-500/40 bg-blue-500/10' : undefined}
                                 />
-                                {userHero.notes && (
-                                    <Chip
-                                        icon={ScrollText}
-                                        label="Notas"
-                                        value={null}
-                                        extra={
-                                            <span className="text-muted-foreground line-clamp-1 max-w-[140px] text-[10px]" title={userHero.notes}>
-                                                {userHero.notes}
-                                            </span>
-                                        }
-                                    />
-                                )}
                             </div>
+
+                            {/* Fase 40: bloco de notas markdown renderizado quando há conteúdo */}
+                            {userHero.notes && userHero.notes.trim().length > 0 && (
+                                <div className="rounded-lg border bg-muted/30 px-3 py-2">
+                                    <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                        <ScrollText className="size-3" />
+                                        Anotações
+                                    </div>
+                                    <div className="text-xs">
+                                        <MarkdownContent>{userHero.notes}</MarkdownContent>
+                                    </div>
+                                </div>
+                            )}
                         </>
                     ) : (
                         <p className="text-muted-foreground text-xs">Não cadastrado no roster.</p>

@@ -2,6 +2,7 @@ import axios from 'axios';
 import { BarChart3, Crown, Footprints, Gem, Hotel, Loader2, PenLine, Save, ScrollText, Shield, Shirt, Sword } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
+import { MarkdownEditor } from '@/components/markdown-editor';
 import { StatsEditModal } from '@/components/stats-edit-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -360,18 +361,18 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                         </div>
 
                         <div className="flex flex-col gap-1">
-                            <Label htmlFor="rh-notes" className="flex items-center gap-1.5 text-xs">
-                                <ScrollText className="size-3" />
-                                Notas
-                            </Label>
-                            <textarea
-                                id="rh-notes"
-                                className="border-input bg-background flex min-h-[60px] w-full rounded-md border px-2 py-1 text-xs"
+                            <MarkdownEditor
                                 value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
+                                onChange={setNotes}
                                 maxLength={1000}
-                                rows={2}
-                                placeholder="Opcional"
+                                minHeight="min-h-[100px]"
+                                label={
+                                    <span className="flex items-center gap-1.5">
+                                        <ScrollText className="size-3" />
+                                        Notas (markdown)
+                                    </span>
+                                }
+                                placeholder="ex: precisa de F9 antes de subir SI; plano: Ascended 3⭐ até fim do mês"
                             />
                         </div>
                     </div>

@@ -2332,3 +2332,49 @@ Modal de busca acessível por atalho Cmd+K (Mac) / Ctrl+K (outros) em qualquer p
 - `limite_de_5_resultados_por_categoria` — 7 heroes criados → 5 retornados
 
 **339 testes verdes** (+8 novos).
+
+---
+
+### ✅ Fase 40 — Anotações por herói no roster (markdown)
+
+Campo `notes` no `user_heroes` já existia desde a Fase 4 (schema + validação `max:1000` + persistência no controller), mas a UI era um textarea simples de 60px de altura sem preview, e o `HeroDetailModal` mostrava apenas um trecho `line-clamp-1`. Agora há **editor markdown completo** na edição e render formatado no modal de detalhes.
+
+#### Novo componente `MarkdownEditor`
+- Editor inline reusável com tabs `Editar`/`Preview` no topo (toggle via segmented control compacto).
+- Props: `value`, `onChange`, `maxLength`, `placeholder`, `minHeight`, `label`, `textSize` (`xs` ou `sm`), `compact`, `fillHeight`.
+- `fillHeight: true` faz textarea/preview usarem `flex-1 min-h-0` — permite empacotar em containers de altura total (Sheet, modal full-height). Sem `fillHeight`, usa `min-h-[120px]` ou o que `minHeight` passar.
+- Preview reusa `MarkdownContent` (mesmo renderer dos guides, lore e habilidades) — consistência visual cross-feature.
+- Contador `N / max` no rodapé com transição pra `text-destructive` quando ultrapassa o limite. Suprimido quando `compact: true`.
+
+#### Refator do `FormationNotesSheet` (Fase 32)
+- Antes tinha lógica própria de tabs + textarea + preview + contador (~140 linhas).
+- Agora delega tudo pro `MarkdownEditor` com `fillHeight` + `textSize="sm"` (~70 linhas).
+- Comportamento idêntico — DRY interno sem mudança visível pro user.
+
+#### Integração no `RosterEditModal`
+- Textarea raw substituído por `<MarkdownEditor>` com label custom (ícone `ScrollText` + "Notas (markdown)"), `minHeight="min-h-[100px]"` (cabe melhor no modal denso de roster).
+- Placeholder exemplo: *"precisa de F9 antes de subir SI; plano: Ascended 3⭐ até fim do mês"* — orienta o user a usar de fato a feature.
+- Mesma `state notes` + `setNotes` — zero mudança no fluxo de save.
+
+#### Render no `HeroDetailModal`
+- Novo bloco "Anotações" abaixo dos Chips de investimento, dentro da seção "Meu roster".
+- Container `rounded-lg border bg-muted/30 px-3 py-2` com header `<ScrollText>` + label, e body `<MarkdownContent>{userHero.notes}</MarkdownContent>`.
+- Só renderiza quando `userHero.notes && notes.trim().length > 0` — esconde quando vazio (sem ruído).
+- O Chip "Notas" inline com `line-clamp-1` foi removido — agora as notas aparecem como bloco dedicado quando existem (a info redundante seria poluição).
+
+#### Trade-offs
+- **Por que extrair `MarkdownEditor` em vez de duplicar?** Mesma lógica estava nascendo em 3 lugares (FormationNotesSheet, RosterEditModal, e potencialmente HeroDetailModal). Extrair agora vs depois: agora é mais barato (menos call sites pra migrar).
+- **Por que limite de 1000 chars (não 2000 como em formação)?** Notas por hero são lembretes táticos curtos ("plano:", "evitar PvP arena por causa de X"). Formação carrega mais contexto estratégico (5 heroes interagindo). Volume natural diferente.
+- **Por que preview lado a lado (split) não funcionaria?** Em modal denso de roster, espaço horizontal é caro. Tabs ocupam metade da largura por raiz, split ocuparia ambos. Decisão alinhada com FormationNotesSheet.
+- **Por que esconder bloco de notas quando vazio em vez de mostrar "sem notas"?** Hierarquia visual — admin/visitante do modal não precisa ver "sem notas" pra todos heroes. Bloco aparece como signal de "tem informação adicional aqui".
+
+#### Testes (`UserHeroNotesTest`)
+6 cenários:
+- `update_persiste_notes_markdown` — round-trip via `PATCH /user/heroes/{id}` com headers + lista markdown
+- `update_aceita_notes_null` — clear funciona (passa de string pra null)
+- `update_rejeita_notes_acima_de_1000_chars` — validação `max:1000`
+- `details_inclui_notes_atuais` — payload de `/heroes/{slug}/details` retorna `userHero.notes`
+- `index_inclui_notes_no_roster` — payload de `/heroes` retorna `roster[hero_id].notes`
+- `outro_user_nao_atualiza_notes` — ownership 403
+
+**345 testes verdes** (+6 novos).

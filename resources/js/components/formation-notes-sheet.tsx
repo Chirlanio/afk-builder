@@ -1,9 +1,8 @@
-import { Eye, FileText, Pencil } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useState } from 'react';
-import { MarkdownContent } from '@/components/markdown-content';
+import { MarkdownEditor } from '@/components/markdown-editor';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
 
 interface Props {
     value: string;
@@ -28,9 +27,8 @@ Counter de comp Wilders top arena.
 - DPS baixo contra boss; evitar Dream Realm.`;
 
 /**
- * Sheet pra editar notas em markdown da formação. Lateral à direita com
- * 2 modos: "Editar" (textarea) e "Preview" (markdown renderizado).
- * Em mobile o sheet ocupa quase a tela toda.
+ * Sheet pra editar notas em markdown da formação. Lateral à direita.
+ * Reusa MarkdownEditor (Fase 40) — antes tinha lógica duplicada de edit/preview.
  */
 export function FormationNotesSheet({
     value,
@@ -43,9 +41,6 @@ export function FormationNotesSheet({
     const [internalOpen, setInternalOpen] = useState(false);
     const open = openProp ?? internalOpen;
     const setOpen = onOpenChange ?? setInternalOpen;
-    const [mode, setMode] = useState<'edit' | 'preview'>('edit');
-    const charCount = value.length;
-    const isOverLimit = charCount > maxLength;
     const hasNotes = value.trim().length > 0;
 
     return (
@@ -70,67 +65,14 @@ export function FormationNotesSheet({
                     </SheetDescription>
                 </SheetHeader>
 
-                <div className="flex items-center gap-1 rounded-md border bg-muted/30 p-1">
-                    <button
-                        type="button"
-                        onClick={() => setMode('edit')}
-                        className={cn(
-                            'flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors',
-                            mode === 'edit' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground',
-                        )}
-                        aria-pressed={mode === 'edit'}
-                    >
-                        <Pencil className="size-3" />
-                        Editar
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setMode('preview')}
-                        className={cn(
-                            'flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors',
-                            mode === 'preview' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground',
-                        )}
-                        aria-pressed={mode === 'preview'}
-                    >
-                        <Eye className="size-3" />
-                        Preview
-                    </button>
-                </div>
-
-                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-                    {mode === 'edit' ? (
-                        <textarea
-                            value={value}
-                            onChange={(e) => onChange(e.target.value)}
-                            placeholder={PLACEHOLDER}
-                            className={cn(
-                                'min-h-0 flex-1 resize-none rounded-md border bg-background p-3 font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring',
-                                isOverLimit && 'border-destructive',
-                            )}
-                            aria-invalid={isOverLimit}
-                            aria-describedby="formation-notes-counter"
-                        />
-                    ) : (
-                        <div className="min-h-0 flex-1 overflow-y-auto rounded-md border bg-background p-3">
-                            {value.trim().length === 0 ? (
-                                <p className="text-sm text-muted-foreground italic">Sem conteúdo. Escreva alguma coisa na aba "Editar".</p>
-                            ) : (
-                                <MarkdownContent>{value}</MarkdownContent>
-                            )}
-                        </div>
-                    )}
-
-                    <div
-                        id="formation-notes-counter"
-                        className={cn(
-                            'shrink-0 text-right text-[11px] tabular-nums',
-                            isOverLimit ? 'font-semibold text-destructive' : 'text-muted-foreground',
-                        )}
-                    >
-                        {charCount.toLocaleString('pt-BR')} / {maxLength.toLocaleString('pt-BR')}
-                        {isOverLimit && <span className="ml-2">— acima do limite</span>}
-                    </div>
-                </div>
+                <MarkdownEditor
+                    value={value}
+                    onChange={onChange}
+                    maxLength={maxLength}
+                    placeholder={PLACEHOLDER}
+                    fillHeight
+                    textSize="sm"
+                />
 
                 <SheetFooter className="mt-2">
                     <SheetClose asChild>
