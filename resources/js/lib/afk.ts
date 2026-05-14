@@ -236,19 +236,28 @@ export function ascendedStars(ascensionValue: number | null | undefined): { fill
  * Retorna o valor de um campo no idioma escolhido, com fallback para o original (EN).
  * Para PT-BR, usa `field_pt` se preenchido; senão devolve o `field` original.
  */
-export function localized<T extends Record<string, unknown>>(
+/**
+ * Lê um campo `field` (ou `field_pt` quando `locale === 'pt'`) de qualquer objeto.
+ *
+ * Constraint `object` (em vez de `Record<string, unknown>`) permite passar interfaces
+ * tipadas como `Hero`, `HeroAbility`, etc. — TypeScript não considera interfaces como
+ * tendo index signature de string automaticamente. Internamente fazemos cast pontual
+ * pra ler propriedades dinâmicas com segurança.
+ */
+export function localized<T extends object>(
     item: T | null | undefined,
     field: string,
     locale: 'en' | 'pt' | undefined,
 ): string | null {
     if (!item) return null;
+    const record = item as Record<string, unknown>;
     if (locale === 'pt') {
-        const ptValue = item[`${field}_pt`];
+        const ptValue = record[`${field}_pt`];
         if (typeof ptValue === 'string' && ptValue.trim() !== '') {
             return ptValue;
         }
     }
-    const value = item[field];
+    const value = record[field];
     return typeof value === 'string' && value.trim() !== '' ? value : null;
 }
 

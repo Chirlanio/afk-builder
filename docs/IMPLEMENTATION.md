@@ -2378,3 +2378,76 @@ Campo `notes` no `user_heroes` já existia desde a Fase 4 (schema + validação 
 - `outro_user_nao_atualiza_notes` — ownership 403
 
 **345 testes verdes** (+6 novos).
+
+---
+
+### ✅ Fase 41 — Limpar dívida técnica de tipos TS
+
+Refator focado em **fix de tipos**, não em split estrutural. A tabela de tipos faltantes vinha acumulando há 5+ fases (visíveis em `tsc --noEmit` mas sem ação tomada porque CI lint só validava lint, não tipos). Limpeza zero-risco antes de mais features.
+
+#### Escopo decidido (e o que ficou fora)
+**Avaliado e descartado**: split do `HeroDetailModal` (1142 linhas) em sub-componentes (HeroHeader, HeroAbilities, HeroEquipment, HeroRosterSection, etc).
+
+**Razão**: Sem testes E2E ou de componente React do modal, qualquer mudança estrutural é validada por "parece igual visualmente" — risco alto pra ganho marginal. Split vale quando alguém precisa mexer em uma seção específica (refactor sob demanda). Hoje não há trigger.
+
+**Feito**: corrigir os erros TS pré-existentes que estavam todos relacionados a 2 issues de tipagem.
+
+#### Fix 1: constraint da função `localized()`
+**Sintoma**: `Hero & {faction; hero_class; tier}`, `HeroAbility`, `HeroFurnitureAbility`, `Guide` falhando com:
+```
+error TS2345: Argument of type 'X' is not assignable to parameter
+of type 'Record<string, unknown> | null | undefined'.
+```
+
+**Causa**: TypeScript não considera interfaces tipadas como subtype de `Record<string, unknown>` automaticamente — interfaces têm campos definidos mas sem index signature.
+
+**Fix em `resources/js/lib/afk.ts`**:
+```ts
+// Antes
+export function localized<T extends Record<string, unknown>>(...)
+
+// Depois
+export function localized<T extends object>(...) {
+    const record = item as Record<string, unknown>;
+    // ...
+}
+```
+
+Constraint `object` aceita qualquer interface. Cast interno pra ler propriedades dinâmicas com type safety mantida no call site.
+
+**Resolveu 6 erros** em `hero-detail-modal.tsx` (linhas 369, 742, 743, 772, 773, 774) + 2 em `guides/show.tsx` + 2 em `guides/index.tsx`.
+
+#### Fix 2: forms de auth não satisfazendo `FormDataType`
+**Sintoma**:
+```
+error TS2344: Type 'LoginForm' does not satisfy the constraint 'FormDataType'.
+```
+
+**Causa**: `useForm<LoginForm>` exige que o tipo extenda `Record<string, FormDataConvertible>` (interface do Inertia 2.x). Interfaces sem index signature não satisfazem.
+
+**Fix**: Adicionar `[key: string]: FormDataConvertible` aos 3 forms de auth (`LoginForm`, `RegisterForm`, `ResetPasswordForm`) + import `FormDataConvertible` de `@inertiajs/core`.
+
+**Resolveu 3 erros** em `pages/auth/*.tsx`.
+
+#### Fix 3: `mixBlendMode` em welcome.tsx
+**Sintoma**:
+```
+error TS2322: Type '"plus-darker"' is not assignable to type 'MixBlendMode'.
+```
+
+**Causa**: `plus-darker` é um valor CSS válido mas as type definitions do React não incluem na union de `MixBlendMode`.
+
+**Fix**: Cast pontual `as React.CSSProperties['mixBlendMode']` — força aceitar o valor sem suprimir a checagem do resto do style.
+
+#### Resultado
+| Antes | Depois |
+|---|---|
+| 12 erros TS acumulados | **0 erros TS** ✅ |
+| `tsc --noEmit` poluído | Limpo |
+
+#### Trade-offs
+- **Por que não suprimir com `@ts-ignore`?** Suprimir esconde o problema mas não documenta o porquê — em 3 meses ninguém lembra. Fix real é tão barato quanto suprimir.
+- **Por que não split do HeroDetailModal agora?** "Cleanup antes de feature" só vale quando há feature pendente naquela área. Hoje não há. Adiar até trigger natural reduz risco.
+- **Por que cast em `localized` e não generic refinement?** Generic refinement (`T extends { [K in keyof T]: T[K] }`) é mais correto mas complexo de ler. Cast pontual com comment é mais explícito sobre a intenção ("eu sei que estou indexando dinamicamente, é o uso pretendido").
+
+**345 testes verdes mantidos** (sem novos — comportamento idêntico).

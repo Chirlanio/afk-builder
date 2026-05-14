@@ -10,10 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 
+import type { FormDataConvertible } from '@inertiajs/core';
+
 interface LoginForm {
     email: string;
     password: string;
     remember: boolean;
+    [key: string]: FormDataConvertible;
 }
 
 interface LoginProps {
