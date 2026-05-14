@@ -2539,3 +2539,85 @@ Decisão proposital: facilita import futuro entre instâncias mesmo que IDs inte
 - `filename_inclui_user_id_e_timestamp` — regex match no Content-Disposition
 
 **355 testes verdes** (+10 novos).
+
+---
+
+### ✅ Fase 43 — Import JSON (complementa backup)
+
+Fecha o ciclo de portabilidade aberto pela Fase 42. Upload de arquivo JSON na mesma página `/settings/backup` com escolha entre **merge** (preservar existente) e **replace** (limpar antes).
+
+#### Backend (`BackupController::import`)
+- Endpoint `POST /settings/backup/import` aceita:
+  - `file`: upload (`mimetypes:application/json,text/plain`, max 5MB)
+  - `strategy`: `merge` ou `replace`
+- Validação em 3 camadas:
+  1. Laravel `validate()` valida o request (presença, tipo, tamanho do file)
+  2. `json_decode` + check `is_array` (rejeita JSON corrompido)
+  3. Estrutura: `schema_version` obrigatório int + seções nullable arrays
+  4. `schema_version === SCHEMA_VERSION` (1) — rejeita versões incompatíveis com mensagem clara
+- **Toda operação em `DB::transaction`** — rollback completo se qualquer seção falhar. Atomicidade garantida.
+- Retorna `back()->with('status', $summary)` — flash message com counts importados + skipped.
+
+#### Estratégias (`merge` vs `replace`)
+**Merge** (default, recomendado):
+- Preserva dados existentes
+- Adiciona apenas o que ainda não existe (skip via unique constraint check em código)
+- Heroes já no roster → skip
+- Tags / Presets com mesmo nome → skip
+- Favoritos: `syncWithoutDetaching` (não remove o que já está, só adiciona)
+
+**Replace** (destrutivo):
+- `wipeUserData($user)` chama `delete()` em userHeroes, formations, tier_lists, formation_tags, scoring_weight_presets + `detach()` em favorite_heroes
+- Cascade do DB cuida de teams/team_heroes, rows/items, pivots — sem código manual
+- Recria tudo do JSON
+- UI tem warning rose com counts atuais que serão perdidos
+
+#### Resolução de slugs externos
+- Hero referenciado por `hero_slug` — busca `Hero::whereIn('slug', ...)` em batch
+- Beast por `beast_slug` — idem
+- Challenge type por `challenge_type_code` — idem
+- **Slugs não encontrados são skipados silenciosamente** e contados em `skipped`
+- Mensagem final inclui contagem total skipada: *"Backup importado (merge): 50 heroes, 3 formações, ... (5 itens skipados por slug/code não encontrado.)"*
+
+#### Sanitização de payloads
+- **Presets de pesos**: filtra `weights` pra incluir só chaves de `ScoringWeightPreset::WEIGHT_KEYS` válidas + clamp `0.0 ≤ value ≤ 3.0`. Mesmo se o JSON tivesse pesos malicious `power_weight: 999`, o import normaliza.
+- **Tag color**: se cor não está em `FormationTag::COLORS`, usa `DEFAULT_COLOR` (`amber`).
+- **Defaults pra campos faltantes**: `level ?? 1`, `mode ?? 'target'`, etc — JSON malformado parcial não trava o import.
+
+#### UI no `settings/backup.tsx`
+- Seção "Importar backup" abaixo do bloco de export
+- **StrategyOption cards** lado a lado (mobile: empilhados):
+  - Merge (emerald) — preserva o existente
+  - Replace (rose) — destrutivo
+- Toggle por click; tone change visual marca ativo via `aria-pressed`
+- Input `<input type="file" accept="application/json,.json">` estilizado via `file:` pseudo-element selector
+- **Warning rose contextual** aparece só quando `strategy === 'replace' && file selecionado` — mostra counts atuais que serão perdidos
+- Botão "Importar JSON" com `Loader2` durante `processing`
+- Flash message emerald no topo após sucesso, error rose para falhas
+- Após sucesso: reset form + `router.reload({ only: ['summary'] })` pra refrescar os counts no card de export
+
+#### Trade-offs
+- **Por que `merge` como default e não `replace`?** Padrão menos destrutivo. User que sabe o que quer marca replace explicitamente. Acidente de double-click ou ENTER por engano fica seguro.
+- **Por que slugs skipados não geram error?** Heroes podem não estar seedados ainda (catálogo sendo construído) ou foram removidos da wiki. Hard fail no primeiro slug ausente quebra import inteiro. Skip + contagem dá feedback útil.
+- **Por que sanitizar weights mesmo com whitelist no controller original?** Defense in depth — JSON pode vir de export feito em versão antiga ou de outra instância com schema diferente. Validar nas duas pontas.
+- **Por que cascade do DB pra wipe e não delete manual em loop?** Foreign keys com `cascadeOnDelete` foram definidas exatamente pra isso. Delete manual reimplementaria a mesma lógica e poderia esquecer alguma tabela pivot.
+- **Por que não dry-run mode (mostrar preview antes de aplicar)?** YAGNI. User pode abrir o JSON num editor pra ver o conteúdo. Adicionar dry-run + diff visual dobra a complexidade.
+- **Por que merge não sobrescreve dados de hero existentes (level, SI)?** Decisão semântica: "merge" = "fundir, sem perder informação minha". Sobrescrever seria "atualizar com o backup", que é o que `replace` por hero específico faria — mas se o user quer isso, melhor remover do roster manualmente antes do import.
+
+#### Testes (`BackupImportTest`)
+13 cenários:
+- `guest_recebe_redirect`
+- `rejeita_arquivo_sem_schema_version` (validação Laravel)
+- `rejeita_schema_version_incompativel` (999 vs 1)
+- `merge_importa_roster_completo` — round-trip com todos os fields (SI 40, F9, E80, notes)
+- `merge_skipa_hero_ja_no_roster` — preservação de dados existentes
+- `replace_apaga_e_recria_roster` — sobrescreve SI 0 → SI 40
+- `slug_inexistente_e_skipado` — validação de status message com count
+- `importa_formacao_com_tags_e_teams` — happy path completo (teams + heroes via slug + tag_names lookup)
+- `challenge_type_code_inexistente_skipa_formacao`
+- `importa_favoritos` — slugs válidos + slug ausente skipado
+- `importa_presets_skipa_nome_duplicado_em_merge` — preset 'pvp' original preservado
+- `isola_por_user`
+- `replace_remove_tags_existentes_antes_de_importar` — wipe correto
+
+**368 testes verdes** (+13 novos).

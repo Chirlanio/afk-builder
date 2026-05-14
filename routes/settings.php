@@ -21,6 +21,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('settings/backup', [BackupController::class, 'show'])->name('backup.show');
     Route::get('settings/backup/download', [BackupController::class, 'download'])->name('backup.download');
+    Route::post('settings/backup/import', [BackupController::class, 'import'])->name('backup.import');
 
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/appearance');
