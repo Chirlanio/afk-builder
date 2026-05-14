@@ -2136,3 +2136,49 @@ Tags livres por user pra categorizar formações ("counter-Twins", "speedrun", "
 - `edit_inclui_tags_da_formation_e_available_tags`
 
 **315 testes verdes** (+15 novos).
+
+---
+
+### ✅ Fase 36 — Export PNG da formação
+
+Botão "PNG" no editor que gera uma imagem 1080px-wide do estado atual da formação, ideal pra colar em Discord, Reddit ou screenshots de guild.
+
+#### Stack
+- **`html-to-image`** instalado (`^1.11.13`) — converte DOM em PNG via canvas. Mais leve que html2canvas, mantido, suporta `pixelRatio` para alta resolução.
+- Chunk de `edit.tsx` cresceu de ~35KB → 65KB gzip — code-splitting do Vite garante que só carrega quando o user abre o editor.
+
+#### Componente `FormationExportPreview`
+- **Sempre renderizado off-screen** (`position:fixed; top:-99999px; pointer-events:none`) — `display:none` não funciona porque html-to-image precisa medir o nó.
+- Largura fixa 1080px, altura dinâmica conforme número de teams.
+- **CSS inline-only**: Tailwind `@apply` em gradients/borders custom às vezes não traduz pro CSS computado que o canvas vê. Estilos inline (`style={{ background: 'linear-gradient(...)', ... }}`) garantem fidelidade.
+- Layout: header com nome + badges (challenge type, modo, PvP, tags) → uma linha por team com posição numérica + nome + score + 5 portraits 180px (com tier badge + class icon overlay) → footer com data + URL do projeto.
+- `FACTION_COLOR_HEX` local — 8 cores explícitas em RGB pra evitar dependência das classes Tailwind do design system.
+- `img crossOrigin="anonymous"` nos portraits — se o CDN da wiki Fandom (`static.wikia.nocookie.net`) não enviar CORS headers em alguns assets, a exportação **falha graciosamente** com mensagem amigável.
+
+#### Hook `useFormationExport`
+- Retorna `{ ref, download, isExporting, error, clearError }`.
+- `download()`: chama `toPng(ref.current, { pixelRatio: 2, cacheBust: true, backgroundColor: '#0a0613' })` → cria `<a download>` invisível → click → download via blob:data URL.
+- Pixel ratio 2 = retina-quality (2× a resolução dos pixels CSS, ~2160px wide no PNG final).
+- Captura erros (CORS é o caso comum) e expõe `error` string pro UI.
+
+#### Integração no editor
+- **Desktop**: novo botão "PNG" no header com ícone Download, vira Loader2 durante geração.
+- **Mobile**: item "Exportar PNG" no dropdown de "Mais opções".
+- Filename derivado do nome da formação: `nome_da_formacao.png` (alphanumeric + `_`).
+- Preview renderizado dentro do JSX após o NotesSheet (sempre presente, mesmo enquanto user edita).
+- Toast inferior centralizado quando ocorre erro de export — dismissível.
+
+#### Trade-offs
+- **Por que `html-to-image` e não `html2canvas`?** Bundle menor (~60KB vs ~200KB gzip), API mais limpa (Promise<dataUrl> direto), mantido ativamente. Single source of truth.
+- **Por que renderizar preview off-screen em vez de criar sob demanda?** Criar sob demanda exige aguardar render + img.onload em loop, mais frágil. Off-screen sempre, garante que está pronto quando o user clica.
+- **Por que CSS inline-only no preview?** Tailwind compila classes em tempo de build; algumas (especialmente gradients custom) podem perder fidelidade quando o canvas mede o estilo computado. Inline elimina essa variável.
+- **Por que pixel-ratio 2 e não 1 ou 3?** 1× fica embaçado em telas retina; 3× quadruplica o tamanho do arquivo sem ganho visual perceptível. 2× é o sweet spot pra Discord/Reddit.
+- **Por que CORS em portraits pode falhar?** A wiki Fandom (CDN principal) historicamente envia headers inconsistentes. Não conseguimos forçar — solução real seria proxy backend pra reservir os portraits com headers corretos, mas é complexidade extra. Mensagem de erro orienta retry.
+
+#### Sem testes novos
+Feature 100% client-side, baseada em DOM Canvas API que não é testável em PHPUnit. Validação visual manual: testar com formação de 1 team, 7 teams, com/sem beast, com tags, com slots vazios. **315 testes verdes mantidos**.
+
+#### Limitações conhecidas
+- Portraits CDN Fandom podem falhar CORS — mensagem orienta retry; sem solução perfeita sem proxy backend.
+- `text-overflow: ellipsis` em nomes muito longos truncados ainda; sem wrap multi-linha pra manter alinhamento visual.
+- Em mobile o feed pode demorar ~2-3s (canvas pesado); botão mostra Loader durante.

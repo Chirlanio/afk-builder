@@ -1,7 +1,7 @@
 import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { Copy, FileText, History, Link2, Loader2, MoreHorizontal, PawPrint, RotateCcw, Save, Share2, Sparkles, Target, Trash2, Users } from 'lucide-react';
+import { Copy, Download, FileText, History, Link2, Loader2, MoreHorizontal, PawPrint, RotateCcw, Save, Share2, Sparkles, Target, Trash2, Users } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
 import { HeroPool } from '@/components/formation-editor/hero-pool';
@@ -34,10 +34,12 @@ import type {
     TierCode,
 } from '@/types/afk';
 import { ScoreBreakdownCard } from '@/components/score-breakdown-card';
+import { FormationExportPreview } from '@/components/formation-export-preview';
 import { FormationNotesSheet } from '@/components/formation-notes-sheet';
 import { FormationTagsMenu, tagColorClasses, type FormationTagPayload } from '@/components/formation-tags-menu';
 import { WeightTunerSheet, type WeightOverrides, type WeightPreset } from '@/components/weight-tuner-sheet';
 import { useAutoScrollOnDrag } from '@/hooks/use-auto-scroll-on-drag';
+import { useFormationExport } from '@/hooks/use-formation-export';
 
 interface PageProps {
     formation: Formation & {
@@ -130,6 +132,10 @@ export default function FormationsEdit({
         formation.tags ? formation.tags.map((t) => t.id) : [],
     );
     const autoScroll = useAutoScrollOnDrag();
+    const exportFilename = `${formation.name.replace(/[^a-zA-Z0-9-_]+/g, '_').toLowerCase()}.png`;
+    const { ref: exportRef, download: downloadPng, isExporting, error: exportError, clearError } = useFormationExport({
+        filename: exportFilename,
+    });
 
     const saveScoringWeights = async (weights: WeightOverrides, isDefault: boolean) => {
         try {
@@ -578,6 +584,14 @@ export default function FormationsEdit({
                             </Button>
                             <Button
                                 variant="outline"
+                                onClick={downloadPng}
+                                disabled={isSaving || isExporting}
+                            >
+                                {isExporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                                {isExporting ? 'Gerando...' : 'PNG'}
+                            </Button>
+                            <Button
+                                variant="outline"
                                 onClick={suggestAll}
                                 disabled={isSuggestingAll || isSaving}
                             >
@@ -615,6 +629,10 @@ export default function FormationsEdit({
                                     <DropdownMenuItem onClick={() => setShareDialogOpen(true)} disabled={isSaving}>
                                         <Share2 className="size-4" />
                                         {shareToken ? 'Compartilhada' : 'Compartilhar'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={downloadPng} disabled={isSaving || isExporting}>
+                                        {isExporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                                        Exportar PNG
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={suggestAll} disabled={isSuggestingAll || isSaving}>
                                         {isSuggestingAll ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
@@ -846,6 +864,56 @@ export default function FormationsEdit({
                         setIsDirty(true);
                     }}
                 />
+
+                {/* Preview off-screen pra export PNG (Fase 36) */}
+                <FormationExportPreview
+                    ref={exportRef}
+                    formation={{
+                        ...formation,
+                        teams: teams.map((t, idx) => ({
+                            id: formation.teams[idx]?.id ?? idx,
+                            formation_id: formation.id,
+                            position: t.position,
+                            name: t.name,
+                            score: null,
+                            team_heroes: t.slots
+                                .map((slot, slotIdx) => ({
+                                    id: slotIdx,
+                                    formation_team_id: formation.teams[idx]?.id ?? idx,
+                                    hero_id: slot.heroId ?? 0,
+                                    slot: slotIdx + 1,
+                                    row: null,
+                                }))
+                                .filter((th) => th.hero_id !== 0),
+                        })),
+                        tags: formation.tags,
+                    }}
+                    heroById={heroById}
+                    factionById={factionById}
+                    classById={classById}
+                    tierById={tierById}
+                    scoresByTeamPosition={scoresByTeamPosition}
+                />
+
+                {/* Toast minimalista pro erro de export */}
+                {exportError && (
+                    <div
+                        role="alert"
+                        className="fixed bottom-4 left-1/2 z-50 max-w-md -translate-x-1/2 rounded-lg border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-lg"
+                    >
+                        <div className="flex items-start gap-2">
+                            <span className="flex-1">{exportError}</span>
+                            <button
+                                type="button"
+                                onClick={clearError}
+                                className="rounded p-0.5 hover:bg-destructive/20"
+                                aria-label="Fechar"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
                     <DialogContent>
