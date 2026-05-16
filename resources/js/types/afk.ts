@@ -169,7 +169,10 @@ export interface UserTierList {
     name: string;
     description: string | null;
     share_token: string | null;
+    is_template?: boolean;
+    cloned_from_id?: number | null;
     rows_count?: number;
+    items_count?: number;
     rows?: UserTierListRow[];
     user?: { id: number; name: string };
     updated_at: string;

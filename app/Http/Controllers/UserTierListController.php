@@ -6,6 +6,7 @@ use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroClass;
 use App\Models\UserTierList;
+use App\Models\UserTierListItem;
 use App\Models\UserTierListRow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -32,7 +33,7 @@ class UserTierListController extends Controller
             ->tierLists()
             ->withCount('rows')
             ->orderByDesc('updated_at')
-            ->get(['id', 'name', 'description', 'share_token', 'updated_at']);
+            ->get(['id', 'name', 'description', 'share_token', 'is_template', 'updated_at']);
 
         return Inertia::render('tier-lists/index', [
             'tierLists' => $lists,
@@ -264,5 +265,81 @@ class UserTierListController extends Controller
             'tierList' => $tierList,
             'factions' => Faction::orderBy('display_order')->get(['id', 'code', 'name_pt', 'color_hex']),
         ]);
+    }
+
+    /**
+     * Lista pública de templates (acessível a qualquer user autenticado).
+     */
+    public function templatesIndex(): Response
+    {
+        $templates = UserTierList::query()
+            ->where('is_template', true)
+            ->with('user:id,name')
+            ->withCount(['rows', 'rows as items_count' => function ($q) {
+                $q->join('user_tier_list_items', 'user_tier_list_rows.id', '=', 'user_tier_list_items.user_tier_list_row_id');
+            }])
+            ->orderByDesc('updated_at')
+            ->get(['id', 'user_id', 'name', 'description', 'updated_at']);
+
+        return Inertia::render('tier-lists/templates', [
+            'templates' => $templates,
+        ]);
+    }
+
+    /**
+     * Toggle is_template (apenas admin). Não altera ownership: o admin é o dono do template.
+     */
+    public function setTemplate(Request $request, UserTierList $tierList): JsonResponse
+    {
+        abort_unless($request->user()->is_admin, 403);
+        abort_unless($tierList->user_id === $request->user()->id, 403);
+
+        $data = $request->validate([
+            'is_template' => ['required', 'boolean'],
+        ]);
+
+        $tierList->forceFill(['is_template' => $data['is_template']])->save();
+
+        return response()->json(['ok' => true, 'is_template' => $tierList->is_template]);
+    }
+
+    /**
+     * Clona um template para o user autenticado. Copia rows + items numa transação.
+     * Resultado: nova UserTierList com is_template=false e cloned_from_id apontando pro template.
+     */
+    public function clone(Request $request, UserTierList $tierList): RedirectResponse
+    {
+        abort_unless($tierList->is_template, 404);
+
+        $copy = DB::transaction(function () use ($request, $tierList) {
+            $tierList->load('rows.items');
+
+            $copy = $request->user()->tierLists()->create([
+                'name' => $tierList->name.' (cópia)',
+                'description' => $tierList->description,
+                'is_template' => false,
+                'cloned_from_id' => $tierList->id,
+            ]);
+
+            foreach ($tierList->rows as $row) {
+                $newRow = $copy->rows()->create([
+                    'label' => $row->label,
+                    'color' => $row->color,
+                    'position' => $row->position,
+                ]);
+
+                foreach ($row->items as $item) {
+                    UserTierListItem::create([
+                        'user_tier_list_row_id' => $newRow->id,
+                        'hero_id' => $item->hero_id,
+                        'position' => $item->position,
+                    ]);
+                }
+            }
+
+            return $copy;
+        });
+
+        return redirect()->route('tier-lists.edit', $copy);
     }
 }

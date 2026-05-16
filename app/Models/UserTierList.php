@@ -16,6 +16,12 @@ class UserTierList extends Model
         'name',
         'description',
         'share_token',
+        'is_template',
+        'cloned_from_id',
+    ];
+
+    protected $casts = [
+        'is_template' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -26,6 +32,11 @@ class UserTierList extends Model
     public function rows(): HasMany
     {
         return $this->hasMany(UserTierListRow::class)->orderBy('position');
+    }
+
+    public function clonedFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'cloned_from_id');
     }
 
     public function generateShareToken(): string

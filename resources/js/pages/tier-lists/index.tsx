@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import axios from 'axios';
-import { ListChecks, Pencil, Plus, Share2, Trash2 } from 'lucide-react';
+import { LayoutTemplate, ListChecks, Pencil, Plus, Share2, Sparkles, Trash2 } from 'lucide-react';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,12 +40,20 @@ export default function TierListsIndex({ tierLists }: PageProps) {
                 icon={ListChecks}
                 description="Crie suas próprias tier lists de heróis. Arraste-os para organizar em tiers customizáveis."
                 actions={
-                    <Button size="sm" asChild>
-                        <Link href="/tier-lists/create">
-                            <Plus className="size-4" />
-                            Nova tier list
-                        </Link>
-                    </Button>
+                    <>
+                        <Button size="sm" variant="outline" asChild>
+                            <Link href="/tier-lists/templates">
+                                <LayoutTemplate className="size-4" />
+                                Templates
+                            </Link>
+                        </Button>
+                        <Button size="sm" asChild>
+                            <Link href="/tier-lists/create">
+                                <Plus className="size-4" />
+                                Nova tier list
+                            </Link>
+                        </Button>
+                    </>
                 }
             >
                 {tierLists.length === 0 ? (
@@ -74,6 +82,12 @@ export default function TierListsIndex({ tierLists }: PageProps) {
                                                 <Badge variant="secondary" className="gap-1 text-[10px]">
                                                     <Share2 className="size-3" />
                                                     Pública
+                                                </Badge>
+                                            )}
+                                            {list.is_template && (
+                                                <Badge variant="default" className="gap-1 bg-amber-500 text-[10px] hover:bg-amber-500/90">
+                                                    <Sparkles className="size-3" />
+                                                    Template
                                                 </Badge>
                                             )}
                                         </div>

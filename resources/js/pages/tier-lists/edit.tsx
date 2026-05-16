@@ -25,10 +25,11 @@ import {
 } from '@dnd-kit/core';
 import { arrayMove, horizontalListSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Check, ListChecks, Pencil, Plus, Save, Search, Share2, Trash2, X } from 'lucide-react';
+import { Check, ListChecks, Pencil, Plus, Save, Search, Share2, Sparkles, Trash2, X } from 'lucide-react';
 import { type FormEvent, useMemo, useState } from 'react';
+import type { SharedData } from '@/types';
 
 interface PageProps {
     tierList: UserTierList & { rows: (UserTierListRow & { items: (UserTierListItem & { hero: Hero })[] })[] };
@@ -51,6 +52,8 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
     const [filterClass, setFilterClass] = useState<string>('all');
     const [shareToken, setShareToken] = useState<string | null>(tierList.share_token);
     const [shareCopied, setShareCopied] = useState(false);
+    const [isTemplate, setIsTemplate] = useState<boolean>(Boolean(tierList.is_template));
+    const isAdmin = Boolean(usePage<SharedData>().props.auth.user?.is_admin);
     const [editingRow, setEditingRow] = useState<number | null>(null);
     const [activeDrag, setActiveDrag] = useState<{ kind: 'hero'; id: number } | null>(null);
     const [dragOriginRowId, setDragOriginRowId] = useState<number | null | undefined>(undefined);
@@ -260,6 +263,14 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
         setRows(rows.filter((r) => r.id !== row.id));
     };
 
+    const handleToggleTemplate = async () => {
+        const next = !isTemplate;
+        const res = await axios.patch<{ ok: boolean; is_template: boolean }>(`/tier-lists/${tierList.id}/template`, {
+            is_template: next,
+        });
+        setIsTemplate(res.data.is_template);
+    };
+
     const handleShare = async () => {
         const res = await axios.post<{ share_token: string; public_url: string }>(`/tier-lists/${tierList.id}/share`);
         setShareToken(res.data.share_token);
@@ -306,6 +317,18 @@ export default function TierListEdit({ tierList, heroes, factions, heroClasses }
                             <Button size="sm" variant="outline" onClick={handleShare}>
                                 <Share2 className="size-3" />
                                 Compartilhar
+                            </Button>
+                        )}
+                        {isAdmin && (
+                            <Button
+                                size="sm"
+                                variant={isTemplate ? 'default' : 'outline'}
+                                onClick={handleToggleTemplate}
+                                className={isTemplate ? 'bg-amber-500 hover:bg-amber-500/90' : undefined}
+                                title={isTemplate ? 'Remover como template público' : 'Publicar como template'}
+                            >
+                                <Sparkles className="size-3" />
+                                {isTemplate ? 'Template ativo' : 'Marcar template'}
                             </Button>
                         )}
                     </div>

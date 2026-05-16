@@ -115,6 +115,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('formations/{formation}', [FormationController::class, 'destroy'])->name('formations.destroy');
 
     Route::get('tier-lists', [UserTierListController::class, 'index'])->name('tier-lists.index');
+    Route::get('tier-lists/templates', [UserTierListController::class, 'templatesIndex'])->name('tier-lists.templates.index');
+    Route::post('tier-lists/templates/{tierList}/clone', [UserTierListController::class, 'clone'])->name('tier-lists.templates.clone');
     Route::get('tier-lists/create', [UserTierListController::class, 'create'])->name('tier-lists.create');
     Route::post('tier-lists', [UserTierListController::class, 'store'])->name('tier-lists.store');
     Route::get('tier-lists/{tierList}/edit', [UserTierListController::class, 'edit'])->name('tier-lists.edit');
@@ -127,6 +129,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('tier-lists/{tierList}/place-hero', [UserTierListController::class, 'placeHero'])->name('tier-lists.place-hero');
     Route::post('tier-lists/{tierList}/share', [UserTierListController::class, 'share'])->name('tier-lists.share');
     Route::delete('tier-lists/{tierList}/share', [UserTierListController::class, 'unshare'])->name('tier-lists.share.revoke');
+    Route::patch('tier-lists/{tierList}/template', [UserTierListController::class, 'setTemplate'])->name('tier-lists.template.set');
 
     Route::middleware('can:manage-heroes')->prefix('admin')->name('admin.')->group(function () {
         Route::get('heroes/pending', [HeroAdminController::class, 'pendingIndex'])->name('heroes.pending');

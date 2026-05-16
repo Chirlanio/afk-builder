@@ -2821,3 +2821,49 @@ Schedule::command('roster:snapshot')->dailyAt('04:00')->withoutOverlapping()->on
 - `cascade_delete_quando_user_deletado` — FK cascade funciona
 
 **391 testes verdes** (+10 novos).
+
+### ✅ Fase 47 — Tier list templates (admin marca, user clona)
+
+Admins agora podem **marcar uma das próprias tier lists como template público**. Qualquer user autenticado acessa `/tier-lists/templates`, vê todos os templates publicados e clica em **Clonar** pra ganhar uma cópia editável da lista (com todos os tiers e heróis pré-posicionados) sob sua propriedade.
+
+#### Schema
+Migration `2026_05_16_010000_add_template_fields_to_user_tier_lists.php`:
+- `is_template` boolean default false (com index — query `where is_template = true` no /templates)
+- `cloned_from_id` nullable FK para `user_tier_lists` com `nullOnDelete` — preserva a cópia se o template original for deletado pelo admin
+
+#### Endpoints
+- `GET /tier-lists/templates` — público (auth); lista todos `is_template=true` com `withCount(rows)` + `items_count` via subquery join
+- `POST /tier-lists/templates/{tierList}/clone` — público (auth); cria nova lista do user atual num único `DB::transaction` copiando rows (label/color/position) e items (hero_id/position); redireciona pro editor
+- `PATCH /tier-lists/{tierList}/template` — admin-only (`abort_unless($user->is_admin)`) **e** ownership-check (admin só marca **as próprias** listas; admin não toca em lista de outro user)
+
+Rotas declaradas **antes** das rotas com `{tierList}` no `routes/web.php` pra não bater no route model binding (a palavra "templates" seria interpretada como ID).
+
+#### UI
+- **`tier-lists/templates.tsx`** — grid de cards com nome, autor, contagem de tiers/heróis, botão "Clonar" via `router.post` (segue redirect Inertia pro editor)
+- **`tier-lists/index.tsx`** — botão "Templates" no header + badge ⭐ amber "Template" nas listas próprias com `is_template=true`
+- **`tier-lists/edit.tsx`** — botão "Marcar template" (ou "Template ativo" se já marcado) **apenas para admins** (`usePage<SharedData>().props.auth.user?.is_admin`); estado local toggle via `axios.patch`
+
+#### Trade-offs
+- **Por que o admin permanece dono do template (e não vira "sistema")?** Mantém a auditoria simples — o user que publicou aparece como "por X" na lista de templates. Se admin sair, decisão de deletar/transferir é manual; não precisamos de "usuário-sistema" sintético.
+- **Por que `nullOnDelete` no `cloned_from_id` em vez de cascade?** A cópia do user é dele — não deve sumir só porque admin removeu o template público. Perde só a referência da origem.
+- **Por que clone não copia `share_token`?** Tokens são únicos e o user pode (re)gerar o próprio depois. Copiar geraria collision na constraint `unique` ou exigiria regeneração — mais simples começar `null`.
+- **Por que botão de template fica no `edit` em vez do `index`?** Marcar template é uma decisão sobre **conteúdo curado**, e quem cura está no editor olhando os tiers. No index seria click acidental. Bonus: usuário não admin nem vê o botão (UI já filtra).
+- **Por que admin não pode marcar lista de outro user como template?** Mantém ownership clara — se o admin quer publicar a curadoria de outro, clona/copia o conteúdo pra sua própria conta primeiro. Evita "sequestro" de listas.
+- **Por que `withCount(rows as items_count)` com join manual em vez de `withCount('rows.items')`?** Eloquent não suporta nested `withCount` direto — o join na subquery é mais explícito e gera uma única query agregada.
+
+#### Testes (`TierListTemplateTest`)
+12 cenários:
+- `admin_pode_marcar_lista_como_template`
+- `user_normal_nao_pode_marcar_template` (403)
+- `admin_nao_pode_marcar_lista_de_outro_user_como_template` (403)
+- `pagina_de_templates_lista_apenas_templates` — filtro `is_template=true` funciona
+- `clone_copia_rows_e_items_para_o_user_atual` — verifica ownership, labels/cores/posições e hero_ids
+- `clone_falha_se_lista_nao_for_template` (404, defesa em profundidade)
+- `clone_exige_autenticacao` (redirect /login)
+- `pagina_de_templates_exige_autenticacao` (redirect /login)
+- `clone_nao_propaga_flag_de_template` — cópia sempre `is_template=false`
+- `dois_clones_geram_listas_independentes`
+- `delete_template_seta_cloned_from_id_null_no_copy` — FK `nullOnDelete` funciona
+- `index_inclui_flag_is_template` — payload da listagem traz a flag
+
+**403 testes verdes** (+12 novos).
