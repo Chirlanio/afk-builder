@@ -1,10 +1,10 @@
 import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { Copy, Download, FileText, History, Link2, Loader2, MoreHorizontal, PawPrint, RotateCcw, Save, Share2, Sparkles, Target, Trash2, Users } from 'lucide-react';
+import { Copy, Download, FileText, History, Link2, Loader2, MoreHorizontal, RotateCcw, Save, Share2, Sparkles, Target, Trash2, Users } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
+import { EditorPool } from '@/components/formation-editor/editor-pool';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
-import { HeroPool } from '@/components/formation-editor/hero-pool';
 import { TeamRow, type TeamSlotsState } from '@/components/formation-editor/team-row';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/app-layout';
 import { FACTION_THEME } from '@/lib/afk';
@@ -74,6 +73,7 @@ function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlo
         return {
             position,
             name: team?.name ?? null,
+            beastId: team?.beast_id ?? null,
             slots,
         };
     });
@@ -99,14 +99,15 @@ export default function FormationsEdit({
     ];
 
     const heroById = useMemo(() => Object.fromEntries(heroPool.map((h) => [h.id, h])) as Record<number, Hero>, [heroPool]);
+    const beastById = useMemo(() => Object.fromEntries(beasts.map((b) => [b.id, b])) as Record<number, Beast>, [beasts]);
     const factionById = useMemo(() => Object.fromEntries(factions.map((f) => [f.id, f])) as Record<number, Faction>, [factions]);
     const classById = useMemo(() => Object.fromEntries(heroClasses.map((c) => [c.id, c])) as Record<number, HeroClass>, [heroClasses]);
     const tierById = useMemo(() => Object.fromEntries(tiers.map((t) => [t.id, t])) as Record<number, Tier>, [tiers]);
 
     const [name, setName] = useState(formation.name);
     const [notes, setNotes] = useState<string>(formation.notes ?? '');
-    const [beastId, setBeastId] = useState<number | null>(formation.beast_id ?? null);
     const [teams, setTeams] = useState<TeamSlotsState[]>(() => teamsFromFormation(formation.teams, formation.teams_count));
+    const [pickingBeastForTeamPos, setPickingBeastForTeamPos] = useState<number | null>(null);
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [suggestingTeamPos, setSuggestingTeamPos] = useState<number | null>(null);
@@ -187,6 +188,40 @@ export default function FormationsEdit({
         [updateSlot],
     );
 
+    const clearBeastForTeam = useCallback((teamPos: number) => {
+        setTeams((prev) => prev.map((team) => (team.position === teamPos ? { ...team, beastId: null } : team)));
+        setIsDirty(true);
+    }, []);
+
+    const setBeastForTeam = useCallback((teamPos: number, beastId: number) => {
+        setTeams((prev) => prev.map((team) => (team.position === teamPos ? { ...team, beastId } : team)));
+        setIsDirty(true);
+    }, []);
+
+    const autoPickBestBeast = useCallback(
+        async (teamPos: number) => {
+            const team = teams.find((t) => t.position === teamPos);
+            if (!team) return;
+            const teamId = formation.teams.find((t) => t.position === teamPos)?.id;
+            if (!teamId) return;
+
+            setPickingBeastForTeamPos(teamPos);
+            try {
+                const response = await axios.post<{ ok: boolean; beast?: Beast }>(
+                    `/formations/${formation.id}/teams/${teamId}/best-beast`,
+                );
+                if (response.data.ok && response.data.beast) {
+                    setBeastForTeam(teamPos, response.data.beast.id);
+                }
+            } catch (error) {
+                console.error('Falha ao escolher melhor besta:', error);
+            } finally {
+                setPickingBeastForTeamPos(null);
+            }
+        },
+        [teams, formation.teams, formation.id, setBeastForTeam],
+    );
+
     // Tap-to-add (mobile): adiciona herói ao próximo slot vazio da team alvo.
     // Se enforceUnique e herói já está em outro slot, faz swap pro próximo livre.
     // Retorna true se conseguiu adicionar (caller pode fechar Sheet).
@@ -258,9 +293,31 @@ export default function FormationsEdit({
         const { active, over } = event;
         if (!over) return;
 
-        const sourceData = active.data.current as { kind: 'pool' | 'slot'; heroId: number | null; teamPosition?: number; slotPosition?: number } | undefined;
-        const targetData = over.data.current as { kind: 'slot'; teamPosition: number; slotPosition: number } | undefined;
-        if (!sourceData || targetData?.kind !== 'slot') return;
+        const sourceData = active.data.current as
+            | { kind: 'pool' | 'slot'; heroId: number | null; teamPosition?: number; slotPosition?: number }
+            | { kind: 'beast'; beastId: number }
+            | undefined;
+        const targetData = over.data.current as
+            | { kind: 'slot'; teamPosition: number; slotPosition: number }
+            | { kind: 'beast-slot'; teamPosition: number }
+            | undefined;
+        if (!sourceData || !targetData) return;
+
+        // Drop de besta no slot de besta de uma team
+        if (sourceData.kind === 'beast' && targetData.kind === 'beast-slot') {
+            const beastId = sourceData.beastId;
+            const targetTeamPosition = targetData.teamPosition;
+            setTeams((prev) =>
+                prev.map((team) =>
+                    team.position === targetTeamPosition ? { ...team, beastId } : team,
+                ),
+            );
+            setIsDirty(true);
+            return;
+        }
+
+        // Drag de herói só faz sentido pra slot de herói
+        if (sourceData.kind === 'beast' || targetData.kind !== 'slot') return;
 
         const targetTeamPos = targetData.teamPosition;
         const targetSlotPos = targetData.slotPosition;
@@ -268,7 +325,7 @@ export default function FormationsEdit({
         setTeams((prev) => {
             if (sourceData.kind === 'pool') {
                 const heroId = sourceData.heroId;
-                if (heroId === null) return prev;
+                if (heroId == null) return prev;
 
                 if (enforceUnique) {
                     const existingPos = findHeroPosition(prev, heroId);
@@ -476,11 +533,11 @@ export default function FormationsEdit({
         const payload = {
             name,
             notes: notes.trim() === '' ? null : notes,
-            beast_id: beastId,
             tag_ids: selectedTagIds,
             teams: teams.map((team) => ({
                 position: team.position,
                 name: team.name,
+                beast_id: team.beastId,
                 heroes: team.slots
                     .map((slot, idx) => ({ slot: idx + 1, hero_id: slot.heroId, row: null }))
                     .filter((h): h is { slot: number; hero_id: number; row: null } => h.hero_id !== null),
@@ -687,36 +744,7 @@ export default function FormationsEdit({
                             </div>
                         )}
 
-                        {/* Beast ativo — vai pro fim da row em qualquer largura */}
-                        <div className="ml-auto flex items-center gap-2">
-                            <PawPrint className="size-4 text-muted-foreground" />
-                            <span className="hidden text-xs uppercase tracking-wide text-muted-foreground sm:inline">Beast:</span>
-                            <Select
-                                value={beastId ? String(beastId) : 'none'}
-                                onValueChange={(v) => {
-                                    setBeastId(v === 'none' ? null : Number(v));
-                                    setIsDirty(true);
-                                }}
-                            >
-                                <SelectTrigger className="h-8 w-auto min-w-[140px] text-xs sm:min-w-[180px]">
-                                    <SelectValue placeholder="Nenhum" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">— nenhum —</SelectItem>
-                                    {beasts.map((b) => {
-                                        const buffs = [];
-                                        if (b.strength_buff > 0) buffs.push(`F+${b.strength_buff}`);
-                                        if (b.intelligence_buff > 0) buffs.push(`I+${b.intelligence_buff}`);
-                                        if (b.agility_buff > 0) buffs.push(`A+${b.agility_buff}`);
-                                        return (
-                                            <SelectItem key={b.id} value={String(b.id)}>
-                                                {b.name}{buffs.length > 0 ? ` · ${buffs.join(' / ')}` : ''}
-                                            </SelectItem>
-                                        );
-                                    })}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {/* Fase 48: beast agora é por team (slot DnD no TeamRow + botão Auto). */}
                     </div>
 
                     <div className="grid flex-1 gap-3 lg:grid-cols-[1fr_320px]">
@@ -728,10 +756,14 @@ export default function FormationsEdit({
                                         <TeamRow
                                             team={team}
                                             heroById={heroById}
+                                            beastById={beastById}
                                             factionById={factionById}
                                             classById={classById}
                                             tierById={tierById}
                                             onRemoveHero={(slotPosition) => removeFromSlot(team.position, slotPosition)}
+                                            onClearBeast={() => clearBeastForTeam(team.position)}
+                                            onAutoBestBeast={() => autoPickBestBeast(team.position)}
+                                            isPickingBeast={pickingBeastForTeamPos === team.position}
                                             onSuggest={() => suggestForTeam(team.position)}
                                             isSuggesting={suggestingTeamPos === team.position}
                                         />
@@ -767,10 +799,11 @@ export default function FormationsEdit({
                             })}
                         </div>
 
-                        {/* Pool lateral (desktop) */}
+                        {/* Pool lateral (desktop) — heroes + bestas em tabs */}
                         <div className="hidden h-[calc(100vh-180px)] lg:block">
-                            <HeroPool
+                            <EditorPool
                                 heroes={heroPool}
+                                beasts={beasts}
                                 factions={factions}
                                 heroClasses={heroClasses}
                                 factionById={factionById}
@@ -829,8 +862,9 @@ export default function FormationsEdit({
                         )}
 
                         <div className="min-h-0 flex-1 overflow-hidden">
-                            <HeroPool
+                            <EditorPool
                                 heroes={heroPool}
+                                beasts={beasts}
                                 factions={factions}
                                 heroClasses={heroClasses}
                                 factionById={factionById}
@@ -839,6 +873,7 @@ export default function FormationsEdit({
                                 placedHeroIds={placedHeroIds}
                                 enforceUnique={enforceUnique}
                                 onTapHero={handleTapHero}
+                                onTapBeast={(beastId) => setBeastForTeam(mobileTargetTeamPos, beastId)}
                             />
                         </div>
                     </SheetContent>
@@ -876,6 +911,8 @@ export default function FormationsEdit({
                             position: t.position,
                             name: t.name,
                             score: null,
+                            beast_id: t.beastId,
+                            beast: t.beastId ? beastById[t.beastId] ?? null : null,
                             team_heroes: t.slots
                                 .map((slot, slotIdx) => ({
                                     id: slotIdx,

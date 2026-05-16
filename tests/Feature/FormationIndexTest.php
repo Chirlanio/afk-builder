@@ -51,7 +51,6 @@ class FormationIndexTest extends TestCase
             'name' => 'Com tudo',
             'notes' => 'meu plano aqui',
             'share_token' => Str::random(32),
-            'beast_id' => null,
         ]);
 
         $response = $this->actingAs($user)->get('/formations')->assertOk();
@@ -63,7 +62,8 @@ class FormationIndexTest extends TestCase
         // Campos esperados pra filtragem client-side
         $this->assertSame('Com tudo', $f['name']);
         $this->assertNotNull($f['share_token']);
-        $this->assertNull($f['beast_id']);
+        // Fase 48: beast_id agora vive em formation_teams, não mais no payload top-level da listagem
+        $this->assertArrayNotHasKey('beast_id', $f);
         $this->assertTrue($f['has_notes']);
         // O conteúdo real das notas não deve ir no payload (privacidade + tamanho)
         $this->assertArrayNotHasKey('notes', $f);

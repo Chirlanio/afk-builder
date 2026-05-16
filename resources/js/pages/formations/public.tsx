@@ -5,7 +5,7 @@ import { FACTION_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { ChallengeType, ClassCode, Faction, FactionCode, Formation, FormationTeam, Hero, HeroClass, Tier, TierCode } from '@/types/afk';
 import { Head, Link } from '@inertiajs/react';
-import { CheckCircle2, Eye, Target } from 'lucide-react';
+import { CheckCircle2, Eye, PawPrint, Target } from 'lucide-react';
 import { useMemo } from 'react';
 
 interface PageProps {
@@ -146,6 +146,26 @@ export default function FormationsPublic({ formation, heroes, factions, heroClas
                                             </Badge>
                                         )}
                                     </div>
+
+                                    {team.beast && (
+                                        <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5 text-xs">
+                                            {team.beast.portrait_url ? (
+                                                <img src={team.beast.portrait_url} alt={team.beast.name} className="size-7 rounded object-cover object-top" loading="lazy" />
+                                            ) : (
+                                                <div className="grid size-7 place-items-center rounded bg-muted text-muted-foreground">
+                                                    <PawPrint className="size-3.5" />
+                                                </div>
+                                            )}
+                                            <span className="font-medium">{team.beast.name}</span>
+                                            <span className="text-muted-foreground">
+                                                {[
+                                                    team.beast.strength_buff > 0 ? `F+${team.beast.strength_buff}` : null,
+                                                    team.beast.intelligence_buff > 0 ? `I+${team.beast.intelligence_buff}` : null,
+                                                    team.beast.agility_buff > 0 ? `A+${team.beast.agility_buff}` : null,
+                                                ].filter(Boolean).join(' / ')}
+                                            </span>
+                                        </div>
+                                    )}
 
                                     <div className="flex flex-wrap items-center gap-2">
                                         {Array.from({ length: 5 }, (_, idx) => {

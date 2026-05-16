@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { CLASS_LABEL, FACTION_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type {
+    Beast,
     ClassCode,
     Faction,
     FactionCode,
@@ -12,21 +13,27 @@ import type {
     Tier,
     TierCode,
 } from '@/types/afk';
+import { BeastSlot } from './beast-slot';
 import { TeamSlot } from './team-slot';
 
 export interface TeamSlotsState {
     position: number;
     name: string | null;
+    beastId: number | null;
     slots: Array<{ heroId: number | null }>;
 }
 
 interface TeamRowProps {
     team: TeamSlotsState;
     heroById: Record<number, Hero>;
+    beastById: Record<number, Beast>;
     factionById: Record<number, Faction>;
     classById: Record<number, HeroClass>;
     tierById: Record<number, Tier>;
     onRemoveHero: (slotPosition: number) => void;
+    onClearBeast: () => void;
+    onAutoBestBeast?: () => void;
+    isPickingBeast?: boolean;
     onSuggest?: () => void;
     isSuggesting?: boolean;
 }
@@ -91,7 +98,7 @@ function computeFactionBonus(
     return null;
 }
 
-export function TeamRow({ team, heroById, factionById, classById, tierById, onRemoveHero, onSuggest, isSuggesting }: TeamRowProps) {
+export function TeamRow({ team, heroById, beastById, factionById, classById, tierById, onRemoveHero, onClearBeast, onAutoBestBeast, isPickingBeast, onSuggest, isSuggesting }: TeamRowProps) {
     const heroesInTeam: Hero[] = team.slots
         .map((s) => (s.heroId ? heroById[s.heroId] : null))
         .filter((h): h is Hero => h !== null);
@@ -183,6 +190,15 @@ export function TeamRow({ team, heroById, factionById, classById, tierById, onRe
                         />
                     );
                 })}
+
+                <BeastSlot
+                    teamPosition={team.position}
+                    beast={team.beastId ? beastById[team.beastId] ?? null : null}
+                    onClear={onClearBeast}
+                    onAutoPick={onAutoBestBeast}
+                    isPickingBest={isPickingBeast}
+                    canAutoPick={filledCount > 0}
+                />
             </div>
         </div>
     );

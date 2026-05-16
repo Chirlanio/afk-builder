@@ -34,8 +34,8 @@ class FormationCompareController extends Controller
         $userId = $request->user()->id;
         abort_unless($a->user_id === $userId && $b->user_id === $userId, 403);
 
-        $a->load(['challengeType', 'teams.teamHeroes', 'beast:id,strength_buff,intelligence_buff,agility_buff']);
-        $b->load(['challengeType', 'teams.teamHeroes', 'beast:id,strength_buff,intelligence_buff,agility_buff']);
+        $a->load(['challengeType', 'teams.teamHeroes', 'teams.beast:id,slug,name,strength_buff,intelligence_buff,agility_buff,portrait_url']);
+        $b->load(['challengeType', 'teams.teamHeroes', 'teams.beast:id,slug,name,strength_buff,intelligence_buff,agility_buff,portrait_url']);
 
         $allHeroIds = collect([$a, $b])
             ->flatMap(fn ($f) => $f->teams->flatMap(fn ($t) => $t->teamHeroes->pluck('hero_id')))
@@ -129,13 +129,19 @@ class FormationCompareController extends Controller
                 ->filter()
                 ->all();
 
-            $score = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $formation->beast, $ctx);
+            $score = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $team->beast, $ctx);
             $totalScore += $score->total;
 
             $teams[] = [
                 'id' => $team->id,
                 'position' => $team->position,
                 'name' => $team->name,
+                'beast' => $team->beast ? [
+                    'id' => $team->beast->id,
+                    'slug' => $team->beast->slug,
+                    'name' => $team->beast->name,
+                    'portrait_url' => $team->beast->portrait_url,
+                ] : null,
                 'hero_slots' => $team->teamHeroes->sortBy('slot')->map(fn ($th) => [
                     'slot' => $th->slot,
                     'hero_id' => $th->hero_id,

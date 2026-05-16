@@ -395,6 +395,8 @@ export interface FormationTeam {
     position: number;
     name: string | null;
     score: number | null;
+    beast_id: number | null;
+    beast?: Beast | null;
     team_heroes: FormationTeamHero[];
 }
 
@@ -408,8 +410,6 @@ export interface Formation {
     notes: string | null;
     total_score: number | null;
     share_token: string | null;
-    beast_id: number | null;
-    beast?: Beast | null;
     created_at: string;
     updated_at: string;
     challenge_type?: ChallengeType;

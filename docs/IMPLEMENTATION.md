@@ -2867,3 +2867,75 @@ Rotas declaradas **antes** das rotas com `{tierList}` no `routes/web.php` pra n�
 - `index_inclui_flag_is_template` — payload da listagem traz a flag
 
 **403 testes verdes** (+12 novos).
+
+### ✅ Fase 48 — Beasts por team com DnD e auto-pick
+
+A besta da formation deixa de ser global e passa a ser **por team individual**. O editor ganha um slot DnD por team, lista de bestas no pool lateral (tabs Heróis | Bestas), e um botão "Auto" por team que escolhe a melhor besta baseado nos tipos dos heróis posicionados.
+
+#### Schema
+Migration `2026_05_16_020000_move_beast_to_formation_teams.php`:
+- Adiciona `beast_id` em `formation_teams` (FK `nullOnDelete` + index)
+- Backfill via subquery agnóstica (MySQL/SQLite): cada team da formation herda o `beast_id` da formation
+- Dropa `formations.beast_id`
+
+#### Backend
+- `FormationTeam`: relação `beast()` + `beast_id` em fillable
+- `Formation`: relação `beast()` removida + `beast_id` saiu do fillable
+- `FormationController::update`: valida `teams.*.beast_id` (`Rule::exists` em beasts ativos), persiste por team
+- `FormationController::edit`/`suggestTeam`: eager-load `teams.beast`; suggest usa beast do team específico
+- `FormationController::suggestAll`: passa `null` como beast (decisão pragmática — beasts são definidas separadamente via endpoint dedicado por team)
+- `FormationController::index`: pré-calcula `has_beast` via subquery agregada (`whereHas('teams', whereNotNull beast_id)`) — evita N+1 sem carregar relação completa
+- `FormationCompareController`: scoring usa `$team->beast`; payload inclui beast por team
+- `FormationShareController::publicShow`: eager-load `teams.beast` pra renderização pública
+- `Settings/BackupController`: export move `beast_slug` pra dentro de cada team; import faz backward-compat com `beast_slug` top-level de backups antigos
+
+#### Endpoint `POST /formations/{formation}/teams/{team}/best-beast`
+Calcula a melhor besta pro team baseado em **maior buff agregado**:
+```
+score = Σ (beast.buff_type × heroes_no_team_daquele_type)
+```
+- 422 `team_empty` se team sem heroes
+- 422 `no_typed_heroes` se nenhum hero tem `type` definido (Strength/Intelligence/Agility)
+- 422 `no_beasts` se sem bestas ativas cadastradas
+- 422 `no_buff_match` se nenhuma besta beneficia os tipos presentes
+- Persiste `beast_id` no team em caso de sucesso
+
+#### Frontend
+- **`BeastSlot`** (`components/formation-editor/beast-slot.tsx`): drop-zone `useDroppable` por team com `kind: 'beast-slot'`. Mostra portrait + buffs + ✕ remover + 🔮 Auto
+- **`BeastPool`** (`components/formation-editor/beast-pool.tsx`): lista de bestas draggables (`useDraggable` com `kind: 'beast'`); search por nome
+- **`EditorPool`** (`components/formation-editor/editor-pool.tsx`): wrapper com tabs Heróis | Bestas; substitui o uso direto de `HeroPool`
+- **`TeamRow`**: ganha props `beastById`, `onClearBeast`, `onAutoBestBeast`, `isPickingBeast`; renderiza `<BeastSlot>` ao lado dos slots de heroes
+- **`TeamSlotsState`**: ganha `beastId: number | null`
+- **`formations/edit.tsx`**:
+  - Remove o `<Select>` global do header (besta agora é por team)
+  - `handleDragEnd` reconhece `kind: 'beast'` → `kind: 'beast-slot'` antes do path de hero
+  - `clearBeastForTeam` / `setBeastForTeam` / `autoPickBestBeast` (chama endpoint best-beast e atualiza state)
+  - Payload do save inclui `team.beast_id`
+  - Tap-to-add mobile: tap em besta seta a besta no `mobileTargetTeamPos` (mesma team alvo dos heroes)
+- **`formations/public.tsx`**: linha com portrait + nome + buffs da besta acima dos slots de heroes (quando team tem beast)
+- **`formations/index.tsx`**: usa `has_beast` (computed do controller) em vez do antigo `beast_id !== null`
+
+#### Trade-offs
+- **Por que beast por team e não por formation?** No AFK Arena cada team de uma formation multi-team enfrenta inimigos distintos; idealmente cada team escolhe a besta que maximiza seu power. Beast única por formation era restritivo demais.
+- **Por que `suggestAll` ignora beasts?** O `MultiTeamPartitioner` faz swaps cross-team — combinar isso com escolha ótima de beast por team explodiria o espaço de busca. Solução pragmática: distribuição de heroes via suggestAll, escolha de beast via endpoint dedicado por team. UI invita explicitamente clicar em "Auto" depois de organizar os heroes.
+- **Por que `has_beast` computed em vez de carregar `teams.beast` no index?** Listagem só precisa do flag pra filtros — carregar relação completa é caro pra listagem (pode ter dezenas de formations × N teams). Subquery agregada via `whereHas` resolve em uma query extra.
+- **Por que SQLite-friendly UPDATE com subquery em vez de `UPDATE...JOIN`?** Testes rodam em SQLite e SQLite não suporta a sintaxe `UPDATE...INNER JOIN`. Subquery via `DB::table()->whereExists()` funciona em ambos.
+- **Por que backup mantém retrocompatibilidade com `beast_slug` top-level?** Backups exportados pré-Fase 48 não têm `beast_slug` por team. Import detecta o legacy top-level e aplica a todos os teams (mesma lógica da migration).
+- **Por que `nullOnDelete` no `beast_id` do team?** Se admin deleta uma besta do catálogo, teams perdem só a referência — formation continua válida.
+- **Por que tabs Heróis|Bestas em vez de strip horizontal de bestas?** Manter o layout de uma coluna lateral (consistente com o pool de heroes) é mais limpo. Strip horizontal consumiria altura preciosa em telas pequenas.
+
+#### Testes (`FormationBeastTest`)
+12 cenários (refactor + 6 novos):
+- `edit_carrega_lista_de_beasts_disponiveis` — pool inclui só `is_active=true`
+- `user_pode_atribuir_beast_a_team` — payload `teams.*.beast_id` persiste
+- `user_pode_remover_beast_setando_null`
+- `validacao_rejeita_beast_inexistente` — erro em `teams.0.beast_id`
+- `validacao_rejeita_beast_inativo`
+- `beasts_diferentes_por_team` — multi-team com beasts independentes
+- `best_beast_endpoint_seleciona_maior_buff_agregado` — 3×strength_buff:10=30 vence 1×int_buff:20=20
+- `best_beast_rejeita_team_vazio` (422 `team_empty`)
+- `best_beast_rejeita_heroes_sem_type` (422 `no_typed_heroes`)
+- `best_beast_403_se_team_de_outro_user`
+- `best_beast_404_se_team_nao_pertence_a_formation`
+
+**409 testes verdes** (+6 novos best-beast).

@@ -14,6 +14,7 @@ class FormationTeam extends Model
         'name',
         'score',
         'faction_bonuses',
+        'beast_id',
     ];
 
     protected $casts = [
@@ -30,5 +31,10 @@ class FormationTeam extends Model
     public function teamHeroes(): HasMany
     {
         return $this->hasMany(FormationTeamHero::class)->orderBy('slot');
+    }
+
+    public function beast(): BelongsTo
+    {
+        return $this->belongsTo(Beast::class);
     }
 }

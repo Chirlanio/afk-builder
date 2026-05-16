@@ -18,7 +18,6 @@ class Formation extends Model
         'notes',
         'total_score',
         'share_token',
-        'beast_id',
         'scoring_weights_override',
     ];
 
@@ -46,11 +45,6 @@ class Formation extends Model
     public function versions(): HasMany
     {
         return $this->hasMany(FormationVersion::class)->orderByDesc('created_at');
-    }
-
-    public function beast(): BelongsTo
-    {
-        return $this->belongsTo(Beast::class);
     }
 
     public function tags(): BelongsToMany

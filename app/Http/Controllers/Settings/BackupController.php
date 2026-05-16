@@ -138,7 +138,7 @@ class BackupController extends Controller
         return $user->formations()
             ->with([
                 'challengeType:id,code',
-                'beast:id,slug',
+                'teams.beast:id,slug',
                 'teams.teamHeroes.hero:id,slug',
                 'tags:id,name,color',
             ])
@@ -149,12 +149,12 @@ class BackupController extends Controller
                 'mode' => $f->mode,
                 'teams_count' => $f->teams_count,
                 'notes' => $f->notes,
-                'beast_slug' => $f->beast?->slug,
                 'scoring_weights_override' => $f->scoring_weights_override,
                 'tag_names' => $f->tags->pluck('name')->all(),
                 'teams' => $f->teams->map(fn ($t) => [
                     'position' => $t->position,
                     'name' => $t->name,
+                    'beast_slug' => $t->beast?->slug,
                     'heroes' => $t->teamHeroes->map(fn ($th) => [
                         'slot' => $th->slot,
                         'hero_slug' => $th->hero?->slug,
@@ -458,7 +458,6 @@ class BackupController extends Controller
                 'mode' => $row['mode'] ?? 'target',
                 'teams_count' => $row['teams_count'] ?? 1,
                 'notes' => $row['notes'] ?? null,
-                'beast_id' => $beastIdsBySlug[$row['beast_slug'] ?? ''] ?? null,
                 'scoring_weights_override' => $row['scoring_weights_override'] ?? null,
             ]);
 
@@ -471,10 +470,18 @@ class BackupController extends Controller
                 $formation->tags()->sync($tagIds);
             }
 
+            // Fase 48: backfill backward-compat — backups antigos com beast_slug no top-level
+            // são aplicados a todos os teams (mesma lógica da migration).
+            $legacyBeastId = $beastIdsBySlug[$row['beast_slug'] ?? ''] ?? null;
+
             foreach ($row['teams'] ?? [] as $teamRow) {
+                // Fase 48: beast_slug agora vem por team; fallback no legacy top-level se ausente.
+                $teamBeastId = $beastIdsBySlug[$teamRow['beast_slug'] ?? ''] ?? $legacyBeastId;
+
                 $team = $formation->teams()->create([
                     'position' => $teamRow['position'] ?? 1,
                     'name' => $teamRow['name'] ?? null,
+                    'beast_id' => $teamBeastId,
                 ]);
                 foreach ($teamRow['heroes'] ?? [] as $heroRow) {
                     $heroId = $heroIdsBySlug[$heroRow['hero_slug'] ?? ''] ?? null;

@@ -6,6 +6,7 @@ use App\Models\Beast;
 use App\Models\ChallengeType;
 use App\Models\Faction;
 use App\Models\Formation;
+use App\Models\FormationTeam;
 use App\Models\Hero;
 use App\Models\HeroClass;
 use App\Models\HeroFeature;
@@ -36,6 +37,14 @@ class FormationController extends Controller
 {
     public function index(Request $request): Response
     {
+        // Fase 48: pré-calcula has_beast por formation via subquery agregada — evita N+1
+        // sem carregar a relação teams na listagem.
+        $formationIdsWithBeast = $request->user()
+            ->formations()
+            ->whereHas('teams', fn ($q) => $q->whereNotNull('beast_id'))
+            ->pluck('id')
+            ->all();
+
         $formations = $request->user()
             ->formations()
             ->with([
@@ -50,16 +59,16 @@ class FormationController extends Controller
                 'teams_count',
                 'total_score',
                 'challenge_type_id',
-                'beast_id',
                 'share_token',
                 'notes',
                 'updated_at',
             ])
-            ->map(function (Formation $f) {
+            ->map(function (Formation $f) use ($formationIdsWithBeast) {
                 // Não enviar o corpo da nota (pode ser grande); só sinalizar presença.
                 $hasNotes = ! empty(trim((string) $f->notes));
                 $f->makeHidden(['notes']);
                 $f->setAttribute('has_notes', $hasNotes);
+                $f->setAttribute('has_beast', in_array($f->id, $formationIdsWithBeast, true));
 
                 return $f;
             });
@@ -138,7 +147,7 @@ class FormationController extends Controller
         $formation->load([
             'challengeType:id,code,scoring_profile,name_pt,description,min_teams,max_teams,is_pvp,teams_must_be_unique',
             'teams.teamHeroes:id,formation_team_id,hero_id,slot,row',
-            'beast:id,slug,name,strength_buff,intelligence_buff,agility_buff,portrait_url,tier',
+            'teams.beast:id,slug,name,strength_buff,intelligence_buff,agility_buff,portrait_url,tier',
             'tags:id,name,color',
         ]);
 
@@ -253,7 +262,7 @@ class FormationController extends Controller
 
                 continue;
             }
-            $breakdown = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $formation->beast, $ctx);
+            $breakdown = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $team->beast, $ctx);
             $scores[$team->position] = $breakdown->toArray();
         }
 
@@ -302,7 +311,6 @@ class FormationController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'beast_id' => ['nullable', 'integer', Rule::exists('beasts', 'id')->where('is_active', true)],
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => [
                 'integer',
@@ -311,6 +319,7 @@ class FormationController extends Controller
             'teams' => ['required', 'array', 'min:'.$formation->teams_count, 'max:'.$formation->teams_count],
             'teams.*.position' => ['required', 'integer', 'min:1', 'max:'.$formation->teams_count],
             'teams.*.name' => ['nullable', 'string', 'max:60'],
+            'teams.*.beast_id' => ['nullable', 'integer', Rule::exists('beasts', 'id')->where('is_active', true)],
             'teams.*.heroes' => ['array', 'max:5'],
             'teams.*.heroes.*.slot' => ['required', 'integer', 'min:1', 'max:5'],
             'teams.*.heroes.*.hero_id' => ['required', 'integer', Rule::exists('heroes', 'id')->where('is_active', true)],
@@ -350,7 +359,6 @@ class FormationController extends Controller
             $formation->update([
                 'name' => $data['name'],
                 'notes' => $data['notes'] ?? null,
-                'beast_id' => $data['beast_id'] ?? null,
             ]);
 
             // Fase 35: sync tags (full-replace, igual ao padrão dos teams)
@@ -366,7 +374,10 @@ class FormationController extends Controller
                     continue;
                 }
 
-                $team->update(['name' => $teamPayload['name'] ?? null]);
+                $team->update([
+                    'name' => $teamPayload['name'] ?? null,
+                    'beast_id' => $teamPayload['beast_id'] ?? null,
+                ]);
 
                 $team->teamHeroes()->delete();
 
@@ -393,7 +404,7 @@ class FormationController extends Controller
 
         $formation->load([
             'challengeType:id,code,scoring_profile,teams_must_be_unique',
-            'beast:id,strength_buff,intelligence_buff,agility_buff,tier',
+            'teams.beast:id,strength_buff,intelligence_buff,agility_buff,tier',
         ]);
 
         $teamsCount = $formation->teams_count;
@@ -415,6 +426,9 @@ class FormationController extends Controller
         if ($targetTeam === null) {
             abort(404);
         }
+
+        $teamModel = $formation->teams->firstWhere('position', $position);
+        $teamBeast = $teamModel?->beast;
 
         $lockedSlots = collect($targetTeam['heroes'] ?? [])
             ->keyBy('slot')
@@ -451,7 +465,7 @@ class FormationController extends Controller
             $profile,
             array_values($lockedHeroIds),
             $blockedHeroIds,
-            $formation->beast,
+            $teamBeast,
             $ctx,
         );
 
@@ -491,7 +505,6 @@ class FormationController extends Controller
 
         $formation->load([
             'challengeType:id,code,scoring_profile,teams_must_be_unique',
-            'beast:id,strength_buff,intelligence_buff,agility_buff,tier',
         ]);
 
         $teamsCount = $formation->teams_count;
@@ -531,6 +544,9 @@ class FormationController extends Controller
         }
         $ctx = $this->loadScoringContext($formation, $heroPoolById, $userHeroesById);
 
+        // Fase 48: suggestAll otimiza só distribuição de heróis entre teams. Beasts por
+        // team são definidas separadamente (endpoint best-beast por team) — passar null aqui
+        // evita a complexidade de avaliar combinações team×beast num único otimizador multi-team.
         $result = $partitioner->optimize(
             $heroPoolById,
             $userHeroesById,
@@ -539,7 +555,7 @@ class FormationController extends Controller
             $lockedByTeam,
             $teamsCount,
             (bool) $formation->challengeType->teams_must_be_unique,
-            $formation->beast,
+            null,
             $ctx,
         );
 
@@ -610,6 +626,83 @@ class FormationController extends Controller
         $formation->delete();
 
         return redirect()->route('formations.index');
+    }
+
+    /**
+     * Calcula a melhor besta pra um team específico baseado nos heróis posicionados.
+     * Critério: maior buff agregado = Σ (buff[type] × count de heroes daquele type).
+     * Persiste a escolha no team.beast_id e retorna o beast escolhido.
+     */
+    public function bestBeast(Request $request, Formation $formation, FormationTeam $team): JsonResponse
+    {
+        abort_unless($formation->user_id === $request->user()->id, 403);
+        abort_unless($team->formation_id === $formation->id, 404);
+
+        $heroIds = $team->teamHeroes()->pluck('hero_id')->all();
+        if (empty($heroIds)) {
+            return response()->json([
+                'ok' => false,
+                'reason' => 'team_empty',
+                'message' => 'Adicione heróis ao time antes de escolher a melhor besta.',
+            ], 422);
+        }
+
+        // Conta heroes por type (strength/intelligence/agility). Heroes sem type contam zero.
+        $typeCounts = Hero::whereIn('id', $heroIds)
+            ->whereNotNull('type')
+            ->selectRaw('type, COUNT(*) as total')
+            ->groupBy('type')
+            ->pluck('total', 'type')
+            ->all();
+
+        if (empty($typeCounts)) {
+            return response()->json([
+                'ok' => false,
+                'reason' => 'no_typed_heroes',
+                'message' => 'Nenhum herói do time tem tipo definido (Força/Inteligência/Agilidade).',
+            ], 422);
+        }
+
+        $beasts = Beast::query()
+            ->where('is_active', true)
+            ->get(['id', 'slug', 'name', 'strength_buff', 'intelligence_buff', 'agility_buff', 'portrait_url']);
+
+        if ($beasts->isEmpty()) {
+            return response()->json([
+                'ok' => false,
+                'reason' => 'no_beasts',
+                'message' => 'Nenhuma besta ativa cadastrada.',
+            ], 422);
+        }
+
+        $best = null;
+        $bestScore = -1;
+        foreach ($beasts as $beast) {
+            $score = ($beast->strength_buff * ($typeCounts['strength'] ?? 0))
+                + ($beast->intelligence_buff * ($typeCounts['intelligence'] ?? 0))
+                + ($beast->agility_buff * ($typeCounts['agility'] ?? 0));
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = $beast;
+            }
+        }
+
+        if ($best === null || $bestScore <= 0) {
+            return response()->json([
+                'ok' => false,
+                'reason' => 'no_buff_match',
+                'message' => 'Nenhuma besta beneficia os tipos deste time.',
+            ], 422);
+        }
+
+        $team->update(['beast_id' => $best->id]);
+
+        return response()->json([
+            'ok' => true,
+            'beast' => $best,
+            'score' => $bestScore,
+        ]);
     }
 
     /**

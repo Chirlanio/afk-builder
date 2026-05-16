@@ -16,6 +16,7 @@ import type { ChallengeType, Formation, FormationMode } from '@/types/afk';
 interface FormationListItem extends Formation {
     challenge_type: ChallengeType;
     has_notes: boolean;
+    has_beast: boolean;
     tags: FormationTagPayload[];
 }
 
@@ -72,8 +73,8 @@ export default function FormationsIndex({ formations, availableChallengeTypes, a
                 if (!hasAny) return false;
             }
             if (filters.mode !== 'all' && f.mode !== filters.mode) return false;
-            if (filters.hasBeast === 'yes' && f.beast_id === null) return false;
-            if (filters.hasBeast === 'no' && f.beast_id !== null) return false;
+            if (filters.hasBeast === 'yes' && !f.has_beast) return false;
+            if (filters.hasBeast === 'no' && f.has_beast) return false;
             if (filters.hasShare === 'yes' && !f.share_token) return false;
             if (filters.hasShare === 'no' && f.share_token) return false;
             if (filters.hasNotes === 'yes' && !f.has_notes) return false;
@@ -283,7 +284,7 @@ export default function FormationsIndex({ formations, availableChallengeTypes, a
                                                 PvP
                                             </Badge>
                                         )}
-                                        {formation.beast_id !== null && (
+                                        {formation.has_beast && (
                                             <Badge variant="outline" className="gap-1 border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
                                                 <PawPrint className="size-3" />
                                                 Beast

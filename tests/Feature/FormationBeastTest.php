@@ -4,7 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Beast;
 use App\Models\ChallengeType;
+use App\Models\Faction;
 use App\Models\Formation;
+use App\Models\Hero;
+use App\Models\HeroClass;
+use App\Models\Tier;
 use App\Models\User;
 use Database\Seeders\ChallengeTypeSeeder;
 use Database\Seeders\FactionSeeder;
@@ -23,18 +27,35 @@ class FormationBeastTest extends TestCase
         $this->seed([FactionSeeder::class, HeroClassSeeder::class, TierSeeder::class, ChallengeTypeSeeder::class]);
     }
 
-    private function makeFormation(User $user): Formation
+    private function makeFormation(User $user, int $teamsCount = 1): Formation
     {
         $challenge = ChallengeType::where('code', 'campaign')->firstOrFail();
         $formation = $user->formations()->create([
             'challenge_type_id' => $challenge->id,
             'name' => 'Test Formation',
             'mode' => 'real',
-            'teams_count' => 1,
+            'teams_count' => $teamsCount,
         ]);
-        $formation->teams()->create(['position' => 1]);
+
+        for ($pos = 1; $pos <= $teamsCount; $pos++) {
+            $formation->teams()->create(['position' => $pos]);
+        }
 
         return $formation;
+    }
+
+    private function makeHero(string $slug, ?string $type = null): Hero
+    {
+        return Hero::create([
+            'slug' => $slug,
+            'name' => ucfirst($slug),
+            'faction_id' => Faction::where('code', 'lightbearer')->value('id'),
+            'hero_class_id' => HeroClass::where('code', 'tank')->value('id'),
+            'tier_id' => Tier::where('code', 'ascended')->value('id'),
+            'type' => $type,
+            'is_active' => true,
+            'pending_review' => false,
+        ]);
     }
 
     public function test_edit_carrega_lista_de_beasts_disponiveis(): void
@@ -53,7 +74,7 @@ class FormationBeastTest extends TestCase
             );
     }
 
-    public function test_user_pode_atribuir_beast_a_formacao(): void
+    public function test_user_pode_atribuir_beast_a_team(): void
     {
         $user = User::factory()->create();
         $formation = $this->makeFormation($user);
@@ -62,14 +83,14 @@ class FormationBeastTest extends TestCase
         $this->actingAs($user)
             ->patch("/formations/{$formation->id}", [
                 'name' => 'Test Formation',
-                'beast_id' => $beast->id,
                 'teams' => [
-                    ['position' => 1, 'name' => null, 'heroes' => []],
+                    ['position' => 1, 'name' => null, 'beast_id' => $beast->id, 'heroes' => []],
                 ],
             ])
             ->assertRedirect();
 
-        $this->assertSame($beast->id, $formation->fresh()->beast_id);
+        $team = $formation->teams()->where('position', 1)->first();
+        $this->assertSame($beast->id, $team->beast_id);
     }
 
     public function test_user_pode_remover_beast_setando_null(): void
@@ -77,19 +98,18 @@ class FormationBeastTest extends TestCase
         $user = User::factory()->create();
         $formation = $this->makeFormation($user);
         $beast = Beast::create(['slug' => 'dreary-ball', 'name' => 'Dreary Ball']);
-        $formation->update(['beast_id' => $beast->id]);
+        $formation->teams()->first()->update(['beast_id' => $beast->id]);
 
         $this->actingAs($user)
             ->patch("/formations/{$formation->id}", [
                 'name' => 'Test Formation',
-                'beast_id' => null,
                 'teams' => [
-                    ['position' => 1, 'name' => null, 'heroes' => []],
+                    ['position' => 1, 'name' => null, 'beast_id' => null, 'heroes' => []],
                 ],
             ])
             ->assertRedirect();
 
-        $this->assertNull($formation->fresh()->beast_id);
+        $this->assertNull($formation->teams()->first()->beast_id);
     }
 
     public function test_validacao_rejeita_beast_inexistente(): void
@@ -100,12 +120,11 @@ class FormationBeastTest extends TestCase
         $this->actingAs($user)
             ->patch("/formations/{$formation->id}", [
                 'name' => 'Test Formation',
-                'beast_id' => 9999,
                 'teams' => [
-                    ['position' => 1, 'name' => null, 'heroes' => []],
+                    ['position' => 1, 'name' => null, 'beast_id' => 9999, 'heroes' => []],
                 ],
             ])
-            ->assertSessionHasErrors('beast_id');
+            ->assertSessionHasErrors('teams.0.beast_id');
     }
 
     public function test_validacao_rejeita_beast_inativo(): void
@@ -117,11 +136,116 @@ class FormationBeastTest extends TestCase
         $this->actingAs($user)
             ->patch("/formations/{$formation->id}", [
                 'name' => 'Test Formation',
-                'beast_id' => $inactive->id,
                 'teams' => [
-                    ['position' => 1, 'name' => null, 'heroes' => []],
+                    ['position' => 1, 'name' => null, 'beast_id' => $inactive->id, 'heroes' => []],
                 ],
             ])
-            ->assertSessionHasErrors('beast_id');
+            ->assertSessionHasErrors('teams.0.beast_id');
+    }
+
+    public function test_beasts_diferentes_por_team(): void
+    {
+        $user = User::factory()->create();
+        $formation = $this->makeFormation($user, teamsCount: 2);
+        $beastA = Beast::create(['slug' => 'beast-a', 'name' => 'A', 'is_active' => true]);
+        $beastB = Beast::create(['slug' => 'beast-b', 'name' => 'B', 'is_active' => true]);
+
+        $this->actingAs($user)
+            ->patch("/formations/{$formation->id}", [
+                'name' => 'Test Formation',
+                'teams' => [
+                    ['position' => 1, 'name' => null, 'beast_id' => $beastA->id, 'heroes' => []],
+                    ['position' => 2, 'name' => null, 'beast_id' => $beastB->id, 'heroes' => []],
+                ],
+            ])
+            ->assertRedirect();
+
+        $teams = $formation->teams()->orderBy('position')->get();
+        $this->assertSame($beastA->id, $teams[0]->beast_id);
+        $this->assertSame($beastB->id, $teams[1]->beast_id);
+    }
+
+    public function test_best_beast_endpoint_seleciona_maior_buff_agregado(): void
+    {
+        $user = User::factory()->create();
+        $formation = $this->makeFormation($user);
+
+        // Team com 3 heroes strength + 1 intelligence
+        $heroes = [
+            $this->makeHero('h1', 'strength'),
+            $this->makeHero('h2', 'strength'),
+            $this->makeHero('h3', 'strength'),
+            $this->makeHero('h4', 'intelligence'),
+        ];
+
+        $team = $formation->teams()->first();
+        foreach ($heroes as $idx => $hero) {
+            $team->teamHeroes()->create(['hero_id' => $hero->id, 'slot' => $idx + 1]);
+        }
+
+        $beastStr = Beast::create(['slug' => 'b-str', 'name' => 'Strength Beast', 'strength_buff' => 10, 'is_active' => true]);
+        $beastInt = Beast::create(['slug' => 'b-int', 'name' => 'Int Beast', 'intelligence_buff' => 20, 'is_active' => true]);
+        $beastAgi = Beast::create(['slug' => 'b-agi', 'name' => 'Agi Beast', 'agility_buff' => 50, 'is_active' => true]);
+
+        $this->actingAs($user)
+            ->postJson("/formations/{$formation->id}/teams/{$team->id}/best-beast")
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('beast.id', $beastStr->id); // 3×10 = 30 > 1×20 = 20 > 0
+
+        $this->assertSame($beastStr->id, $team->fresh()->beast_id);
+    }
+
+    public function test_best_beast_rejeita_team_vazio(): void
+    {
+        $user = User::factory()->create();
+        $formation = $this->makeFormation($user);
+        Beast::create(['slug' => 'b', 'name' => 'B', 'strength_buff' => 10, 'is_active' => true]);
+
+        $team = $formation->teams()->first();
+        $this->actingAs($user)
+            ->postJson("/formations/{$formation->id}/teams/{$team->id}/best-beast")
+            ->assertStatus(422)
+            ->assertJsonPath('reason', 'team_empty');
+    }
+
+    public function test_best_beast_rejeita_heroes_sem_type(): void
+    {
+        $user = User::factory()->create();
+        $formation = $this->makeFormation($user);
+        $hero = $this->makeHero('typeless', null);
+        $team = $formation->teams()->first();
+        $team->teamHeroes()->create(['hero_id' => $hero->id, 'slot' => 1]);
+
+        Beast::create(['slug' => 'b', 'name' => 'B', 'strength_buff' => 10, 'is_active' => true]);
+
+        $this->actingAs($user)
+            ->postJson("/formations/{$formation->id}/teams/{$team->id}/best-beast")
+            ->assertStatus(422)
+            ->assertJsonPath('reason', 'no_typed_heroes');
+    }
+
+    public function test_best_beast_403_se_team_de_outro_user(): void
+    {
+        $owner = User::factory()->create();
+        $intruder = User::factory()->create();
+        $formation = $this->makeFormation($owner);
+        $team = $formation->teams()->first();
+
+        $this->actingAs($intruder)
+            ->postJson("/formations/{$formation->id}/teams/{$team->id}/best-beast")
+            ->assertForbidden();
+    }
+
+    public function test_best_beast_404_se_team_nao_pertence_a_formation(): void
+    {
+        $user = User::factory()->create();
+        $formationA = $this->makeFormation($user);
+        $formationB = $this->makeFormation($user);
+        $teamOther = $formationB->teams()->first();
+
+        $this->actingAs($user)
+            ->postJson("/formations/{$formationA->id}/teams/{$teamOther->id}/best-beast")
+            ->assertNotFound();
     }
 }
