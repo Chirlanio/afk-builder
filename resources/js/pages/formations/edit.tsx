@@ -109,6 +109,7 @@ export default function FormationsEdit({
     const [notes, setNotes] = useState<string>(formation.notes ?? '');
     const [teams, setTeams] = useState<TeamSlotsState[]>(() => teamsFromFormation(formation.teams, formation.teams_count));
     const [pickingBeastForTeamPos, setPickingBeastForTeamPos] = useState<number | null>(null);
+    const [bestBeastError, setBestBeastError] = useState<string | null>(null);
     const [teamsCountDialogOpen, setTeamsCountDialogOpen] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -208,14 +209,22 @@ export default function FormationsEdit({
             if (!teamId) return;
 
             setPickingBeastForTeamPos(teamPos);
+            setBestBeastError(null);
             try {
-                const response = await axios.post<{ ok: boolean; beast?: Beast }>(
+                const response = await axios.post<{ ok: boolean; beast?: Beast; message?: string }>(
                     `/formations/${formation.id}/teams/${teamId}/best-beast`,
                 );
                 if (response.data.ok && response.data.beast) {
                     setBeastForTeam(teamPos, response.data.beast.id);
                 }
             } catch (error) {
+                // 422 do backend traz { ok: false, reason, message } — surface a mensagem pro user
+                // (motivos: team_empty, no_typed_heroes, no_beasts, no_buff_match).
+                let message = 'Falha ao escolher a melhor besta.';
+                if (axios.isAxiosError(error) && error.response?.data?.message) {
+                    message = `Equipe ${teamPos}: ${error.response.data.message}`;
+                }
+                setBestBeastError(message);
                 console.error('Falha ao escolher melhor besta:', error);
             } finally {
                 setPickingBeastForTeamPos(null);
@@ -965,6 +974,26 @@ export default function FormationsEdit({
                     tierById={tierById}
                     scoresByTeamPosition={scoresByTeamPosition}
                 />
+
+                {/* Toast pro erro do botão Auto besta — explica o motivo (team vazio, heroes sem type, etc.) */}
+                {bestBeastError && (
+                    <div
+                        role="alert"
+                        className="fixed bottom-4 left-1/2 z-50 max-w-md -translate-x-1/2 rounded-lg border border-amber-500 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 shadow-lg dark:text-amber-300"
+                    >
+                        <div className="flex items-start gap-2">
+                            <span className="flex-1">{bestBeastError}</span>
+                            <button
+                                type="button"
+                                onClick={() => setBestBeastError(null)}
+                                className="rounded p-0.5 hover:bg-amber-500/20"
+                                aria-label="Fechar"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Toast minimalista pro erro de export */}
                 {exportError && (

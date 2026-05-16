@@ -225,6 +225,24 @@ class FormationBeastTest extends TestCase
             ->assertJsonPath('reason', 'no_typed_heroes');
     }
 
+    public function test_best_beast_rejeita_quando_bestas_sem_buff_configurado(): void
+    {
+        $user = User::factory()->create();
+        $formation = $this->makeFormation($user);
+        $hero = $this->makeHero('h1', 'strength');
+        $team = $formation->teams()->first();
+        $team->teamHeroes()->create(['hero_id' => $hero->id, 'slot' => 1]);
+
+        // Várias bestas todas com buff=0 (cenário do admin que esqueceu de configurar)
+        Beast::create(['slug' => 'b1', 'name' => 'B1', 'is_active' => true]);
+        Beast::create(['slug' => 'b2', 'name' => 'B2', 'is_active' => true]);
+
+        $this->actingAs($user)
+            ->postJson("/formations/{$formation->id}/teams/{$team->id}/best-beast")
+            ->assertStatus(422)
+            ->assertJsonPath('reason', 'beasts_without_buffs');
+    }
+
     public function test_best_beast_403_se_team_de_outro_user(): void
     {
         $owner = User::factory()->create();

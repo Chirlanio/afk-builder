@@ -728,6 +728,19 @@ class FormationController extends Controller
             ], 422);
         }
 
+        // Detecta cenário comum: todas as bestas têm buff=0 (admin nunca preencheu os valores).
+        // Distinguir de "nenhuma casa com o time" ajuda o user a entender o que fazer.
+        $anyBeastHasBuff = $beasts->contains(
+            fn ($b) => $b->strength_buff > 0 || $b->intelligence_buff > 0 || $b->agility_buff > 0,
+        );
+        if (! $anyBeastHasBuff) {
+            return response()->json([
+                'ok' => false,
+                'reason' => 'beasts_without_buffs',
+                'message' => 'Bestas cadastradas não têm buffs (Força/Inteligência/Agilidade) configurados. Peça a um admin pra preencher.',
+            ], 422);
+        }
+
         $best = null;
         $bestScore = -1;
         foreach ($beasts as $beast) {
@@ -742,10 +755,12 @@ class FormationController extends Controller
         }
 
         if ($best === null || $bestScore <= 0) {
+            $typesInTeam = collect($typeCounts)->keys()->implode(', ');
+
             return response()->json([
                 'ok' => false,
                 'reason' => 'no_buff_match',
-                'message' => 'Nenhuma besta beneficia os tipos deste time.',
+                'message' => "Nenhuma besta tem buff pros tipos deste time ({$typesInTeam}).",
             ], 422);
         }
 
