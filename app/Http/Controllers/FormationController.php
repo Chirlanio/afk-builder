@@ -629,6 +629,59 @@ class FormationController extends Controller
     }
 
     /**
+     * Altera quantas equipes a formation tem. Valida contra min_teams/max_teams do challenge_type.
+     * Aumentar: cria teams vazios nas novas posições.
+     * Diminuir: deleta teams (e team_heroes via cascade FK) das posições removidas — destrutivo.
+     */
+    public function updateTeamsCount(
+        Request $request,
+        Formation $formation,
+        FormationVersioning $versioning,
+    ): RedirectResponse {
+        abort_unless($formation->user_id === $request->user()->id, 403);
+
+        $challengeType = $formation->challengeType;
+
+        $data = $request->validate([
+            'teams_count' => [
+                'required',
+                'integer',
+                'min:'.$challengeType->min_teams,
+                'max:'.$challengeType->max_teams,
+            ],
+        ]);
+
+        $current = $formation->teams_count;
+        $next = $data['teams_count'];
+
+        if ($next === $current) {
+            return back();
+        }
+
+        // Snapshot antes de mexer — diminuir é destrutivo, user pode querer restaurar.
+        $versioning->snapshot($formation);
+
+        DB::transaction(function () use ($formation, $current, $next) {
+            if ($next > $current) {
+                // Aumenta: cria teams vazios nas novas posições.
+                for ($pos = $current + 1; $pos <= $next; $pos++) {
+                    $formation->teams()->create(['position' => $pos]);
+                }
+            } else {
+                // Diminui: remove teams das posições > next (cascade limpa team_heroes).
+                $formation->teams()
+                    ->where('position', '>', $next)
+                    ->get()
+                    ->each(fn ($team) => $team->delete());
+            }
+
+            $formation->update(['teams_count' => $next]);
+        });
+
+        return back();
+    }
+
+    /**
      * Calcula a melhor besta pra um team específico baseado nos heróis posicionados.
      * Critério: maior buff agregado = Σ (buff[type] × count de heroes daquele type).
      * Persiste a escolha no team.beast_id e retorna o beast escolhido.

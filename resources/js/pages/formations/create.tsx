@@ -47,7 +47,7 @@ export default function FormationsCreate({ challengeTypes }: PageProps) {
     };
 
     const teamsCount = form.data.teams_count ?? selected?.max_teams ?? 1;
-    const showTeamsCountInput = selected && selected.min_teams !== selected.max_teams;
+    const teamsCountLocked = !!selected && selected.min_teams === selected.max_teams;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -121,22 +121,32 @@ export default function FormationsCreate({ challengeTypes }: PageProps) {
                         )}
                     </div>
 
-                    {showTeamsCountInput && (
+                    {selected && (
                         <div className="space-y-1.5">
                             <Label htmlFor="teams_count">Quantidade de equipes</Label>
                             <Input
                                 id="teams_count"
                                 type="number"
-                                min={selected!.min_teams}
-                                max={selected!.max_teams}
+                                min={selected.min_teams}
+                                max={selected.max_teams}
                                 value={teamsCount}
+                                readOnly={teamsCountLocked}
+                                disabled={teamsCountLocked}
                                 onChange={(e) =>
                                     form.setData(
                                         'teams_count',
-                                        Math.min(selected!.max_teams, Math.max(selected!.min_teams, Number(e.target.value) || selected!.min_teams)),
+                                        Math.min(selected.max_teams, Math.max(selected.min_teams, Number(e.target.value) || selected.min_teams)),
                                     )
                                 }
                             />
+                            <p className="text-[11px] text-muted-foreground">
+                                {teamsCountLocked
+                                    ? `Este desafio requer exatamente ${selected.max_teams} ${selected.max_teams === 1 ? 'equipe' : 'equipes'}.`
+                                    : `Entre ${selected.min_teams} e ${selected.max_teams} equipes. Você pode alterar depois.`}
+                            </p>
+                            {form.errors.teams_count && (
+                                <p className="text-xs text-destructive">{form.errors.teams_count}</p>
+                            )}
                         </div>
                     )}
 

@@ -2,6 +2,7 @@ import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseS
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import { Copy, Download, FileText, History, Link2, Loader2, MoreHorizontal, RotateCcw, Save, Share2, Sparkles, Target, Trash2, Users } from 'lucide-react';
+import { TeamsCountDialog } from '@/components/teams-count-dialog';
 import { useCallback, useMemo, useState } from 'react';
 import { EditorPool } from '@/components/formation-editor/editor-pool';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
@@ -108,6 +109,7 @@ export default function FormationsEdit({
     const [notes, setNotes] = useState<string>(formation.notes ?? '');
     const [teams, setTeams] = useState<TeamSlotsState[]>(() => teamsFromFormation(formation.teams, formation.teams_count));
     const [pickingBeastForTeamPos, setPickingBeastForTeamPos] = useState<number | null>(null);
+    const [teamsCountDialogOpen, setTeamsCountDialogOpen] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [suggestingTeamPos, setSuggestingTeamPos] = useState<number | null>(null);
@@ -710,6 +712,28 @@ export default function FormationsEdit({
                     {/* Linha 2: badges + beast selector */}
                     <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="secondary">{formation.challenge_type.name_pt}</Badge>
+                        {(() => {
+                            const minT = formation.challenge_type.min_teams ?? 1;
+                            const maxT = formation.challenge_type.max_teams ?? 1;
+                            const adjustable = minT !== maxT;
+                            return (
+                                <button
+                                    type="button"
+                                    onClick={() => adjustable && setTeamsCountDialogOpen(true)}
+                                    disabled={!adjustable}
+                                    className={cn(
+                                        'inline-flex h-6 items-center gap-1 rounded-md border bg-background px-2 text-xs font-medium',
+                                        adjustable
+                                            ? 'cursor-pointer hover:border-primary hover:text-primary'
+                                            : 'cursor-default text-muted-foreground',
+                                    )}
+                                    title={adjustable ? 'Clique para ajustar a quantidade de equipes' : `Este desafio fixa em ${maxT} equipe(s)`}
+                                >
+                                    <Users className="size-3" />
+                                    {formation.teams_count} {formation.teams_count === 1 ? 'equipe' : 'equipes'}
+                                </button>
+                            );
+                        })()}
                         {formation.mode === 'target' && (
                             <Badge variant="outline" className="gap-1">
                                 <Target className="size-3" />
@@ -898,6 +922,16 @@ export default function FormationsEdit({
                         setNotes(v);
                         setIsDirty(true);
                     }}
+                />
+
+                {/* Fase 50: dialog pra mudar quantidade de equipes */}
+                <TeamsCountDialog
+                    open={teamsCountDialogOpen}
+                    onOpenChange={setTeamsCountDialogOpen}
+                    formationId={formation.id}
+                    currentCount={formation.teams_count}
+                    minTeams={formation.challenge_type.min_teams ?? 1}
+                    maxTeams={formation.challenge_type.max_teams ?? 1}
                 />
 
                 {/* Preview off-screen pra export PNG (Fase 36) */}

@@ -2981,3 +2981,43 @@ Custo desprezível (UserHero já existe e é indexado por hero_id; 11 cols leves
 - `roster_isolado_por_user` — payload do user B não contém heroes do roster do user A
 
 **411 testes verdes** (+2 novos).
+
+### ✅ Fase 50 — Quantidade de equipes ajustável (criação + edição)
+
+A opção "Quantidade de equipes" agora é sempre visível na criação (mesmo quando o tipo de desafio fixa em 1) e pode ser **alterada depois de criada** via dialog dedicado no editor — aumentar cria teams vazios nas novas posições, diminuir apaga os excedentes (com versionamento pra rollback).
+
+#### Backend
+- **Novo endpoint `PATCH /formations/{formation}/teams-count`** (`FormationController::updateTeamsCount`):
+  - Valida `teams_count` contra `min_teams`/`max_teams` do `challenge_type` (não acopla com o `update` geral)
+  - **Aumentar**: cria teams vazios nas posições `current+1..next`
+  - **Diminuir**: deleta teams nas posições `> next` (cascade FK limpa `team_heroes`)
+  - Snapshot via `FormationVersioning` antes de mexer (diminuir é destrutivo — user restaura via histórico se errar)
+  - No-op silencioso quando `next === current`
+- Rota nomeada `formations.teams-count.update` ordenada antes das rotas com `{team}` (route binding)
+
+#### Frontend
+- **`formations/create.tsx`**: input "Quantidade de equipes" **sempre visível** quando challenge type está selecionado. Quando `min === max`, vira readonly + disabled com mensagem "Este desafio requer exatamente N equipe(s)". Quando há range, mensagem "Entre X e Y equipes. Você pode alterar depois." reforça que é editável depois.
+- **`components/teams-count-dialog.tsx`** (novo): dialog com input numérico clamped contra min/max, badge de aviso destacado quando user reduz ("vai apagar equipes X–N, heróis posicionados e beasts"), botão Aplicar desabilitado quando valor não mudou ou o desafio é fixed.
+- **`formations/edit.tsx`**: na linha 2 do header, substitui badge estática por **botão clicável** "N equipe(s)" com ícone `Users` — abre o dialog. Quando `min === max`, fica visualmente estático e título `title` explica.
+
+#### Trade-offs
+- **Por que endpoint separado em vez de adicionar `teams_count` no `update` geral?** O `update` roda a cada save (heroes, beast, tags) e processa um array `teams` por posição. Embutir mudança de count exigiria validar/reordenar a cada save. Endpoint dedicado mantém o save quente sem regressão, e a mudança rara fica explicitamente isolada — mais fácil de adicionar UX como confirmação destrutiva, snapshot, etc.
+- **Por que diminuir apaga sem perguntar de novo, dado que o dialog já avisa?** O dialog **é** a confirmação — mostra o aviso amarelo + lista das posições que somem. Confirm dialog adicional seria fricção redundante. Versão preservada no histórico (`FormationVersioning::snapshot`) cobre o "ops".
+- **Por que snapshot de versão também ao aumentar (não só ao diminuir)?** Consistência operacional — qualquer mudança estrutural gera snapshot, padrão idêntico ao `update`. Custo é desprezível (1 row em `formation_versions`) e o user pode querer voltar ao estado anterior se experimentou e não gostou.
+- **Por que `whereColumn` em vez de `DB::raw('max_teams')` no teste?** Diferença é semântica: `where('a', '!=', DB::raw('b'))` compara `a` com a **string literal** `"b"` no SQLite (e dá warning em alguns drivers). `whereColumn('a', '!=', 'b')` é a forma idiomática Laravel pra comparar duas colunas.
+- **Por que arcane_labyrinth especificamente nos testes?** Range 1–5 é o mais amplo entre os com range no seeder; permite cobrir aumentar (2→4) e diminuir (4→2) num mesmo CT sem batê na borda. `heroes_of_esperia` (5–7) também tem range mas força usar valores ≥5 — menos flexível.
+- **Por que sempre mostrar o input na criação (mesmo readonly)?** "Por que não vejo a opção?" foi a pergunta original. Esconder por completo deixa a feature invisível; mostrar readonly + texto explicativo educa o user sobre as regras do desafio e fica consistente com challenge types que aceitam range.
+- **Por que o dialog faz `router.patch` (Inertia) e não `axios`?** O backend retorna `back()` (302); Inertia segue o redirect e recarrega os props (`teams`, `formation`). Com axios precisaria de reload manual. Inertia native é mais simples e mantém o histórico de navegação correto.
+
+#### Testes (`FormationTeamsCountTest`)
+8 cenários:
+- `create_aceita_teams_count_dentro_do_range` — payload do form de criação respeita o valor escolhido
+- `update_teams_count_aumenta_cria_teams_vazios` — 2 → 4 cria positions 3 e 4 vazios
+- `update_teams_count_diminui_apaga_teams_excedentes` — 4 → 2 apaga positions 3, 4 + team_heroes via cascade
+- `update_teams_count_no_op_quando_igual` — 3 → 3 sem alteração
+- `update_teams_count_rejeita_acima_do_max` (422)
+- `update_teams_count_rejeita_abaixo_do_min` (422)
+- `update_teams_count_403_de_outro_user`
+- `update_teams_count_gera_snapshot_de_versao` — `formation_versions` ganha 1 registro
+
+**419 testes verdes** (+8 novos).

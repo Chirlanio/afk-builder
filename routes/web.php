@@ -105,6 +105,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('formations/{formation}/teams/{team}/best-beast', [FormationController::class, 'bestBeast'])
         ->whereNumber('team')
         ->name('formations.teams.best-beast');
+    Route::patch('formations/{formation}/teams-count', [FormationController::class, 'updateTeamsCount'])
+        ->name('formations.teams-count.update');
     Route::post('formations/{formation}/suggest-all', [FormationController::class, 'suggestAll'])
         ->name('formations.suggest-all');
     Route::post('formations/{formation}/share', [FormationShareController::class, 'share'])
