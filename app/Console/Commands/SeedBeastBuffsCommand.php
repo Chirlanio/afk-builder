@@ -8,52 +8,130 @@ use Illuminate\Console\Command;
 class SeedBeastBuffsCommand extends Command
 {
     protected $signature = 'beasts:seed-buffs
-        {--force : Sobrescreve bestas que já tem algum buff > 0}';
+        {--force : Sobrescreve bestas que já têm buffs configurados}';
 
-    protected $description = 'Popula strength/intelligence/agility buffs nas bestas com valores baseados na meta do jogo. Por default, só atualiza bestas com os 3 buffs em 0.';
+    protected $description = 'Popula buffs_strength/intelligence/agility/team com valores % no nível 36 baseados na meta do jogo. Por default, não sobrescreve bestas com buffs já configurados.';
 
     /**
-     * Map slug → [strength, intelligence, agility].
-     * Valores em pontos (0-100). Heurísticos baseados no role e tier de cada besta no AFK Journey.
-     * Bestas omitidas ficam com 0/0/0.
+     * Map slug → buffs por scope no nível 36.
+     * Estrutura: ['scope' => ['stat_key' => valor_percentual]]
+     * Stats em % no nível máximo (36); o PowerCalculator escala pelo level/36 ao aplicar.
+     * Bestas omitidas ficam com buffs vazios (admin preenche depois).
+     *
+     * Valores são heurísticos baseados no tier/role no AFK Journey.
+     * Apenas thistlekin (Flordecardo) tem valores fornecidos pelo user — usados como referência;
+     * outras bestas seguem proporção similar ajustada por tier.
      */
     private const BUFFS = [
-        // S+ tier — top picks
-        'slumber-seal' => [40, 30, 80],          // Maior dano: principalmente carries (agi/str)
-        // S tier
-        'flutterplume-owl' => [40, 40, 40],      // Flexível: serve qualquer comp
-        'pandy-dumpty' => [50, 50, 50],          // Crit Rate/Amp universal
-        'nightfall-pegasus' => [45, 45, 30],     // Fabled — carry geral
-        'treatspector' => [35, 35, 35],          // Sobrevivência geral
-        // A tier
-        'aureus' => [30, 30, 60],                // Buffa carry (geralmente DPS agi)
-        'talismane' => [70, 20, 30],             // Buff massivo em 1 hero (geralmente tank str)
-        'ice-crown' => [20, 30, 60],             // Control + agi
-        'rock-crown-lizard' => [60, 20, 20],     // Defensiva: tank str
-        'fox-fatale' => [20, 60, 20],            // Charm: mage int
-        'trickery-chest' => [25, 50, 25],        // Energia: synergia com mage
-        // B tier
-        'phantasmoth' => [40, 20, 50],           // Normal attack carries (agi)
-        'pearlcrest-ibis' => [40, 20, 20],       // Defensiva tank
-        'savage-souffle' => [30, 30, 40],        // Energia + CC
-        'shroom-spooder' => [20, 50, 20],        // Debuffs: mage int
-        'winged-lion' => [40, 20, 30],           // Atk buff + def reduce
-        'count-snickerfang' => [25, 35, 25],     // Niche
-        // C tier
-        'bellbellow' => [25, 15, 15],            // Def
-        'blade-ridge' => [25, 25, 15],           // Res reduction (anti-boss)
-        'fire-breather' => [30, 15, 25],         // Dano CC immunity
-        'radish-rotunda' => [25, 25, 15],        // Def healer-friendly
-        // D tier
-        'polar-beast' => [15, 25, 15],           // Debuffs
-        'tufty-ears' => [20, 10, 15],            // Cleanse
-        'feline-vesperio' => [10, 10, 15],       // Obsoleto
-        'joyous-roamer' => [15, 10, 10],         // Fraco
-        // F tier (rara básica)
-        'dreary-ball' => [10, 5, 5],
-        'grassy-orb' => [5, 10, 15],
-        // Sem tier conhecido — deixa zerado (fica como "não sugerir")
-        // 'joyous-reamer', 'thistlekin'
+        // ── Referência fornecida pelo user (S+ tier, ainda que listada como sem tier no seeder)
+        'thistlekin' => [
+            'strength' => ['hp' => 17.59, 'defense' => 47.55, 'dodge' => 24.23, 'vitality' => 8.84, 'crit_block_rate' => 10.61, 'magic_resistance' => 66.09],
+            'team' => ['hp' => 14.03, 'attack' => 10.24, 'defense' => 37.93],
+        ],
+        // ── S+ tier
+        'slumber-seal' => [
+            'agility' => ['attack' => 20, 'crit_amp' => 30, 'crit_rate' => 15],
+            'team' => ['attack' => 15, 'crit_rate' => 8],
+        ],
+        // ── S tier
+        'flutterplume-owl' => [
+            'team' => ['hp' => 12, 'attack' => 12, 'defense' => 12, 'crit_rate' => 8],
+        ],
+        'pandy-dumpty' => [
+            'team' => ['crit_rate' => 20, 'crit_amp' => 25, 'attack' => 10],
+        ],
+        'nightfall-pegasus' => [
+            'strength' => ['hp' => 15, 'defense' => 25],
+            'intelligence' => ['hp' => 15, 'defense' => 25],
+            'team' => ['hp' => 10, 'attack' => 10, 'defense' => 15],
+        ],
+        'treatspector' => [
+            'team' => ['hp' => 20, 'defense' => 20, 'vitality' => 10],
+        ],
+        // ── A tier
+        'aureus' => [
+            'agility' => ['attack' => 25, 'crit_rate' => 15, 'crit_amp' => 20],
+            'team' => ['attack' => 8],
+        ],
+        'talismane' => [
+            'strength' => ['hp' => 30, 'attack' => 40, 'defense' => 25, 'crit_amp' => 15],
+        ],
+        'ice-crown' => [
+            'agility' => ['attack' => 20, 'crit_rate' => 18, 'dodge' => 15],
+            'team' => ['attack' => 6, 'defense' => 6],
+        ],
+        'rock-crown-lizard' => [
+            'strength' => ['hp' => 25, 'defense' => 40, 'vitality' => 12, 'crit_block_rate' => 8],
+            'team' => ['defense' => 12, 'hp' => 8],
+        ],
+        'fox-fatale' => [
+            'intelligence' => ['attack' => 30, 'crit_amp' => 25, 'magic_resistance' => 15],
+            'team' => ['attack' => 6],
+        ],
+        'trickery-chest' => [
+            'intelligence' => ['attack' => 25, 'crit_rate' => 12],
+            'team' => ['attack' => 8, 'crit_rate' => 6],
+        ],
+        // ── B tier
+        'phantasmoth' => [
+            'agility' => ['attack' => 18, 'crit_amp' => 18],
+            'team' => ['attack' => 6],
+        ],
+        'pearlcrest-ibis' => [
+            'strength' => ['hp' => 18, 'defense' => 22, 'vitality' => 8],
+            'team' => ['hp' => 6, 'defense' => 8],
+        ],
+        'savage-souffle' => [
+            'team' => ['attack' => 10, 'crit_rate' => 8, 'crit_amp' => 10],
+        ],
+        'shroom-spooder' => [
+            'intelligence' => ['attack' => 22, 'magic_resistance' => 12],
+            'team' => ['attack' => 5],
+        ],
+        'winged-lion' => [
+            'strength' => ['attack' => 20, 'hp' => 12],
+            'team' => ['attack' => 8, 'defense' => 5],
+        ],
+        'count-snickerfang' => [
+            'intelligence' => ['attack' => 18, 'crit_rate' => 10],
+            'team' => ['attack' => 5],
+        ],
+        // ── C tier
+        'bellbellow' => [
+            'strength' => ['defense' => 18, 'hp' => 10],
+            'team' => ['defense' => 6],
+        ],
+        'blade-ridge' => [
+            'team' => ['attack' => 8, 'magic_resistance' => 10],
+        ],
+        'fire-breather' => [
+            'strength' => ['attack' => 15, 'hp' => 10],
+            'team' => ['attack' => 5],
+        ],
+        'radish-rotunda' => [
+            'team' => ['hp' => 12, 'defense' => 10],
+        ],
+        // ── D tier
+        'polar-beast' => [
+            'team' => ['attack' => 5, 'defense' => 5],
+        ],
+        'tufty-ears' => [
+            'team' => ['hp' => 8, 'defense' => 5],
+        ],
+        'feline-vesperio' => [
+            'agility' => ['attack' => 8, 'crit_rate' => 5],
+        ],
+        'joyous-roamer' => [
+            'team' => ['attack' => 4, 'defense' => 4],
+        ],
+        // ── F tier (raras básicas)
+        'dreary-ball' => [
+            'team' => ['attack' => 2, 'defense' => 2],
+        ],
+        'grassy-orb' => [
+            'team' => ['attack' => 3],
+        ],
+        // Sem mapping: 'joyous-reamer' (deixa vazio)
     ];
 
     public function handle(): int
@@ -66,31 +144,38 @@ class SeedBeastBuffsCommand extends Command
         $beasts = Beast::query()->where('is_active', true)->get();
 
         foreach ($beasts as $beast) {
-            $buffs = self::BUFFS[$beast->slug] ?? null;
-            if ($buffs === null) {
+            $buffsBySope = self::BUFFS[$beast->slug] ?? null;
+            if ($buffsBySope === null) {
                 $unmapped[] = $beast->slug;
 
                 continue;
             }
 
-            $hasManualValues = $beast->strength_buff > 0
-                || $beast->intelligence_buff > 0
-                || $beast->agility_buff > 0;
+            $hasManualValues = $this->hasAnyBuff($beast);
 
             if ($hasManualValues && ! $force) {
                 $skipped++;
-                $this->line("  skip {$beast->name} (já tem buff configurado — use --force)");
+                $this->line("  skip {$beast->name} (já tem buffs configurados — use --force)");
 
                 continue;
             }
 
             $beast->update([
-                'strength_buff' => $buffs[0],
-                'intelligence_buff' => $buffs[1],
-                'agility_buff' => $buffs[2],
+                'buffs_strength' => $buffsBySope['strength'] ?? null,
+                'buffs_intelligence' => $buffsBySope['intelligence'] ?? null,
+                'buffs_agility' => $buffsBySope['agility'] ?? null,
+                'buffs_team' => $buffsBySope['team'] ?? null,
             ]);
             $updated++;
-            $this->line("  ✓ {$beast->name}: F+{$buffs[0]} / I+{$buffs[1]} / A+{$buffs[2]}");
+
+            $summary = [];
+            foreach (['strength', 'intelligence', 'agility', 'team'] as $scope) {
+                $count = count($buffsBySope[$scope] ?? []);
+                if ($count > 0) {
+                    $summary[] = "{$scope}({$count})";
+                }
+            }
+            $this->line("  ✓ {$beast->name}: ".implode(' ', $summary));
         }
 
         $this->newLine();
@@ -99,9 +184,21 @@ class SeedBeastBuffsCommand extends Command
             $this->warn("Puladas (já tinham buff): {$skipped}");
         }
         if (! empty($unmapped)) {
-            $this->warn('Sem mapeamento (preserva 0/0/0): '.implode(', ', $unmapped));
+            $this->warn('Sem mapeamento (preserva vazio): '.implode(', ', $unmapped));
         }
 
         return self::SUCCESS;
+    }
+
+    private function hasAnyBuff(Beast $beast): bool
+    {
+        foreach (['buffs_strength', 'buffs_intelligence', 'buffs_agility', 'buffs_team'] as $field) {
+            $value = $beast->$field;
+            if (is_array($value) && ! empty($value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

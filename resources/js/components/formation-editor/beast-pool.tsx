@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { PawPrint, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { beastStatCounts, summarizeScope } from '@/lib/beast';
 import { cn } from '@/lib/utils';
 import type { Beast } from '@/types/afk';
 
@@ -22,10 +23,16 @@ function DraggableBeast({ beast, onTap }: DraggableBeastProps) {
         data: { kind: 'beast', beastId: beast.id },
     });
 
-    const buffs: string[] = [];
-    if (beast.strength_buff > 0) buffs.push(`F+${beast.strength_buff}`);
-    if (beast.intelligence_buff > 0) buffs.push(`I+${beast.intelligence_buff}`);
-    if (beast.agility_buff > 0) buffs.push(`A+${beast.agility_buff}`);
+    const counts = beastStatCounts(beast);
+    const summary = counts.team > 0
+        ? summarizeScope(beast.buffs_team, 2)
+        : counts.strength > 0
+        ? summarizeScope(beast.buffs_strength, 2)
+        : counts.intelligence > 0
+        ? summarizeScope(beast.buffs_intelligence, 2)
+        : counts.agility > 0
+        ? summarizeScope(beast.buffs_agility, 2)
+        : '';
 
     const handleClick = onTap && !isDragging ? onTap : undefined;
 
@@ -52,8 +59,8 @@ function DraggableBeast({ beast, onTap }: DraggableBeastProps) {
             )}
             <div className="flex min-w-0 flex-1 flex-col leading-tight">
                 <span className="truncate text-xs font-medium">{beast.name}</span>
-                {buffs.length > 0 && (
-                    <span className="truncate text-[10px] text-muted-foreground">{buffs.join(' / ')}</span>
+                {summary && (
+                    <span className="truncate text-[10px] text-muted-foreground">{summary}</span>
                 )}
             </div>
         </div>

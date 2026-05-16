@@ -29,6 +29,7 @@ class TeamScorer
         ScoringProfile $profile,
         ?Beast $beast = null,
         ?ScoringContext $ctx = null,
+        int $beastLevel = Beast::MAX_LEVEL,
     ): ScoreBreakdown {
         $ctx ??= new ScoringContext;
 
@@ -40,7 +41,7 @@ class TeamScorer
 
         $classBalance = $this->classBalance($heroes);
         $synergy = $this->synergyScore($heroes, $synergyWeights);
-        $power = $this->powerScore($heroes, $userHeroesById, $beast);
+        $power = $this->powerScore($heroes, $userHeroesById, $beast, $beastLevel);
 
         $tierRating = ! empty($ctx->ratingsByHeroId)
             ? $this->tierRatingScorer->score($heroes, $ctx->ratingsByHeroId, $ctx->mode, $ctx->stage)
@@ -284,12 +285,12 @@ class TeamScorer
      * @param  Hero[]  $heroes
      * @param  array<int, UserHero>  $userHeroesById
      */
-    private function powerScore(array $heroes, array $userHeroesById, ?Beast $beast = null): float
+    private function powerScore(array $heroes, array $userHeroesById, ?Beast $beast = null, int $beastLevel = Beast::MAX_LEVEL): float
     {
         $total = 0.0;
         foreach ($heroes as $hero) {
             $userHero = $userHeroesById[$hero->id] ?? null;
-            $total += $this->power->forHero($hero, $userHero, $beast);
+            $total += $this->power->forHero($hero, $userHero, $beast, $beastLevel);
         }
 
         return $total / self::POWER_NORMALIZER;

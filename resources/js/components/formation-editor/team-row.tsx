@@ -20,6 +20,7 @@ export interface TeamSlotsState {
     position: number;
     name: string | null;
     beastId: number | null;
+    beastLevel: number;
     slots: Array<{ heroId: number | null }>;
 }
 
@@ -32,6 +33,7 @@ interface TeamRowProps {
     tierById: Record<number, Tier>;
     onRemoveHero: (slotPosition: number) => void;
     onClearBeast: () => void;
+    onBeastLevelChange: (level: number) => void;
     onAutoBestBeast?: () => void;
     isPickingBeast?: boolean;
     onSuggest?: () => void;
@@ -98,7 +100,7 @@ function computeFactionBonus(
     return null;
 }
 
-export function TeamRow({ team, heroById, beastById, factionById, classById, tierById, onRemoveHero, onClearBeast, onAutoBestBeast, isPickingBeast, onSuggest, isSuggesting }: TeamRowProps) {
+export function TeamRow({ team, heroById, beastById, factionById, classById, tierById, onRemoveHero, onClearBeast, onBeastLevelChange, onAutoBestBeast, isPickingBeast, onSuggest, isSuggesting }: TeamRowProps) {
     const heroesInTeam: Hero[] = team.slots
         .map((s) => (s.heroId ? heroById[s.heroId] : null))
         .filter((h): h is Hero => h !== null);
@@ -194,7 +196,9 @@ export function TeamRow({ team, heroById, beastById, factionById, classById, tie
                 <BeastSlot
                     teamPosition={team.position}
                     beast={team.beastId ? beastById[team.beastId] ?? null : null}
+                    level={team.beastLevel}
                     onClear={onClearBeast}
+                    onLevelChange={onBeastLevelChange}
                     onAutoPick={onAutoBestBeast}
                     isPickingBest={isPickingBeast}
                     canAutoPick={filledCount > 0}

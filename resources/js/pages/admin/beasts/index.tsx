@@ -7,6 +7,7 @@ import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { beastStatCounts } from '@/lib/beast';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
@@ -25,12 +26,13 @@ interface BeastTheme {
 }
 
 function beastTheme(beast: Beast): BeastTheme {
+    const counts = beastStatCounts(beast);
     const stats: Array<'str' | 'int' | 'agi'> = [];
-    if (beast.strength_buff > 0) stats.push('str');
-    if (beast.intelligence_buff > 0) stats.push('int');
-    if (beast.agility_buff > 0) stats.push('agi');
+    if (counts.strength > 0) stats.push('str');
+    if (counts.intelligence > 0) stats.push('int');
+    if (counts.agility > 0) stats.push('agi');
 
-    if (stats.length === 0) {
+    if (stats.length === 0 && counts.team === 0) {
         return {
             cardGradient: 'bg-gradient-to-br from-muted/40 via-muted/20 to-background',
             cardBorder: 'border-dashed border-amber-500/40',
@@ -104,7 +106,8 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                         {beasts.map((beast) => {
                             const theme = beastTheme(beast);
-                            const total = beast.strength_buff + beast.intelligence_buff + beast.agility_buff;
+                            const counts = beastStatCounts(beast);
+                            const total = counts.total;
                             return (
                                 <button
                                     key={beast.id}
@@ -121,19 +124,24 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
                                     aria-label={`Editar beast ${beast.name}`}
                                 >
                                     <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1">
-                                        {beast.strength_buff > 0 && (
+                                        {counts.strength > 0 && (
                                             <span className="rounded-md bg-rose-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-                                                For +{beast.strength_buff}
+                                                For ({counts.strength})
                                             </span>
                                         )}
-                                        {beast.intelligence_buff > 0 && (
+                                        {counts.intelligence > 0 && (
                                             <span className="rounded-md bg-sky-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-                                                Int +{beast.intelligence_buff}
+                                                Int ({counts.intelligence})
                                             </span>
                                         )}
-                                        {beast.agility_buff > 0 && (
+                                        {counts.agility > 0 && (
                                             <span className="rounded-md bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-                                                Agi +{beast.agility_buff}
+                                                Agi ({counts.agility})
+                                            </span>
+                                        )}
+                                        {counts.team > 0 && (
+                                            <span className="rounded-md bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                                                Eq ({counts.team})
                                             </span>
                                         )}
                                         {total === 0 && (

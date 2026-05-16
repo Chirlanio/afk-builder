@@ -155,6 +155,7 @@ class BackupController extends Controller
                     'position' => $t->position,
                     'name' => $t->name,
                     'beast_slug' => $t->beast?->slug,
+                    'beast_level' => $t->beast_level,
                     'heroes' => $t->teamHeroes->map(fn ($th) => [
                         'slot' => $th->slot,
                         'hero_slug' => $th->hero?->slug,
@@ -482,6 +483,7 @@ class BackupController extends Controller
                     'position' => $teamRow['position'] ?? 1,
                     'name' => $teamRow['name'] ?? null,
                     'beast_id' => $teamBeastId,
+                    'beast_level' => $teamRow['beast_level'] ?? \App\Models\Beast::MAX_LEVEL,
                 ]);
                 foreach ($teamRow['heroes'] ?? [] as $heroRow) {
                     $heroId = $heroIdsBySlug[$heroRow['hero_slug'] ?? ''] ?? null;

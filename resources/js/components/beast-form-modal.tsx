@@ -1,10 +1,12 @@
 import axios from 'axios';
 import { ImagePlus, Loader2, PawPrint, Save, X } from 'lucide-react';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { BeastBuffsEditor, normalizeBuffs, type BuffsMap } from '@/components/beast-buffs-editor';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import type { Beast } from '@/types/afk';
 
 interface Props {
@@ -14,13 +16,16 @@ interface Props {
     onSaved?: () => void;
 }
 
+type Scope = 'strength' | 'intelligence' | 'agility' | 'team';
+
 interface FormState {
     slug: string;
     name: string;
     description: string;
-    strength_buff: string;
-    intelligence_buff: string;
-    agility_buff: string;
+    buffs_strength: BuffsMap;
+    buffs_intelligence: BuffsMap;
+    buffs_agility: BuffsMap;
+    buffs_team: BuffsMap;
     tier: string;
     tier_note: string;
     portrait_url: string;
@@ -32,9 +37,10 @@ const EMPTY: FormState = {
     slug: '',
     name: '',
     description: '',
-    strength_buff: '0',
-    intelligence_buff: '0',
-    agility_buff: '0',
+    buffs_strength: {},
+    buffs_intelligence: {},
+    buffs_agility: {},
+    buffs_team: {},
     tier: '',
     tier_note: '',
     portrait_url: '',
@@ -44,9 +50,24 @@ const EMPTY: FormState = {
 
 const BEAST_TIERS = ['', 'S+', 'S', 'A', 'B', 'C', 'D', 'F'];
 
+const SCOPE_LABELS: Record<Scope, string> = {
+    strength: 'Força',
+    intelligence: 'Inteligência',
+    agility: 'Agilidade',
+    team: 'Equipe',
+};
+
+const SCOPE_ACCENT: Record<Scope, 'rose' | 'sky' | 'emerald' | 'amber'> = {
+    strength: 'rose',
+    intelligence: 'sky',
+    agility: 'emerald',
+    team: 'amber',
+};
+
 export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
     const isEditing = beast !== null;
     const [data, setData] = useState<FormState>(EMPTY);
+    const [scope, setScope] = useState<Scope>('strength');
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
@@ -58,6 +79,7 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
             setData(EMPTY);
             setErrors({});
             setUploadError(null);
+            setScope('strength');
             return;
         }
         if (beast) {
@@ -65,9 +87,10 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                 slug: beast.slug,
                 name: beast.name,
                 description: beast.description ?? '',
-                strength_buff: String(beast.strength_buff),
-                intelligence_buff: String(beast.intelligence_buff),
-                agility_buff: String(beast.agility_buff),
+                buffs_strength: (beast.buffs_strength ?? {}) as BuffsMap,
+                buffs_intelligence: (beast.buffs_intelligence ?? {}) as BuffsMap,
+                buffs_agility: (beast.buffs_agility ?? {}) as BuffsMap,
+                buffs_team: (beast.buffs_team ?? {}) as BuffsMap,
                 tier: beast.tier ?? '',
                 tier_note: beast.tier_note ?? '',
                 portrait_url: beast.portrait_url ?? '',
@@ -109,9 +132,10 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
             slug: data.slug,
             name: data.name,
             description: data.description || null,
-            strength_buff: data.strength_buff === '' ? 0 : Number(data.strength_buff),
-            intelligence_buff: data.intelligence_buff === '' ? 0 : Number(data.intelligence_buff),
-            agility_buff: data.agility_buff === '' ? 0 : Number(data.agility_buff),
+            buffs_strength: normalizeBuffs(data.buffs_strength),
+            buffs_intelligence: normalizeBuffs(data.buffs_intelligence),
+            buffs_agility: normalizeBuffs(data.buffs_agility),
+            buffs_team: normalizeBuffs(data.buffs_team),
             tier: data.tier || null,
             tier_note: data.tier_note || null,
             portrait_url: data.portrait_url || null,
@@ -142,6 +166,32 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
         }
     };
 
+    const buffsForScope = (s: Scope): BuffsMap => {
+        switch (s) {
+            case 'strength': return data.buffs_strength;
+            case 'intelligence': return data.buffs_intelligence;
+            case 'agility': return data.buffs_agility;
+            case 'team': return data.buffs_team;
+        }
+    };
+
+    const setBuffsForScope = (s: Scope, next: BuffsMap) => {
+        setData((prev) => {
+            switch (s) {
+                case 'strength': return { ...prev, buffs_strength: next };
+                case 'intelligence': return { ...prev, buffs_intelligence: next };
+                case 'agility': return { ...prev, buffs_agility: next };
+                case 'team': return { ...prev, buffs_team: next };
+            }
+        });
+    };
+
+    const countActive = (s: Scope) => Object.keys(buffsForScope(s)).filter((k) => {
+        const v = buffsForScope(s)[k];
+        const n = typeof v === 'string' ? parseFloat(v) : v;
+        return Number.isFinite(n) && (n as number) > 0;
+    }).length;
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
@@ -149,13 +199,13 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                     <div className="flex flex-col items-center gap-1 text-center">
                         <span className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
                             <PawPrint className="size-3" />
-                            Pet
+                            Besta
                         </span>
-                        <h2 className="text-xl font-bold leading-tight">{isEditing ? 'Editar beast' : 'Novo beast'}</h2>
+                        <h2 className="text-xl font-bold leading-tight">{isEditing ? 'Editar besta' : 'Nova besta'}</h2>
                     </div>
                 </DialogTitle>
                 <DialogDescription className="text-center">
-                    Beasts buffam todos os heróis do tipo correspondente (Força/Inteligência/Agilidade) na equipe ativa.
+                    Bestas dão buffs por tipo de herói (Força/Inteligência/Agilidade) e à equipe inteira. Valores em % no nível máximo (36).
                 </DialogDescription>
 
                 <form onSubmit={submit} className="flex flex-col gap-3 pt-2">
@@ -194,29 +244,46 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                             className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             rows={3}
                             maxLength={5000}
-                            placeholder="Skills/efeitos do beast quando ativo..."
+                            placeholder="Skills/efeitos da besta quando ativa..."
                         />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="b-str">Buff Força</Label>
-                            <Input id="b-str" type="number" min={0} value={data.strength_buff} onChange={(e) => setData((s) => ({ ...s, strength_buff: e.target.value }))} />
-                            <p className="text-[10px] text-muted-foreground">Pontos aplicados a heróis Strength.</p>
-                            {errors.strength_buff && <p className="text-[10px] text-destructive">{errors.strength_buff}</p>}
+                    <div className="flex flex-col gap-2">
+                        <Label>Buffs (em %, no nível 36)</Label>
+                        <div className="flex flex-wrap gap-1 rounded-md border bg-muted/30 p-0.5">
+                            {(['strength', 'intelligence', 'agility', 'team'] as Scope[]).map((s) => {
+                                const active = scope === s;
+                                const count = countActive(s);
+                                return (
+                                    <button
+                                        key={s}
+                                        type="button"
+                                        onClick={() => setScope(s)}
+                                        className={cn(
+                                            'flex-1 rounded px-2 py-1.5 text-xs font-medium transition-colors',
+                                            active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+                                        )}
+                                    >
+                                        {SCOPE_LABELS[s]}
+                                        {count > 0 && (
+                                            <span className={cn('ml-1.5 rounded-full px-1.5 py-0.5 text-[9px]', active ? 'bg-primary-foreground/20' : 'bg-muted-foreground/20')}>
+                                                {count}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="b-int">Buff Inteligência</Label>
-                            <Input id="b-int" type="number" min={0} value={data.intelligence_buff} onChange={(e) => setData((s) => ({ ...s, intelligence_buff: e.target.value }))} />
-                            <p className="text-[10px] text-muted-foreground">Pontos aplicados a heróis Intelligence.</p>
-                            {errors.intelligence_buff && <p className="text-[10px] text-destructive">{errors.intelligence_buff}</p>}
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="b-agi">Buff Agilidade</Label>
-                            <Input id="b-agi" type="number" min={0} value={data.agility_buff} onChange={(e) => setData((s) => ({ ...s, agility_buff: e.target.value }))} />
-                            <p className="text-[10px] text-muted-foreground">Pontos aplicados a heróis Agility.</p>
-                            {errors.agility_buff && <p className="text-[10px] text-destructive">{errors.agility_buff}</p>}
-                        </div>
+                        <BeastBuffsEditor
+                            buffs={buffsForScope(scope)}
+                            onChange={(next) => setBuffsForScope(scope, next)}
+                            accent={SCOPE_ACCENT[scope]}
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                            {scope === 'team'
+                                ? 'Aplicados a todos os heróis da equipe.'
+                                : `Aplicados apenas a heróis de tipo ${SCOPE_LABELS[scope]}.`}
+                        </p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -247,7 +314,7 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <Label>Imagem do beast</Label>
+                        <Label>Imagem da besta</Label>
                         <div className="flex items-start gap-3">
                             <div className="relative grid size-24 shrink-0 place-items-center overflow-hidden rounded-lg border bg-muted/30">
                                 {data.portrait_url ? (

@@ -183,24 +183,54 @@ class FormationBeastTest extends TestCase
             $team->teamHeroes()->create(['hero_id' => $hero->id, 'slot' => $idx + 1]);
         }
 
-        $beastStr = Beast::create(['slug' => 'b-str', 'name' => 'Strength Beast', 'strength_buff' => 10, 'is_active' => true]);
-        $beastInt = Beast::create(['slug' => 'b-int', 'name' => 'Int Beast', 'intelligence_buff' => 20, 'is_active' => true]);
-        $beastAgi = Beast::create(['slug' => 'b-agi', 'name' => 'Agi Beast', 'agility_buff' => 50, 'is_active' => true]);
+        // Beast A: 10% pra strength → 3×10 = 30
+        $beastStr = Beast::create(['slug' => 'b-str', 'name' => 'Strength Beast', 'buffs_strength' => ['attack' => 10], 'is_active' => true]);
+        // Beast B: 20% pra intelligence → 1×20 = 20
+        $beastInt = Beast::create(['slug' => 'b-int', 'name' => 'Int Beast', 'buffs_intelligence' => ['attack' => 20], 'is_active' => true]);
+        // Beast C: 50% pra agility (mas time não tem agi) → 0
+        $beastAgi = Beast::create(['slug' => 'b-agi', 'name' => 'Agi Beast', 'buffs_agility' => ['attack' => 50], 'is_active' => true]);
 
         $this->actingAs($user)
             ->postJson("/formations/{$formation->id}/teams/{$team->id}/best-beast")
             ->assertOk()
             ->assertJsonPath('ok', true)
-            ->assertJsonPath('beast.id', $beastStr->id); // 3×10 = 30 > 1×20 = 20 > 0
+            ->assertJsonPath('beast.id', $beastStr->id);
 
         $this->assertSame($beastStr->id, $team->fresh()->beast_id);
+    }
+
+    public function test_best_beast_team_scope_aplica_a_todos(): void
+    {
+        $user = User::factory()->create();
+        $formation = $this->makeFormation($user);
+
+        // Time misto sem dominância clara de type
+        $heroes = [
+            $this->makeHero('a', 'strength'),
+            $this->makeHero('b', 'intelligence'),
+            $this->makeHero('c', 'agility'),
+        ];
+        $team = $formation->teams()->first();
+        foreach ($heroes as $idx => $hero) {
+            $team->teamHeroes()->create(['hero_id' => $hero->id, 'slot' => $idx + 1]);
+        }
+
+        // Beast com buff só pra agility → 1×30 = 30
+        Beast::create(['slug' => 'agi-only', 'name' => 'Agi', 'buffs_agility' => ['attack' => 30], 'is_active' => true]);
+        // Beast com buffs de team (aplica a TODOS) → 3×20 = 60 — deve vencer
+        $teamBeast = Beast::create(['slug' => 'team-buff', 'name' => 'Team', 'buffs_team' => ['attack' => 20], 'is_active' => true]);
+
+        $this->actingAs($user)
+            ->postJson("/formations/{$formation->id}/teams/{$team->id}/best-beast")
+            ->assertOk()
+            ->assertJsonPath('beast.id', $teamBeast->id);
     }
 
     public function test_best_beast_rejeita_team_vazio(): void
     {
         $user = User::factory()->create();
         $formation = $this->makeFormation($user);
-        Beast::create(['slug' => 'b', 'name' => 'B', 'strength_buff' => 10, 'is_active' => true]);
+        Beast::create(['slug' => 'b', 'name' => 'B', 'buffs_strength' => ['attack' => 10], 'is_active' => true]);
 
         $team = $formation->teams()->first();
         $this->actingAs($user)
@@ -209,20 +239,21 @@ class FormationBeastTest extends TestCase
             ->assertJsonPath('reason', 'team_empty');
     }
 
-    public function test_best_beast_rejeita_heroes_sem_type(): void
+    public function test_best_beast_aplica_team_scope_mesmo_sem_heroes_tipados(): void
     {
+        // Mudança vs Fase 48: heroes sem type ainda recebem buffs_team — não rejeitamos mais.
         $user = User::factory()->create();
         $formation = $this->makeFormation($user);
         $hero = $this->makeHero('typeless', null);
         $team = $formation->teams()->first();
         $team->teamHeroes()->create(['hero_id' => $hero->id, 'slot' => 1]);
 
-        Beast::create(['slug' => 'b', 'name' => 'B', 'strength_buff' => 10, 'is_active' => true]);
+        $beast = Beast::create(['slug' => 'team-b', 'name' => 'Team B', 'buffs_team' => ['attack' => 15], 'is_active' => true]);
 
         $this->actingAs($user)
             ->postJson("/formations/{$formation->id}/teams/{$team->id}/best-beast")
-            ->assertStatus(422)
-            ->assertJsonPath('reason', 'no_typed_heroes');
+            ->assertOk()
+            ->assertJsonPath('beast.id', $beast->id);
     }
 
     public function test_best_beast_rejeita_quando_bestas_sem_buff_configurado(): void
@@ -233,7 +264,7 @@ class FormationBeastTest extends TestCase
         $team = $formation->teams()->first();
         $team->teamHeroes()->create(['hero_id' => $hero->id, 'slot' => 1]);
 
-        // Várias bestas todas com buff=0 (cenário do admin que esqueceu de configurar)
+        // Bestas sem nenhum buff em nenhum scope
         Beast::create(['slug' => 'b1', 'name' => 'B1', 'is_active' => true]);
         Beast::create(['slug' => 'b2', 'name' => 'B2', 'is_active' => true]);
 

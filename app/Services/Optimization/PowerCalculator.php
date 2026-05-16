@@ -55,7 +55,7 @@ class PowerCalculator
     /** Slots de equipamento esperados no UserHero. */
     private const EQUIPMENT_SLOTS = ['weapon', 'helmet', 'chest', 'boots'];
 
-    public function forUserHero(UserHero $userHero, ?Hero $hero = null, ?Beast $beast = null): float
+    public function forUserHero(UserHero $userHero, ?Hero $hero = null, ?Beast $beast = null, int $beastLevel = Beast::MAX_LEVEL): float
     {
         $siInvested = SignatureItemCost::cumulativeCostUpToLevel((int) $userHero->signature_item);
 
@@ -88,9 +88,10 @@ class PowerCalculator
             $base += $this->collectionContribution($userHero->collection);
         }
 
-        // Buff do beast ativo na formação (aplicado apenas se hero tem type compatível).
-        if ($beast && $hero?->type) {
-            $base += $this->beastBuffForType($beast, $hero->type) * $this->beastFactor($beast);
+        // Buff do beast ativo na formação. Soma buffs do scope do type + scope team,
+        // escala pelo level (level/MAX_LEVEL) e aplica fator do tier da besta.
+        if ($beast) {
+            $base += $this->beastBuffForType($beast, $hero?->type, $beastLevel) * $this->beastFactor($beast);
         }
 
         return $base;
@@ -133,16 +134,16 @@ class PowerCalculator
         return $hero->stats;
     }
 
-    public function forHero(Hero $hero, ?UserHero $userHero, ?Beast $beast = null): float
+    public function forHero(Hero $hero, ?UserHero $userHero, ?Beast $beast = null, int $beastLevel = Beast::MAX_LEVEL): float
     {
         if ($userHero) {
-            return $this->forUserHero($userHero, $hero, $beast);
+            return $this->forUserHero($userHero, $hero, $beast, $beastLevel);
         }
 
         $base = $this->targetBaseline($hero);
         // No modo target, beast ainda contribui (depende da formação, não do roster).
-        if ($beast && $hero->type) {
-            $base += $this->beastBuffForType($beast, $hero->type) * $this->beastFactor($beast);
+        if ($beast) {
+            $base += $this->beastBuffForType($beast, $hero->type, $beastLevel) * $this->beastFactor($beast);
         }
 
         return $base;
@@ -240,20 +241,45 @@ class PowerCalculator
     }
 
     /**
-     * Retorna o buff bruto do beast para o tipo do herói. Multiplicador é aplicado
-     * pelo chamador (BEAST_BUFF_FACTOR no forUserHero/forHero).
+     * Soma todos os buffs (percentuais) que a besta aplica ao herói, considerando:
+     * - Scope do type do herói (buffs_strength/intelligence/agility) — aplicado só pra heroes daquele type
+     * - Scope team (buffs_team) — aplicado a todos os heroes
+     * Escala linearmente pelo level (level/MAX_LEVEL). Multiplicador BEAST_TIER_FACTOR
+     * é aplicado pelo chamador.
      */
-    public function beastBuffForType(?Beast $beast, ?string $heroType): float
+    public function beastBuffForType(?Beast $beast, ?string $heroType, int $beastLevel = Beast::MAX_LEVEL): float
     {
-        if (! $beast || $heroType === null) {
+        if (! $beast) {
             return 0.0;
         }
 
-        return match ($heroType) {
-            'strength' => (float) $beast->strength_buff,
-            'intelligence' => (float) $beast->intelligence_buff,
-            'agility' => (float) $beast->agility_buff,
-            default => 0.0,
-        };
+        $sum = 0.0;
+
+        // Scope do type do hero (omitido pra heroes sem type)
+        if ($heroType !== null) {
+            $typeScope = match ($heroType) {
+                'strength' => $beast->buffs_strength,
+                'intelligence' => $beast->buffs_intelligence,
+                'agility' => $beast->buffs_agility,
+                default => null,
+            };
+            if (is_array($typeScope)) {
+                foreach ($typeScope as $value) {
+                    $sum += (float) $value;
+                }
+            }
+        }
+
+        // Scope team — sempre aplicado
+        if (is_array($beast->buffs_team)) {
+            foreach ($beast->buffs_team as $value) {
+                $sum += (float) $value;
+            }
+        }
+
+        $level = max(1, min(Beast::MAX_LEVEL, $beastLevel));
+        $levelFactor = $level / Beast::MAX_LEVEL;
+
+        return $sum * $levelFactor;
     }
 }

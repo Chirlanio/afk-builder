@@ -34,8 +34,8 @@ class FormationCompareController extends Controller
         $userId = $request->user()->id;
         abort_unless($a->user_id === $userId && $b->user_id === $userId, 403);
 
-        $a->load(['challengeType', 'teams.teamHeroes', 'teams.beast:id,slug,name,strength_buff,intelligence_buff,agility_buff,portrait_url']);
-        $b->load(['challengeType', 'teams.teamHeroes', 'teams.beast:id,slug,name,strength_buff,intelligence_buff,agility_buff,portrait_url']);
+        $a->load(['challengeType', 'teams.teamHeroes', 'teams.beast:id,slug,name,buffs_strength,buffs_intelligence,buffs_agility,buffs_team,portrait_url,tier']);
+        $b->load(['challengeType', 'teams.teamHeroes', 'teams.beast:id,slug,name,buffs_strength,buffs_intelligence,buffs_agility,buffs_team,portrait_url,tier']);
 
         $allHeroIds = collect([$a, $b])
             ->flatMap(fn ($f) => $f->teams->flatMap(fn ($t) => $t->teamHeroes->pluck('hero_id')))
@@ -129,7 +129,7 @@ class FormationCompareController extends Controller
                 ->filter()
                 ->all();
 
-            $score = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $team->beast, $ctx);
+            $score = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $team->beast, $ctx, $team->beast_level ?? \App\Models\Beast::MAX_LEVEL);
             $totalScore += $score->total;
 
             $teams[] = [

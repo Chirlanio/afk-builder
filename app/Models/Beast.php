@@ -11,9 +11,10 @@ class Beast extends Model
         'slug',
         'name',
         'description',
-        'strength_buff',
-        'intelligence_buff',
-        'agility_buff',
+        'buffs_strength',
+        'buffs_intelligence',
+        'buffs_agility',
+        'buffs_team',
         'tier',
         'tier_note',
         'portrait_url',
@@ -22,11 +23,14 @@ class Beast extends Model
     ];
 
     protected $casts = [
-        'strength_buff' => 'integer',
-        'intelligence_buff' => 'integer',
-        'agility_buff' => 'integer',
+        'buffs_strength' => 'array',
+        'buffs_intelligence' => 'array',
+        'buffs_agility' => 'array',
+        'buffs_team' => 'array',
         'is_active' => 'boolean',
     ];
+
+    public const MAX_LEVEL = 36;
 
     public function formations(): HasMany
     {

@@ -3021,3 +3021,92 @@ A opção "Quantidade de equipes" agora é sempre visível na criação (mesmo q
 - `update_teams_count_gera_snapshot_de_versao` — `formation_versions` ganha 1 registro
 
 **419 testes verdes** (+8 novos).
+
+### ✅ Fase 51 — Refatoração do modelo de bestas (stats granulares + nível 1-36)
+
+Schema antigo (`strength_buff`/`intelligence_buff`/`agility_buff` como inteiros) trocado por **JSON columns por scope** e **level 1-36 por team**. Reflete fielmente o jogo: cada besta dá stats granulares (PV, ATQ, DEF, Esquiva, Crit, Crit Amp, Percepção, Competência, Resist. Mágica, Bloq. Crítico, Vitalidade) divididos em 4 escopos.
+
+#### Modelo do jogo (referência)
+Exemplo fornecido pelo user — **Thistlekin (Flordecardo) nível 36**:
+- Para heróis de **Força**: PV 17.59% · DEF 47.55% · Esquiva 24.23 · Vit 8.84 · TBC 10.61 · SM 66.09
+- Para a **equipe** toda: PV 14.03% · ATQ 10.24% · DEF 37.93%
+
+Bestas em outros tiers seguem proporção parecida ajustada por tier.
+
+#### Schema
+Migration `2026_05_16_030000_refactor_beasts_to_granular_buffs.php`:
+- **Drop**: `strength_buff`, `intelligence_buff`, `agility_buff` (inteiros antigos)
+- **Add em `beasts`**: `buffs_strength`, `buffs_intelligence`, `buffs_agility`, `buffs_team` (JSON nullable)
+  - Cada um é um `{ stat_key: valor_% }` no nível máximo (36)
+  - Ex: `{"hp": 17.59, "defense": 47.55, "magic_resistance": 66.09}`
+- **Add em `formation_teams`**: `beast_level` (unsignedTinyInteger, default 36)
+
+JSON aceita qualquer chave — admin pode adicionar stats não documentados sem schema change.
+
+#### PowerCalculator (reformulado)
+`PowerCalculator::beastBuffForType(?Beast $beast, ?string $heroType, int $beastLevel = 36)`:
+1. Soma todos os valores % do scope correspondente ao type do hero (se houver)
+2. Soma todos os valores % do scope team (aplica a todos)
+3. Multiplica pelo factor de level: `level / MAX_LEVEL`
+4. Caller (`forUserHero`/`forHero`) aplica o `BEAST_TIER_FACTOR`
+
+Diferenças vs antigo:
+- Heroes **sem type** ainda recebem buffs do scope team (antes recebiam 0)
+- Level entra no cálculo (antes era assumido máximo implicitamente)
+- Soma de stats granulares em vez de 1 valor por type
+
+#### Endpoint `bestBeast`
+Nova heurística:
+```
+score = Σ_typed_heroes (buffs_<type>_total)
+      + buffs_team_total × total_hero_count
+```
+Mudanças vs Fase 48:
+- Removido o rejeito `no_typed_heroes` — team com heroes sem type ainda recebe buff de scope team
+- Detecta `beasts_without_buffs` somando os 4 scopes (não só os 3 antigos)
+
+#### UI
+
+**Admin form** (`/admin/beasts`):
+- `components/beast-buffs-editor.tsx`: lista de 11 stats canônicos com inputs decimais %
+- `components/beast-form-modal.tsx` reescrito com **tabs por scope** (Força/Inteligência/Agilidade/Equipe). Badge "ativos" no header de cada tab indica quantos stats estão preenchidos
+- Stats: `hp`, `attack`, `defense`, `crit_rate`, `crit_amp`, `dodge`, `vitality`, `perception`, `proficiency`, `magic_resistance`, `crit_block_rate`
+
+**Pool de bestas + slot por team**:
+- `BeastSlot` ganha **input numérico de nível 1–36** ao lado do nome (default 36, modificável por team)
+- Display resume buffs principais via `summarizeScope()` (top 2 do scope mais ativo)
+- `BeastPool`: mesma summarização no item
+
+**Página pública**:
+- Mostra nível ao lado do nome da besta (`Nv 36`) e resumo dos buffs principais
+
+**Helper** (`resources/js/lib/beast.ts`):
+- `beastStatCounts(beast)` — contagem por scope (`{strength, intelligence, agility, team, total}`)
+- `summarizeScope(buffs, limit)` — texto "ATQ +20% · Crit +15%"
+- `buffsAtLevel(buffs, level)` — multiplica pelos `level/36`
+
+#### Seed reformulado
+Comando `php artisan beasts:seed-buffs` populado com valores realistas baseados em role+tier:
+- **Thistlekin** com os valores exatos fornecidos pelo user (referência de ouro)
+- Outras 27 bestas com valores heurísticos respeitando tier (S+ alto, F baixo) e role (Talismane→strength; Fox Fatale→intelligence; Slumber Seal→agility; Pandy Dumpty→team)
+- `--force` sobrescreve buffs manuais
+- Joyous Reamer não mapeado (sem tier conhecido) — fica vazio
+
+#### Trade-offs
+- **Por que JSON column e não tabela `beast_stats`?** Modelo do jogo tem muitos stats (~11 base + variantes); cada besta usa um subset diferente. JSON evita criar 30+ colunas ou uma tabela com 4 scopes × N stats × M bestas. Trade-off: queries por valor específico (ex: "qual besta dá mais Crit?") exigem JSON functions. Aceitável já que o consumo é via PowerCalculator (PHP soma em memória).
+- **Por que escalar linearmente pelo level (factor `level/36`)?** O jogo provavelmente tem curva não-linear, mas sem documentação confiável. Linear é simples, transparente, e o erro relativo no scoring é pequeno comparado a outros fatores (SI, equipment, faction bonus).
+- **Por que default `beast_level=36` (max)?** Pra não punir formations criadas antes desta fase — todas mantêm efeito de besta no max. Quando o user quiser refletir besta de fato no level menor, edita.
+- **Por que `beastBuffForType` retorna 0 quando `Beast` é null mas considera team scope mesmo sem hero type?** Hero sem type ainda é parte da equipe — team scope aplica. Só ausência de besta resulta em 0.
+- **Por que valores percentuais e não absolutos?** No jogo são %, e percentuais aplicados sobre os stats base do hero. O PowerCalculator soma como contribuição direta no power (heurístico) — o número final é uma comparação relativa, não exata.
+- **Por que `buffs_team` no mesmo modelo de cada scope individual em vez de tabela separada?** Mesmo formato de dados (`{stat: %}`), uso simétrico no PowerCalculator. Tabela separada não traria benefício, só duplicação.
+- **Por que UI de tabs no admin form em vez de 4 colunas?** 4 scopes × 11 stats = 44 inputs simultâneos = caos visual. Tabs concentram atenção em um scope por vez. Counter "ativos" ajuda a ver o que falta sem trocar de tab.
+- **Por que input de level no `BeastSlot` e não no admin?** Level é per-team (cada user evolui suas bestas diferentemente); admin define apenas os valores no nível máximo (referência). Single source of truth.
+- **Por que helper `summarizeScope` mostra só top N stats?** Cards/slots têm espaço limitado. Top stats por % dão sinal forte da identidade da besta; full list fica no admin form/popover.
+- **Por que mantemos `BEAST_TIER_FACTOR`?** Já calibrado pra balancear bestas legacy vs nova meta (S+ vale 2× C). Refletir o tier oficial é independente do scope dos buffs.
+
+#### Testes
+- `FormationBeastTest` (12 cenários) reescrito pra usar JSON columns; novo `team_scope_aplica_a_todos` e `aplica_team_scope_mesmo_sem_heroes_tipados` (substitui `rejeita_heroes_sem_type` da Fase 48)
+- `PowerCalculatorTest` (Unit) atualizado com 3 novos: `beast_buff_inclui_team_scope`, `beast_buff_escala_pelo_level`
+- `BeastAdminTest` atualizado pra validar payload com `buffs_strength`/`buffs_team` em vez dos inteiros antigos
+
+**423 testes verdes** (+4 novos no PowerCalculator + reformulação).

@@ -79,15 +79,18 @@ export interface Beast {
     slug: string;
     name: string;
     description: string | null;
-    strength_buff: number;
-    intelligence_buff: number;
-    agility_buff: number;
+    buffs_strength: Record<string, number> | null;
+    buffs_intelligence: Record<string, number> | null;
+    buffs_agility: Record<string, number> | null;
+    buffs_team: Record<string, number> | null;
     tier: string | null;
     tier_note: string | null;
     portrait_url: string | null;
     source_url: string | null;
     is_active: boolean;
 }
+
+export const BEAST_MAX_LEVEL = 36;
 
 export type HeroRatingMode = 'overall' | 'pvp' | 'pve' | 'labyrinth' | 'twisted_realm' | 'temporal_rift' | 'abyssal_expedition';
 export type HeroRatingStage = 'early' | 'mid' | 'end' | 'all';
@@ -396,6 +399,7 @@ export interface FormationTeam {
     name: string | null;
     score: number | null;
     beast_id: number | null;
+    beast_level?: number;
     beast?: Beast | null;
     team_heroes: FormationTeamHero[];
 }

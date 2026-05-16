@@ -264,15 +264,42 @@ class PowerCalculatorTest extends TestCase
     public function test_beast_buff_for_type(): void
     {
         $beast = new Beast;
-        $beast->strength_buff = 100;
-        $beast->intelligence_buff = 80;
-        $beast->agility_buff = 120;
+        $beast->buffs_strength = ['attack' => 50.0, 'defense' => 50.0];   // soma 100
+        $beast->buffs_intelligence = ['attack' => 80.0];                  // soma 80
+        $beast->buffs_agility = ['attack' => 120.0];                      // soma 120
+        $beast->buffs_team = null;
 
-        $this->assertSame(100.0, $this->calc->beastBuffForType($beast, 'strength'));
-        $this->assertSame(80.0, $this->calc->beastBuffForType($beast, 'intelligence'));
-        $this->assertSame(120.0, $this->calc->beastBuffForType($beast, 'agility'));
-        $this->assertSame(0.0, $this->calc->beastBuffForType($beast, null));
+        // Level 36 = factor 1.0 (default)
+        $this->assertEqualsWithDelta(100.0, $this->calc->beastBuffForType($beast, 'strength'), 0.001);
+        $this->assertEqualsWithDelta(80.0, $this->calc->beastBuffForType($beast, 'intelligence'), 0.001);
+        $this->assertEqualsWithDelta(120.0, $this->calc->beastBuffForType($beast, 'agility'), 0.001);
+        $this->assertEqualsWithDelta(0.0, $this->calc->beastBuffForType($beast, null), 0.001);
         $this->assertSame(0.0, $this->calc->beastBuffForType(null, 'strength'));
+    }
+
+    public function test_beast_buff_inclui_team_scope(): void
+    {
+        $beast = new Beast;
+        $beast->buffs_strength = ['attack' => 50.0];
+        $beast->buffs_team = ['hp' => 20.0, 'defense' => 30.0];   // soma 50
+
+        // Strength scope (50) + Team scope (50) = 100
+        $this->assertEqualsWithDelta(100.0, $this->calc->beastBuffForType($beast, 'strength'), 0.001);
+        // Hero sem type ainda recebe team scope
+        $this->assertEqualsWithDelta(50.0, $this->calc->beastBuffForType($beast, null), 0.001);
+    }
+
+    public function test_beast_buff_escala_pelo_level(): void
+    {
+        $beast = new Beast;
+        $beast->buffs_strength = ['attack' => 100.0];
+
+        // Level 36 = 100% dos buffs
+        $this->assertEqualsWithDelta(100.0, $this->calc->beastBuffForType($beast, 'strength', 36), 0.001);
+        // Level 18 = 50%
+        $this->assertEqualsWithDelta(50.0, $this->calc->beastBuffForType($beast, 'strength', 18), 0.001);
+        // Level 1 = ~2.78%
+        $this->assertEqualsWithDelta(2.7777, $this->calc->beastBuffForType($beast, 'strength', 1), 0.001);
     }
 
     public function test_for_user_hero_aplica_beast_buff_factor_50(): void
@@ -287,9 +314,7 @@ class PowerCalculatorTest extends TestCase
         $hero->type = 'strength';
 
         $beast = new Beast;
-        $beast->strength_buff = 200;     // 200 * 0.5 = 100
-        $beast->intelligence_buff = 0;
-        $beast->agility_buff = 0;
+        $beast->buffs_strength = ['attack' => 200.0];   // soma 200, * 0.5 (BEAST_BUFF_FACTOR) = 100
 
         $this->assertEqualsWithDelta(1340.0, $this->calc->forUserHero($uh, $hero, $beast), 0.001);
     }
@@ -305,9 +330,8 @@ class PowerCalculatorTest extends TestCase
         $hero->type = 'agility';
 
         $beast = new Beast;
-        $beast->strength_buff = 1000;    // só Force, hero é Agility
-        $beast->intelligence_buff = 0;
-        $beast->agility_buff = 0;
+        $beast->buffs_strength = ['attack' => 1000.0];   // só strength, hero é agility
+        $beast->buffs_team = null;
 
         // Sem buff aplicado: base = 1240
         $this->assertEqualsWithDelta(1240.0, $this->calc->forUserHero($uh, $hero, $beast), 0.001);
@@ -372,9 +396,7 @@ class PowerCalculatorTest extends TestCase
         $hero->type = 'strength';
 
         $beast = new Beast;
-        $beast->strength_buff = 200;
-        $beast->intelligence_buff = 0;
-        $beast->agility_buff = 0;
+        $beast->buffs_strength = ['attack' => 200.0];
         $beast->tier = 'S+';   // factor 1.0 (em vez do default 0.5)
 
         // base 1240 + 200 * 1.0 = 1440
@@ -391,9 +413,7 @@ class PowerCalculatorTest extends TestCase
         $hero->type = 'strength';
 
         $beast = new Beast;
-        $beast->strength_buff = 200;
-        $beast->intelligence_buff = 0;
-        $beast->agility_buff = 0;
+        $beast->buffs_strength = ['attack' => 200.0];
         $beast->tier = 'C';    // factor 0.4
 
         // base 1240 + 200 * 0.4 = 1320
@@ -410,9 +430,7 @@ class PowerCalculatorTest extends TestCase
         $hero->type = 'strength';
 
         $beast = new Beast;
-        $beast->strength_buff = 200;
-        $beast->intelligence_buff = 0;
-        $beast->agility_buff = 0;
+        $beast->buffs_strength = ['attack' => 200.0];
         $beast->tier = null;   // sem tier → factor default 0.5
 
         // base 1240 + 200 * 0.5 = 1340

@@ -76,9 +76,17 @@ class BeastAdminController extends Controller
             'slug' => $slugRule,
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'strength_buff' => ['nullable', 'integer', 'min:0', 'max:9999'],
-            'intelligence_buff' => ['nullable', 'integer', 'min:0', 'max:9999'],
-            'agility_buff' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            // Buffs por scope: cada um é um map { stat: valor% }. Aceita qualquer chave string
+            // pra ser flexível (admin define quais stats existem); validamos só que os valores
+            // sejam numéricos não negativos.
+            'buffs_strength' => ['nullable', 'array'],
+            'buffs_strength.*' => ['numeric', 'min:0', 'max:999.99'],
+            'buffs_intelligence' => ['nullable', 'array'],
+            'buffs_intelligence.*' => ['numeric', 'min:0', 'max:999.99'],
+            'buffs_agility' => ['nullable', 'array'],
+            'buffs_agility.*' => ['numeric', 'min:0', 'max:999.99'],
+            'buffs_team' => ['nullable', 'array'],
+            'buffs_team.*' => ['numeric', 'min:0', 'max:999.99'],
             'tier' => ['nullable', Rule::in(['S+', 'S', 'A', 'B', 'C', 'D', 'F'])],
             'tier_note' => ['nullable', 'string', 'max:500'],
             'portrait_url' => ['nullable', 'string', 'max:500', function (string $attr, mixed $value, \Closure $fail) {

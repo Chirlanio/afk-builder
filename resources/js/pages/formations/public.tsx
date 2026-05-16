@@ -7,6 +7,7 @@ import type { ChallengeType, ClassCode, Faction, FactionCode, Formation, Formati
 import { Head, Link } from '@inertiajs/react';
 import { CheckCircle2, Eye, PawPrint, Target } from 'lucide-react';
 import { useMemo } from 'react';
+import { summarizeScope } from '@/lib/beast';
 
 interface PageProps {
     formation: Formation & {
@@ -157,12 +158,11 @@ export default function FormationsPublic({ formation, heroes, factions, heroClas
                                                 </div>
                                             )}
                                             <span className="font-medium">{team.beast.name}</span>
+                                            {team.beast_level !== undefined && team.beast_level !== null && (
+                                                <span className="rounded bg-muted/60 px-1 text-[10px] tabular-nums">Nv {team.beast_level}</span>
+                                            )}
                                             <span className="text-muted-foreground">
-                                                {[
-                                                    team.beast.strength_buff > 0 ? `F+${team.beast.strength_buff}` : null,
-                                                    team.beast.intelligence_buff > 0 ? `I+${team.beast.intelligence_buff}` : null,
-                                                    team.beast.agility_buff > 0 ? `A+${team.beast.agility_buff}` : null,
-                                                ].filter(Boolean).join(' / ')}
+                                                {summarizeScope(team.beast.buffs_team, 3) || summarizeScope(team.beast.buffs_strength, 2) || summarizeScope(team.beast.buffs_intelligence, 2) || summarizeScope(team.beast.buffs_agility, 2)}
                                             </span>
                                         </div>
                                     )}

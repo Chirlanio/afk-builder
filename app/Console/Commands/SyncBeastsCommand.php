@@ -69,9 +69,10 @@ class SyncBeastsCommand extends Command
                     'slug' => $slug,
                     'name' => $name,
                     'source_url' => $sourceUrl,
-                    'strength_buff' => 0,
-                    'intelligence_buff' => 0,
-                    'agility_buff' => 0,
+                    'buffs_strength' => null,
+                    'buffs_intelligence' => null,
+                    'buffs_agility' => null,
+                    'buffs_team' => null,
                     'is_active' => true,
                 ]);
                 $created++;
@@ -81,7 +82,7 @@ class SyncBeastsCommand extends Command
 
         $this->newLine();
         $this->info("Concluído. Criados: {$created}, já existentes: {$skipped}.");
-        $this->comment('Lembrete: buffs S/I/A precisam ser cadastrados manualmente via /admin/beasts.');
+        $this->comment('Lembrete: buffs por scope (Força/Inteligência/Agilidade/Equipe) precisam ser cadastrados manualmente via /admin/beasts.');
 
         return self::SUCCESS;
     }

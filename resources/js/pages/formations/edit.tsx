@@ -60,6 +60,8 @@ interface PageProps {
     availableTags?: FormationTagPayload[];
 }
 
+const BEAST_DEFAULT_LEVEL = 36;
+
 function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlotsState[] {
     const byPosition = new Map(teams.map((t) => [t.position, t]));
 
@@ -75,6 +77,7 @@ function teamsFromFormation(teams: FormationTeam[], teamsCount: number): TeamSlo
             position,
             name: team?.name ?? null,
             beastId: team?.beast_id ?? null,
+            beastLevel: team?.beast_level ?? BEAST_DEFAULT_LEVEL,
             slots,
         };
     });
@@ -198,6 +201,12 @@ export default function FormationsEdit({
 
     const setBeastForTeam = useCallback((teamPos: number, beastId: number) => {
         setTeams((prev) => prev.map((team) => (team.position === teamPos ? { ...team, beastId } : team)));
+        setIsDirty(true);
+    }, []);
+
+    const setBeastLevelForTeam = useCallback((teamPos: number, level: number) => {
+        const clamped = Math.max(1, Math.min(36, Math.round(level) || 1));
+        setTeams((prev) => prev.map((team) => (team.position === teamPos ? { ...team, beastLevel: clamped } : team)));
         setIsDirty(true);
     }, []);
 
@@ -549,6 +558,7 @@ export default function FormationsEdit({
                 position: team.position,
                 name: team.name,
                 beast_id: team.beastId,
+                beast_level: team.beastLevel,
                 heroes: team.slots
                     .map((slot, idx) => ({ slot: idx + 1, hero_id: slot.heroId, row: null }))
                     .filter((h): h is { slot: number; hero_id: number; row: null } => h.hero_id !== null),
@@ -795,6 +805,7 @@ export default function FormationsEdit({
                                             tierById={tierById}
                                             onRemoveHero={(slotPosition) => removeFromSlot(team.position, slotPosition)}
                                             onClearBeast={() => clearBeastForTeam(team.position)}
+                                            onBeastLevelChange={(level) => setBeastLevelForTeam(team.position, level)}
                                             onAutoBestBeast={() => autoPickBestBeast(team.position)}
                                             isPickingBeast={pickingBeastForTeamPos === team.position}
                                             onSuggest={() => suggestForTeam(team.position)}
@@ -955,6 +966,7 @@ export default function FormationsEdit({
                             name: t.name,
                             score: null,
                             beast_id: t.beastId,
+                            beast_level: t.beastLevel,
                             beast: t.beastId ? beastById[t.beastId] ?? null : null,
                             team_heroes: t.slots
                                 .map((slot, slotIdx) => ({

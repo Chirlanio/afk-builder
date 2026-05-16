@@ -48,19 +48,17 @@ class BeastAdminTest extends TestCase
                 'slug' => 'dreary-ball',
                 'name' => 'Dreary Ball',
                 'description' => 'Buffa todos os heróis.',
-                'strength_buff' => 100,
-                'intelligence_buff' => 50,
-                'agility_buff' => 75,
+                'buffs_strength' => ['attack' => 17.59, 'defense' => 47.55],
+                'buffs_team' => ['hp' => 14.03, 'attack' => 10.24],
             ])
             ->assertOk()
             ->assertJson(['ok' => true]);
 
-        $this->assertDatabaseHas('beasts', [
-            'slug' => 'dreary-ball',
-            'strength_buff' => 100,
-            'intelligence_buff' => 50,
-            'agility_buff' => 75,
-        ]);
+        $beast = Beast::where('slug', 'dreary-ball')->first();
+        $this->assertNotNull($beast);
+        $this->assertEqualsWithDelta(17.59, $beast->buffs_strength['attack'], 0.01);
+        $this->assertEqualsWithDelta(47.55, $beast->buffs_strength['defense'], 0.01);
+        $this->assertEqualsWithDelta(14.03, $beast->buffs_team['hp'], 0.01);
     }
 
     public function test_validacao_slug_unico(): void
@@ -77,20 +75,18 @@ class BeastAdminTest extends TestCase
     public function test_admin_atualiza_beast(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
-        $beast = Beast::create(['slug' => 'dreary-ball', 'name' => 'Old', 'strength_buff' => 0]);
+        $beast = Beast::create(['slug' => 'dreary-ball', 'name' => 'Old']);
 
         $this->actingAs($admin)
             ->patchJson("/admin/beasts/{$beast->id}", [
                 'slug' => 'dreary-ball',
                 'name' => 'New',
-                'strength_buff' => 200,
-                'intelligence_buff' => 0,
-                'agility_buff' => 0,
+                'buffs_strength' => ['attack' => 25.5],
             ])
             ->assertOk();
 
         $this->assertSame('New', $beast->fresh()->name);
-        $this->assertSame(200, $beast->fresh()->strength_buff);
+        $this->assertEqualsWithDelta(25.5, $beast->fresh()->buffs_strength['attack'], 0.01);
     }
 
     public function test_admin_remove_beast(): void

@@ -15,12 +15,14 @@ class FormationTeam extends Model
         'score',
         'faction_bonuses',
         'beast_id',
+        'beast_level',
     ];
 
     protected $casts = [
         'position' => 'integer',
         'score' => 'integer',
         'faction_bonuses' => 'array',
+        'beast_level' => 'integer',
     ];
 
     public function formation(): BelongsTo
