@@ -2939,3 +2939,45 @@ score = Σ (beast.buff_type × heroes_no_team_daquele_type)
 - `best_beast_404_se_team_nao_pertence_a_formation`
 
 **409 testes verdes** (+6 novos best-beast).
+
+### ✅ Fase 49 — Filtros avançados em /heroes (investimento + equipamento)
+
+Catálogo de heróis ganha **painel colapsável** com 8 filtros que se aplicam contra o roster do user: SI mín, Móveis mín, Inscrição mín, Nível mín, Tier do catálogo, Has artefato (sim/não/qualquer), Has coleção (sim/não/qualquer), e Equipment tier mínimo em **todas as 4 peças** (weapon/helmet/chest/boots).
+
+#### Backend
+`HeroController::index` agora carrega no payload do roster os 11 campos adicionais necessários pra alimentar os filtros:
+- `artifact_id`, `collection_id`
+- `weapon_tier`, `weapon_level`, `helmet_tier`, `helmet_level`, `chest_tier`, `chest_level`, `boots_tier`, `boots_level`
+
+Custo desprezível (UserHero já existe e é indexado por hero_id; 11 cols leves × N user_heroes).
+
+#### Frontend
+- **`components/heroes-advanced-filters.tsx`** — painel colapsável (collapsed by default) com:
+  - **Segments numéricos** com presets: SI [0/10/20/30/40], F [0/3/6/9], Eng [0/30/60/80], Level [0/160/200/220/240]
+  - **Tristate** "Qualquer / Com / Sem" pra artefato e coleção
+  - **Equipment tier mínimo** com botões T1+...T6+ (aplica a todas as 4 peças simultaneamente — "AND" entre slots)
+  - **Tier do catálogo** (multi-select chips usando os tiers do payload)
+  - Badge "ativos" no header quando algum filtro está ligado
+  - Reset rápido via link "Limpar avançados" no header expandido
+- **Lógica client-side** (`heroes/index.tsx`):
+  - `advancedScopesRoster` flag: true se qualquer filtro de investimento/equipamento ativo — implica `hero ∉ roster ⇒ excluído`
+  - `tierCodeMeetsMin(uh.weapon_tier, 'T4')` compara via mapa `T1=1...T6=6`
+  - Filtro de tier do catálogo é por `hero.tier_id` (independente de roster — funciona pra heróis fora do roster também)
+- **`clearFilters`** + **`filtersActive`** estendidos pra cobrir o estado avançado
+
+#### Trade-offs
+- **Por que tudo client-side?** A página `/heroes` já carregava o catálogo inteiro + roster. Filtrar via backend exigiria query param + roundtrip a cada toggle. Client-side é instantâneo e o payload já está em memória.
+- **Por que `equipTierMin` aplica em todas as 4 peças (AND) e não OR?** "Quero heróis com pelo menos T4 em tudo" é a query útil pra organizar farming de gear. "Tem qualquer peça T4+" tem baixo valor de filtro (quase todo hero ascended tem ao menos uma peça avançada). Trade-off: perde flexibilidade de "ao menos uma peça" mas ganha precisão.
+- **Por que SI/F/Eng com presets fixos em vez de slider?** Os valores significativos são milestones (SI 10/20/30/40, F 3/6/9, Eng 60/80). Slider livre seria ruído — o user quer pensar em milestones do jogo, não em "37".
+- **Por que `siMin > 0 && uh.signature_item < siMin` exclui (e não inclui) heróis com SI=0 quando filtro é `siMin=0`?** Lógica: `siMin=0` significa "qualquer" — não restringe. Só quando `siMin > 0` o filtro é aplicado.
+- **Por que filtros avançados ignoram heróis fora do roster automaticamente?** "Heróis com SI≥30" implicitamente requer existir no roster (sem roster não há SI). Aplicar a filtros sem roster geraria 0 resultados confuso — exclusão silenciosa é mais previsível. Aviso textual no painel deixa isso explícito.
+- **Por que filtro de Tier do catálogo está dentro do painel avançado?** Tier (Comum, Raro, Élite, Lendário, Mítico, Ascended, Celestial) é menos usado que faction/class no filtering — empurrar pro painel avançado libera o header pra os filtros frequentes.
+
+#### Testes (`HeroIndexTest`)
+4 cenários (2 novos):
+- `payload_inclui_features_carregadas`
+- `hero_sem_features_retorna_array_vazio`
+- `roster_payload_inclui_campos_de_equipamento` — verifica que SI/F/Eng/Level + equipment tiers/levels + artifact_id + collection_id aparecem no payload
+- `roster_isolado_por_user` — payload do user B não contém heroes do roster do user A
+
+**411 testes verdes** (+2 novos).

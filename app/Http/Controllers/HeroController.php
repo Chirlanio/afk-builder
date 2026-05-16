@@ -47,11 +47,19 @@ class HeroController extends Controller
         $tiers = Tier::orderBy('display_order')
             ->get(['id', 'code', 'name', 'name_pt', 'max_level', 'display_order']);
 
+        // Fase 49: payload do roster inclui campos de equipamento pra alimentar os filtros avançados
+        // (artifact/collection presença + equipment tiers/levels). Cost-benefit aceitável: ~11 cols
+        // extras × N heroes do user — leve, indexado, e evita N+1 quando user explora o catálogo.
         $roster = $request->user()
             ->userHeroes()
             ->get([
                 'id', 'hero_id', 'level', 'ascension_code', 'ascension_value',
                 'signature_item', 'furniture', 'engraving', 'notes',
+                'artifact_id', 'collection_id',
+                'weapon_tier', 'weapon_level',
+                'helmet_tier', 'helmet_level',
+                'chest_tier', 'chest_level',
+                'boots_tier', 'boots_level',
             ])
             ->keyBy('hero_id');
 

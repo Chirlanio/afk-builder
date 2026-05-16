@@ -1,5 +1,12 @@
 import { HeroCard } from '@/components/hero-card';
 import { HeroDetailModal } from '@/components/hero-detail-modal';
+import {
+    HeroesAdvancedFilters,
+    defaultAdvancedFilters,
+    isAdvancedFiltersActive,
+    tierCodeMeetsMin,
+    type AdvancedFiltersState,
+} from '@/components/heroes-advanced-filters';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,7 +39,18 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
     const [featureFilter, setFeatureFilter] = useState<Set<HeroFeatureTag>>(new Set());
     const [onlyOwned, setOnlyOwned] = useState(false);
     const [onlyFavorites, setOnlyFavorites] = useState(false);
+    const [advanced, setAdvanced] = useState<AdvancedFiltersState>(defaultAdvancedFilters);
     const [openSlug, setOpenSlug] = useState<string | null>(null);
+
+    const advancedActive = isAdvancedFiltersActive(advanced);
+    const advancedScopesRoster =
+        advanced.siMin > 0 ||
+        advanced.fMin > 0 ||
+        advanced.engMin > 0 ||
+        advanced.levelMin > 0 ||
+        advanced.hasArtifact !== 'all' ||
+        advanced.hasCollection !== 'all' ||
+        advanced.equipTierMin !== null;
 
     const favoriteSet = useMemo(() => new Set(favoriteHeroIds), [favoriteHeroIds]);
 
@@ -116,6 +134,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
             if (classFilter.size > 0 && !classFilter.has(hero.hero_class_id)) continue;
             if (onlyOwned && !roster[hero.id]) continue;
             if (onlyFavorites && !favoriteSet.has(hero.id)) continue;
+            if (advanced.tierIds.size > 0 && !advanced.tierIds.has(hero.tier_id)) continue;
             if (featureFilter.size > 0) {
                 const tags = hero.features?.map((f) => f.tag) ?? [];
                 let matches = false;
@@ -132,13 +151,36 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                 if (!haystack.includes(term)) continue;
             }
 
+            // Filtros avançados que dependem do roster (investimento + equipamento).
+            // Heróis fora do roster são excluídos quando qualquer destes está ativo.
+            if (advancedScopesRoster) {
+                const uh = roster[hero.id];
+                if (!uh) continue;
+                if (advanced.siMin > 0 && uh.signature_item < advanced.siMin) continue;
+                if (advanced.fMin > 0 && uh.furniture < advanced.fMin) continue;
+                if (advanced.engMin > 0 && uh.engraving < advanced.engMin) continue;
+                if (advanced.levelMin > 0 && uh.level < advanced.levelMin) continue;
+                if (advanced.hasArtifact === 'yes' && uh.artifact_id === null) continue;
+                if (advanced.hasArtifact === 'no' && uh.artifact_id !== null) continue;
+                if (advanced.hasCollection === 'yes' && uh.collection_id === null) continue;
+                if (advanced.hasCollection === 'no' && uh.collection_id !== null) continue;
+                if (advanced.equipTierMin !== null) {
+                    const allFour =
+                        tierCodeMeetsMin(uh.weapon_tier, advanced.equipTierMin) &&
+                        tierCodeMeetsMin(uh.helmet_tier, advanced.equipTierMin) &&
+                        tierCodeMeetsMin(uh.chest_tier, advanced.equipTierMin) &&
+                        tierCodeMeetsMin(uh.boots_tier, advanced.equipTierMin);
+                    if (!allFour) continue;
+                }
+            }
+
             const list = map.get(hero.faction_id) ?? [];
             list.push(hero);
             map.set(hero.faction_id, list);
         }
 
         return map;
-    }, [heroes, search, factionFilter, classFilter, featureFilter, onlyOwned, onlyFavorites, favoriteSet, roster]);
+    }, [heroes, search, factionFilter, classFilter, featureFilter, onlyOwned, onlyFavorites, favoriteSet, roster, advanced, advancedScopesRoster]);
 
     const totalShown = useMemo(() => {
         let n = 0;
@@ -164,13 +206,21 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
         setFeatureFilter(new Set());
         setOnlyOwned(false);
         setOnlyFavorites(false);
+        setAdvanced(defaultAdvancedFilters());
     };
 
     const openHero = (hero: Hero) => {
         setOpenSlug(hero.slug);
     };
 
-    const filtersActive = search.length > 0 || factionFilter.size > 0 || classFilter.size > 0 || featureFilter.size > 0 || onlyOwned || onlyFavorites;
+    const filtersActive =
+        search.length > 0 ||
+        factionFilter.size > 0 ||
+        classFilter.size > 0 ||
+        featureFilter.size > 0 ||
+        onlyOwned ||
+        onlyFavorites ||
+        advancedActive;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -295,6 +345,14 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                             );
                         })}
                     </div>
+
+                    <HeroesAdvancedFilters
+                        state={advanced}
+                        tiers={tiers}
+                        onChange={setAdvanced}
+                        onReset={() => setAdvanced(defaultAdvancedFilters())}
+                        isActive={advancedActive}
+                    />
                 </div>
 
                 <div className="flex flex-col gap-6">

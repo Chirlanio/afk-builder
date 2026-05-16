@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Models\Artifact;
+use App\Models\Collection;
 use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroClass;
 use App\Models\HeroFeature;
 use App\Models\Tier;
 use App\Models\User;
+use App\Models\UserHero;
 use Database\Seeders\FactionSeeder;
 use Database\Seeders\HeroClassSeeder;
 use Database\Seeders\TierSeeder;
@@ -80,5 +83,85 @@ class HeroIndexTest extends TestCase
                 ->component('heroes/index')
                 ->has('heroes.0.features', 0)
             );
+    }
+
+    public function test_roster_payload_inclui_campos_de_equipamento(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero('thoran');
+        $artifact = Artifact::create([
+            'slug' => 'dura-call',
+            'name' => 'Dura Call',
+            'kind' => Artifact::KIND_DURA,
+            'is_active' => true,
+        ]);
+        $collection = Collection::create([
+            'slug' => 'set1',
+            'name' => 'Set 1',
+            'hp_bonus' => 10,
+            'attack_bonus' => 5,
+            'defense_bonus' => 5,
+            'is_active' => true,
+        ]);
+
+        UserHero::create([
+            'user_id' => $user->id,
+            'hero_id' => $hero->id,
+            'level' => 220,
+            'ascension_value' => 16,
+            'ascension_code' => 'ascended_5_stars',
+            'signature_item' => 30,
+            'furniture' => 9,
+            'engraving' => 80,
+            'weapon_tier' => 'T4',
+            'weapon_level' => 20,
+            'helmet_tier' => 'T3',
+            'helmet_level' => 10,
+            'chest_tier' => 'T4',
+            'chest_level' => 5,
+            'boots_tier' => 'T3',
+            'boots_level' => 15,
+            'artifact_id' => $artifact->id,
+            'collection_id' => $collection->id,
+        ]);
+
+        $response = $this->actingAs($user)->get('/heroes')->assertOk();
+        $roster = $response->viewData('page')['props']['roster'];
+
+        // Roster vem keyado por hero_id (Eloquent Collection serializa preservando keys)
+        $entry = $roster[$hero->id];
+        $this->assertSame(30, $entry['signature_item']);
+        $this->assertSame(9, $entry['furniture']);
+        $this->assertSame(80, $entry['engraving']);
+        $this->assertSame(220, $entry['level']);
+        $this->assertSame('T4', $entry['weapon_tier']);
+        $this->assertSame('T3', $entry['helmet_tier']);
+        $this->assertSame('T4', $entry['chest_tier']);
+        $this->assertSame('T3', $entry['boots_tier']);
+        $this->assertSame($artifact->id, $entry['artifact_id']);
+        $this->assertSame($collection->id, $entry['collection_id']);
+    }
+
+    public function test_roster_isolado_por_user(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+        $hero = $this->makeHero('granit');
+
+        UserHero::create([
+            'user_id' => $userA->id,
+            'hero_id' => $hero->id,
+            'level' => 200,
+            'ascension_value' => 12,
+            'ascension_code' => 'mythic',
+            'signature_item' => 0,
+            'furniture' => 0,
+            'engraving' => 0,
+        ]);
+
+        $response = $this->actingAs($userB)->get('/heroes')->assertOk();
+        $roster = $response->viewData('page')['props']['roster'];
+
+        $this->assertArrayNotHasKey($hero->id, $roster);
     }
 }
