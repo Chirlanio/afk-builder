@@ -3256,3 +3256,79 @@ Dashboard dedicada com visão profunda do roster: distribuição de power por fa
 
 **434 testes verdes** (+5 novos).
 
+### ✅ Fase 54 — Planner de investimento (`/roster/planner`)
+
+Sugere onde investir o próximo recurso para maximizar power: simula upgrades candidatos (próximo milestone de SI, F3/F9, E30/E60/E80, milestones de Ascensão) em cada hero do roster, calcula o **ROI** (`power_gain / cost`), aplica multiplicadores contextuais (facção sub-investida, tier Ascended, Awakened, presença na formação selecionada) e retorna a lista ordenada por score decrescente.
+
+Complementa a Fase 53 (`/roster/analytics`) que mostra **o estado** — o planner é **o que fazer a seguir**.
+
+#### Service `InvestmentPlanner`
+
+Em `app/Services/Optimization/InvestmentPlanner.php`:
+- `plan(User $user, ?Formation $formation = null, int $topN = 10): array`
+- Carrega `UserHero` com eager-load (mesma assinatura que o PowerCalculator espera)
+- Para cada hero, gera `candidateUpgrades()`:
+  - **SI**: próximo milestone (30 ou cap da facção); respeita `SignatureItemCost::capForFaction()` (40 só pra Celestial/Hypogean)
+  - **Furniture**: 0→3 ou 3→9 (não cada peça)
+  - **Engraving**: 30/60/80 (próximo só)
+  - **Ascension**: próximo de 4/10/12/16 (milestones que mudam tier ou destravam ★)
+- Para cada upgrade, simula via `UserHero::replicate()` + `setRelation`, chama `PowerCalculator::forUserHero` no estado novo, calcula `power_gain`
+- Filtra upgrades com `power_gain ≤ 0` (não vale sugerir)
+- Cost em "unidade abstrata":
+  - SI: usa `SignatureItemCost::cumulativeCostUpToLevel()` real (emblemas)
+  - Furniture: `250` por peça abaixo de F3, `300` de F3→F9
+  - Engraving: `30/70/150` por nível em cada faixa (E0-30, 30-60, 60-80)
+  - Ascension: `400` por step
+
+Score base = `power_gain / max(1, cost)`. Multiplicadores aplicados:
+- `FACTION_GAP_MULTIPLIER (1.20)` — facção com < 3 heros investidos no roster
+- `ASCENDED_TIER_MULTIPLIER (1.15)` — tier Ascended (catálogo)
+- `AWAKENED_MULTIPLIER (1.25)` — slug != `Str::slug(name)` (desperto)
+- `IN_FORMATION_MULTIPLIER (1.50)` — hero está numa formation selecionada
+
+Reasons retornados como strings (`faction_gap`, `tier_ascended`, `awakened`, `in_formation`) → frontend mapeia pra badges coloridos.
+
+#### Backend
+`RosterPlannerController::index`:
+- Aceita `?formation_id=N&top=12` (validados; formation_id verificado pertencer ao user)
+- Retorna `suggestions`, `formations` (dropdown), `selectedFormationId`, `rosterSize`, `topN`
+- Rota `GET /roster/planner` nomeada `roster.planner`
+
+#### Frontend
+- **`pages/roster/planner.tsx`**:
+  - Header com explicação do ROI + dropdown "Escopo: Roster inteiro / Formação X"
+  - Lista numerada (1-12) de sugestões. Cada card mostra:
+    - portrait + nome + Nv X · Classe (· badge Ascended)
+    - badge do tipo do upgrade (Assinatura/Móveis/Inscrições/Ascensão) com cor diferenciada (âmbar/azul/rose/verde)
+    - badge "+X power" verde
+    - label de custo (Baixo/Médio/Alto/Muito alto) com cor (emerald→rose)
+    - chips de reasons (Facção sub-investida, Tier Ascended, Desperto, Na formação)
+    - botão "Editar" (link pra `/heroes?edit=slug`)
+  - Empty state quando roster vazio ou tudo no max
+  - Filtro de formation faz `router.get(preserveState: true)` — recarrega só os props
+- **Sidebar**: item "Planner de investimento" (ícone `Compass`) abaixo de "Análise do roster"
+
+#### Trade-offs
+- **Por que simular o PowerCalculator com `replicate()` em vez de calcular delta analítico?** Power tem 30+ regras (stats, equipment, artifact, F3/F9 bonus de unlock, beast, etc) — duplicar a fórmula daria 2 places of truth. Simular custa O(N × upgrades) chamadas in-memory, sem queries adicionais (relations já carregadas).
+- **Por que cost em "unidade abstrata" e não emblemas reais?** Os tipos de recurso são diferentes (emblemas SI, fragmentos de móveis, scrolls de engraving, fragmentos do hero) — não há conversão direta. A unidade abstrata serve como **divisor** pra comparar ROI entre tipos. User vê apenas o label (Baixo/Médio/Alto), não o valor cru.
+- **Por que apenas o **próximo** milestone e não todos?** Sugerir "SI 10→40 (+260 power)" é menos acionável que "SI 10→30 (+140 power)". O user vai um milestone por vez. Ranking destaca **próxima ação concreta**.
+- **Por que Ascensão usa milestones (4/10/12/16) em vez de cada step?** Steps intermediários (Mythic→Mythic+) dão pouco power individualmente; o salto que importa é o que destrava tier (Legendary, Mythic+, Ascended, Ascended 5★).
+- **Por que `IN_FORMATION_MULTIPLIER (1.50)` é o mais alto?** Quando user diz "fortalece esta formação", priorizar heros dessa formation é o objetivo explícito. Multipliers menores podem afundar heros da formation pelos contextuais.
+- **Por que `FACTION_GAP_MULTIPLIER` ativa com `< 3 investidos`?** Mesma heurística da Fase 53 (`MIN_INVESTED_PER_FACTION = 3`). Coerência conceitual entre as duas páginas — "facção sub-investida" tem o mesmo significado.
+- **Por que não persistir o plano?** Plano é função pura do roster + formation → sempre regenerável. Persistir adicionaria invalidation/staleness sem benefício (não há histórico útil de "qual plano eu tinha ontem").
+- **Por que `topN = 12` default (não 10)?** Lista de 10 fica próxima da fold visual em mobile; 12 dá espaço pra explorar mais opções sem precisar paginar.
+- **Por que `power_gain ≤ 0` filtra a sugestão (em vez de mostrar com aviso)?** Upgrade que não dá power é não-sugestão. Não há contexto onde "ir pra E30 sem power gain" seria útil.
+
+#### Testes (`InvestmentPlannerTest`)
+8 cenários:
+- `roster_vazio_retorna_array_vazio` — short-circuit sem queries
+- `sugere_upgrade_para_hero_com_si_baixo` — SI 10 → próximo step é 30
+- `hero_no_max_de_si_nao_recebe_sugestao_de_si` — Lightbearer SI 30 → sem SI sug (outros tipos sim)
+- `celestial_pode_subir_para_si_40` — cap 40 respeitado
+- `formation_scope_aplica_multiplier_in_formation` — heros idênticos, só o da formation tem score maior + reason `in_formation`
+- `awakened_hero_recebe_multiplier` — slug `lucius-awakened` → reason `awakened` no topo
+- `pagina_planner_retorna_payload_correto` — Inertia render com props esperadas
+- `pagina_planner_guest_redireciona` — auth middleware
+
+**442 testes verdes** (+8 novos).
+
