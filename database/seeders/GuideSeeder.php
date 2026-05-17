@@ -6,6 +6,7 @@ use App\Models\Guide;
 use App\Services\HeroCatalogSync\FandomWikiClient;
 use App\Services\HeroCatalogSync\WikitextHeroParser;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\File;
 use Throwable;
 
 class GuideSeeder extends Seeder
@@ -16,11 +17,12 @@ class GuideSeeder extends Seeder
      */
     private const ENTRIES = [
         [
-            'slug' => 'critico-ressonante',
-            'title' => 'Crítico Ressonante (Resonating Crystal)',
+            'slug' => 'cristal-ressonante',
+            'title' => 'Cristal Ressonante (Resonating Crystal)',
             'category' => Guide::CATEGORY_MECANICAS,
             'wiki_page' => 'Resonating Crystal',
-            'summary' => 'Cristal pentagrama em Ranhorn que eleva o nível de heróis selecionados ao mesmo dos seus 5 melhores.',
+            'static_content' => 'cristal-ressonante.md',
+            'summary' => 'Pentagrama em Ranhorn que iguala heróis selecionados ao nível do seu 5º melhor — depois de 5 heróis no nível 240, vira cristal upgradeável.',
             'display_order' => 10,
         ],
         [
@@ -88,21 +90,38 @@ class GuideSeeder extends Seeder
         $client = app(FandomWikiClient::class);
         $parser = app(WikitextHeroParser::class);
 
+        // Remove o slug antigo `critico-ressonante` (typo da seedagem original — substituído por `cristal-ressonante`)
+        Guide::where('slug', 'critico-ressonante')->delete();
+
         foreach (self::ENTRIES as $entry) {
             $content = null;
             $sourceUrl = null;
 
-            try {
-                $wikitext = $client->fetchWikitext($entry['wiki_page']);
-                if ($wikitext) {
-                    $content = $parser->wikitextToMarkdown($wikitext);
-                    if (mb_strlen($content) > self::CONTENT_MAX_CHARS) {
-                        $content = mb_substr($content, 0, self::CONTENT_MAX_CHARS) . "\n\n*[…] (Conteúdo truncado — veja a fonte para versão completa)*";
-                    }
+            // 1) Se a entry tem `static_content`, usa o markdown do disco e ignora fetch da wiki
+            if (! empty($entry['static_content'])) {
+                $path = __DIR__ . '/guides/' . $entry['static_content'];
+                if (File::exists($path)) {
+                    $content = File::get($path);
                     $sourceUrl = 'https://afk-arena.fandom.com/wiki/' . rawurlencode(str_replace(' ', '_', $entry['wiki_page']));
+                } else {
+                    $this->command?->warn("static_content '{$entry['static_content']}' não encontrado em guides/.");
                 }
-            } catch (Throwable $e) {
-                $this->command?->warn("Falha ao buscar '{$entry['wiki_page']}': {$e->getMessage()}");
+            }
+
+            // 2) Senão, busca da Fandom Wiki (comportamento original)
+            if ($content === null && ! empty($entry['wiki_page'])) {
+                try {
+                    $wikitext = $client->fetchWikitext($entry['wiki_page']);
+                    if ($wikitext) {
+                        $content = $parser->wikitextToMarkdown($wikitext);
+                        if (mb_strlen($content) > self::CONTENT_MAX_CHARS) {
+                            $content = mb_substr($content, 0, self::CONTENT_MAX_CHARS) . "\n\n*[…] (Conteúdo truncado — veja a fonte para versão completa)*";
+                        }
+                        $sourceUrl = 'https://afk-arena.fandom.com/wiki/' . rawurlencode(str_replace(' ', '_', $entry['wiki_page']));
+                    }
+                } catch (Throwable $e) {
+                    $this->command?->warn("Falha ao buscar '{$entry['wiki_page']}': {$e->getMessage()}");
+                }
             }
 
             Guide::updateOrCreate(
