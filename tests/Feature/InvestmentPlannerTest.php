@@ -8,6 +8,7 @@ use App\Models\Hero;
 use App\Models\HeroClass;
 use App\Models\Tier;
 use App\Models\User;
+use App\Models\UserResource;
 use App\Services\Optimization\InvestmentPlanner;
 use Database\Seeders\ChallengeTypeSeeder;
 use Database\Seeders\FactionSeeder;
@@ -197,6 +198,136 @@ class InvestmentPlannerTest extends TestCase
     public function test_pagina_planner_guest_redireciona(): void
     {
         $this->get('/roster/planner')->assertRedirect('/login');
+    }
+
+    public function test_resource_cost_emblemas_si_diferentes_buckets(): void
+    {
+        $this->seedCatalog();
+        $user = User::factory()->create();
+        $hero = $this->makeHero('h', 'lightbearer', 'tank', 'ascended');
+        $uh = $user->userHeroes()->create([
+            'hero_id' => $hero->id,
+            'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
+            'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
+        ]);
+
+        $planner = app(InvestmentPlanner::class);
+
+        // SI 0→30: usa primordial (levels 1-20) + amplifying (21-30)
+        $cost = $planner->resourceCostFor($uh, ['kind' => 'signature_item', 'from' => 0, 'to' => 30]);
+        $this->assertArrayHasKey('primordial_emblems', $cost);
+        $this->assertArrayHasKey('amplifying_emblems', $cost);
+        $this->assertGreaterThan(0, $cost['primordial_emblems']);
+        $this->assertGreaterThan(0, $cost['amplifying_emblems']);
+        $this->assertArrayNotHasKey('faction_emblems', $cost);
+
+        // SI 30→40 (Celestial only): puro faction
+        $costFaction = $planner->resourceCostFor($uh, ['kind' => 'signature_item', 'from' => 30, 'to' => 40]);
+        $this->assertArrayHasKey('faction_emblems', $costFaction);
+        $this->assertArrayNotHasKey('primordial_emblems', $costFaction);
+    }
+
+    public function test_resource_cost_furniture_e_engraving_pool(): void
+    {
+        $this->seedCatalog();
+        $user = User::factory()->create();
+        $hero = $this->makeHero('h', 'lightbearer', 'tank', 'ascended');
+        $uh = $user->userHeroes()->create([
+            'hero_id' => $hero->id,
+            'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
+            'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
+        ]);
+
+        $planner = app(InvestmentPlanner::class);
+
+        // F0→F3 = 3 unidades
+        $f = $planner->resourceCostFor($uh, ['kind' => 'furniture', 'from' => 0, 'to' => 3]);
+        $this->assertSame(['mythic_furniture' => 3], $f);
+
+        // E30→E60 = 30 unidades
+        $e = $planner->resourceCostFor($uh, ['kind' => 'engraving', 'from' => 30, 'to' => 60]);
+        $this->assertSame(['engraving_scrolls' => 30], $e);
+
+        // Ascension: vazio (sem pool global)
+        $a = $planner->resourceCostFor($uh, ['kind' => 'ascension', 'from' => 5, 'to' => 10]);
+        $this->assertSame([], $a);
+    }
+
+    public function test_affordable_flag_quando_recursos_passados(): void
+    {
+        $this->seedCatalog();
+        $user = User::factory()->create();
+        $hero = $this->makeHero('rich', 'lightbearer', 'tank', 'ascended');
+        $user->userHeroes()->create([
+            'hero_id' => $hero->id,
+            'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
+            'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
+        ]);
+
+        $resources = UserResource::create([
+            'user_id' => $user->id,
+            'primordial_emblems' => 9_999, // suficiente pra qualquer SI bucket
+            'amplifying_emblems' => 9_999,
+            'faction_emblems' => 0,
+            'mythic_furniture' => 0,
+            'engraving_scrolls' => 0,
+        ]);
+
+        $suggestions = app(InvestmentPlanner::class)->plan($user, null, 10, $resources);
+
+        $siSug = collect($suggestions)->firstWhere('kind', 'signature_item');
+        $this->assertNotNull($siSug);
+        $this->assertTrue($siSug['affordable']);
+
+        // Furniture e Engraving devem ser unaffordable (recursos = 0)
+        $fSug = collect($suggestions)->firstWhere('kind', 'furniture');
+        if ($fSug !== null) {
+            $this->assertFalse($fSug['affordable']);
+        }
+
+        $eSug = collect($suggestions)->firstWhere('kind', 'engraving');
+        if ($eSug !== null) {
+            $this->assertFalse($eSug['affordable']);
+        }
+    }
+
+    public function test_affordable_null_quando_recursos_ausentes(): void
+    {
+        $this->seedCatalog();
+        $user = User::factory()->create();
+        $hero = $this->makeHero('h', 'lightbearer', 'tank', 'ascended');
+        $user->userHeroes()->create([
+            'hero_id' => $hero->id,
+            'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
+            'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
+        ]);
+
+        $suggestions = app(InvestmentPlanner::class)->plan($user); // sem $resources
+
+        $this->assertNotEmpty($suggestions);
+        $this->assertNull($suggestions[0]['affordable']);
+        $this->assertNull($suggestions[0]['resource_cost']);
+    }
+
+    public function test_ascension_sem_pool_e_sempre_affordable(): void
+    {
+        $this->seedCatalog();
+        $user = User::factory()->create();
+        $hero = $this->makeHero('low', 'lightbearer', 'tank', 'legendary');
+        $user->userHeroes()->create([
+            'hero_id' => $hero->id,
+            'level' => 100, 'ascension_value' => 1, 'ascension_code' => 'rare',
+            'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
+        ]);
+
+        // Recursos zerados — mas ascension não bloqueia
+        $resources = UserResource::create(['user_id' => $user->id]);
+
+        $suggestions = app(InvestmentPlanner::class)->plan($user, null, 10, $resources);
+
+        $ascSug = collect($suggestions)->firstWhere('kind', 'ascension');
+        $this->assertNotNull($ascSug);
+        $this->assertTrue($ascSug['affordable']);
     }
 
     private function seedCatalog(): void

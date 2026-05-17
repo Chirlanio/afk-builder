@@ -6,6 +6,7 @@ use App\Models\Formation;
 use App\Models\SignatureItemCost;
 use App\Models\User;
 use App\Models\UserHero;
+use App\Models\UserResource;
 
 /**
  * Gera sugestões priorizadas de "próximo investimento" no roster do user.
@@ -64,10 +65,12 @@ class InvestmentPlanner
 
     /**
      * Gera plano de investimento. Retorna até $topN sugestões ordenadas por score.
+     * Se $resources for fornecido, cada sugestão recebe `resource_cost` (map por tipo)
+     * e `affordable` (bool) — útil pra filtrar/destacar o que cabe no orçamento atual.
      *
      * @return array<int, array<string, mixed>>
      */
-    public function plan(User $user, ?Formation $formation = null, int $topN = 10): array
+    public function plan(User $user, ?Formation $formation = null, int $topN = 10, ?UserResource $resources = null): array
     {
         $userHeroes = $user->userHeroes()
             ->with([
@@ -95,6 +98,13 @@ class InvestmentPlanner
             foreach ($this->candidateUpgrades($uh) as $upgrade) {
                 $entry = $this->scoreUpgrade($uh, $upgrade, $currentPower, $context);
                 if ($entry !== null) {
+                    if ($resources !== null) {
+                        $entry['resource_cost'] = $this->resourceCostFor($uh, $upgrade);
+                        $entry['affordable'] = $this->isAffordable($entry['resource_cost'], $resources);
+                    } else {
+                        $entry['resource_cost'] = null;
+                        $entry['affordable'] = null;
+                    }
                     $suggestions[] = $entry;
                 }
             }
@@ -103,6 +113,73 @@ class InvestmentPlanner
         usort($suggestions, fn ($a, $b) => $b['score'] <=> $a['score']);
 
         return array_slice($suggestions, 0, $topN);
+    }
+
+    /**
+     * Computa o custo concreto do upgrade em recursos rastreáveis. SI usa o
+     * cost real por nível (com bucket de emblem_type); Furniture/Engraving usam
+     * 1 unidade por step; Ascension não tem pool global (retorna array vazio).
+     *
+     * @param  array{kind: string, from: int, to: int}  $upgrade
+     * @return array<string, int>
+     */
+    public function resourceCostFor(UserHero $uh, array $upgrade): array
+    {
+        $cost = [];
+
+        if ($upgrade['kind'] === self::KIND_SIGNATURE_ITEM) {
+            $rows = SignatureItemCost::query()
+                ->whereBetween('level', [$upgrade['from'] + 1, $upgrade['to']])
+                ->get(['level', 'cost', 'emblem_type']);
+            foreach ($rows as $row) {
+                $type = (string) $row->emblem_type;
+                $field = match ($type) {
+                    SignatureItemCost::EMBLEM_PRIMORDIAL => 'primordial_emblems',
+                    SignatureItemCost::EMBLEM_AMPLIFYING => 'amplifying_emblems',
+                    SignatureItemCost::EMBLEM_FACTION => 'faction_emblems',
+                    default => null,
+                };
+                if ($field === null) {
+                    continue;
+                }
+                $cost[$field] = ($cost[$field] ?? 0) + (int) ($row->cost ?? 0);
+            }
+
+            return $cost;
+        }
+
+        if ($upgrade['kind'] === self::KIND_FURNITURE) {
+            $cost['mythic_furniture'] = $upgrade['to'] - $upgrade['from'];
+
+            return $cost;
+        }
+
+        if ($upgrade['kind'] === self::KIND_ENGRAVING) {
+            $cost['engraving_scrolls'] = $upgrade['to'] - $upgrade['from'];
+
+            return $cost;
+        }
+
+        // Ascension: sem pool global rastreável (fragmentos do hero específico)
+        return [];
+    }
+
+    /**
+     * @param  array<string, int>  $resourceCost
+     */
+    private function isAffordable(array $resourceCost, UserResource $resources): bool
+    {
+        if (empty($resourceCost)) {
+            // Sem requisitos concretos (ascension) → não bloqueia affordable
+            return true;
+        }
+        foreach ($resourceCost as $field => $required) {
+            if (($resources->{$field} ?? 0) < $required) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

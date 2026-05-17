@@ -1,6 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ChevronRight, Compass, Edit3, Flame, Lightbulb, Sparkles, Target, TrendingUp, Users, Zap } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Compass, Edit3, Flame, Lightbulb, Settings2, Sparkles, Target, TrendingUp, Users, XCircle, Zap } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { ResourceEditorDialog, type UserResources } from '@/components/resource-editor-dialog';
 import AppLayout from '@/layouts/app-layout';
 import { CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
@@ -31,6 +33,8 @@ interface Suggestion {
         furniture: number;
         engraving: number;
     };
+    resource_cost: Partial<Record<keyof UserResources, number>> | null;
+    affordable: boolean | null;
 }
 
 interface FormationSummary {
@@ -45,7 +49,16 @@ interface PageProps {
     selectedFormationId: number | null;
     rosterSize: number;
     topN: number;
+    resources: UserResources;
 }
+
+const RESOURCE_LABEL: Record<keyof UserResources, string> = {
+    primordial_emblems: 'Primordiais',
+    amplifying_emblems: 'Amplificantes',
+    faction_emblems: 'Facção',
+    mythic_furniture: 'Móveis',
+    engraving_scrolls: 'Pergaminhos',
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Roster', href: '/heroes' },
@@ -107,8 +120,11 @@ function costColor(cost: number): string {
     return 'text-rose-300';
 }
 
-export default function RosterPlanner({ suggestions, formations, selectedFormationId, rosterSize, topN }: PageProps) {
+export default function RosterPlanner({ suggestions, formations, selectedFormationId, rosterSize, topN, resources }: PageProps) {
     const [formationId, setFormationId] = useState<number | ''>(selectedFormationId ?? '');
+    const [currentResources, setCurrentResources] = useState<UserResources>(resources);
+    const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
+    const [onlyAffordable, setOnlyAffordable] = useState(false);
 
     const applyFilter = useCallback(
         (nextFormationId: number | '') => {
@@ -121,6 +137,17 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
         },
         [topN],
     );
+
+    const onResourcesSaved = useCallback((updated: UserResources) => {
+        setCurrentResources(updated);
+        // Recarrega só os props (mantém scroll/state)
+        router.reload({ only: ['suggestions', 'resources'] });
+    }, []);
+
+    const hasAnyResources = Object.values(currentResources).some((v) => v > 0);
+    const visibleSuggestions = onlyAffordable
+        ? suggestions.filter((s) => s.affordable === true)
+        : suggestions;
 
     if (rosterSize === 0) {
         return (
@@ -185,17 +212,61 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                     </div>
                 </header>
 
-                {suggestions.length === 0 ? (
+                {/* Card de recursos */}
+                <section className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                            {(Object.keys(RESOURCE_LABEL) as Array<keyof UserResources>).map((key) => (
+                                <span key={key} className="flex items-center gap-1 text-xs">
+                                    <span className="text-amber-100/50">{RESOURCE_LABEL[key]}:</span>
+                                    <span className="font-mono font-semibold tabular-nums text-amber-100">
+                                        {currentResources[key].toLocaleString('pt-BR')}
+                                    </span>
+                                </span>
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {hasAnyResources && (
+                                <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-amber-100/70">
+                                    <input
+                                        type="checkbox"
+                                        checked={onlyAffordable}
+                                        onChange={(e) => setOnlyAffordable(e.target.checked)}
+                                        className="size-3 accent-amber-400"
+                                    />
+                                    Só sugestões que cabem no orçamento
+                                </label>
+                            )}
+                            <Button variant="outline" size="sm" onClick={() => setResourceDialogOpen(true)} className="gap-1.5">
+                                <Settings2 className="size-3.5" />
+                                Editar recursos
+                            </Button>
+                        </div>
+                    </div>
+                    {!hasAnyResources && (
+                        <p className="mt-2 text-[10px] text-amber-100/40">
+                            Informe seus recursos pra destacar quais sugestões cabem no seu orçamento atual.
+                        </p>
+                    )}
+                </section>
+
+                {visibleSuggestions.length === 0 ? (
                     <div className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-8 text-center">
                         <Lightbulb className="mx-auto mb-3 size-10 text-amber-100/30" />
-                        <p className="text-sm font-semibold text-amber-100">Nada a sugerir agora</p>
+                        <p className="text-sm font-semibold text-amber-100">
+                            {onlyAffordable && suggestions.length > 0
+                                ? 'Nenhuma sugestão cabe no orçamento atual'
+                                : 'Nada a sugerir agora'}
+                        </p>
                         <p className="mt-1 text-xs text-amber-100/50">
-                            Todo o roster está no max de SI/F/E/Ascensão (ou no scope selecionado).
+                            {onlyAffordable && suggestions.length > 0
+                                ? 'Desmarque o filtro pra ver as próximas opções, ou atualize os recursos.'
+                                : 'Todo o roster está no max de SI/F/E/Ascensão (ou no scope selecionado).'}
                         </p>
                     </div>
                 ) : (
                     <ol className="flex flex-col gap-2">
-                        {suggestions.map((sug, idx) => {
+                        {visibleSuggestions.map((sug, idx) => {
                             const KindIcon = KIND_ICON[sug.kind];
                             return (
                                 <li
@@ -255,6 +326,30 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                                         <span className={cn('text-[10px] font-medium', costColor(sug.cost))}>
                                             Custo: {costLabel(sug.cost)}
                                         </span>
+
+                                        {hasAnyResources && sug.affordable === true && (
+                                            <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
+                                                <CheckCircle2 className="size-3" />
+                                                Cabe agora
+                                            </span>
+                                        )}
+                                        {hasAnyResources && sug.affordable === false && sug.resource_cost && (
+                                            <span
+                                                className="inline-flex items-center gap-1 rounded-md border border-rose-500/40 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-300"
+                                                title={Object.entries(sug.resource_cost)
+                                                    .map(([k, v]) => {
+                                                        const key = k as keyof UserResources;
+                                                        const have = currentResources[key];
+                                                        const need = v as number;
+                                                        return have < need ? `${RESOURCE_LABEL[key]}: ${have}/${need}` : null;
+                                                    })
+                                                    .filter(Boolean)
+                                                    .join(' · ')}
+                                            >
+                                                <XCircle className="size-3" />
+                                                Falta recursos
+                                            </span>
+                                        )}
                                     </div>
 
                                     {sug.reasons.length > 0 && (
@@ -296,6 +391,13 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                     abstratas comparáveis entre tipos de upgrade.
                 </p>
             </div>
+
+            <ResourceEditorDialog
+                open={resourceDialogOpen}
+                onOpenChange={setResourceDialogOpen}
+                initial={currentResources}
+                onSaved={onResourcesSaved}
+            />
         </AppLayout>
     );
 }

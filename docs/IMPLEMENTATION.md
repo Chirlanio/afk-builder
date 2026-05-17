@@ -3332,3 +3332,84 @@ Reasons retornados como strings (`faction_gap`, `tier_ascended`, `awakened`, `in
 
 **442 testes verdes** (+8 novos).
 
+### ✅ Fase 55 — Resource tracker integrado ao Planner
+
+O user agora informa quantos recursos tem em estoque; o Planner usa essa info pra marcar quais sugestões **cabem no orçamento atual** e oferecer um filtro "Só sugestões que cabem". Completa a Fase 54 — antes o planner só falava "isso é mais ROI", agora também avalia "isso você consegue pagar agora".
+
+#### Tipos de recursos rastreados (5)
+
+Alinhados com `SignatureItemCost::EMBLEM_*` + pools simplificados:
+
+- **`primordial_emblems`** — SI +1 a +20
+- **`amplifying_emblems`** — SI +21 a +30
+- **`faction_emblems`** — SI +31 a +40 (Celestial/Hypogean only)
+- **`mythic_furniture`** — pool genérico (agrega variantes)
+- **`engraving_scrolls`** — pool genérico (agrega variantes)
+
+Ascensão **não** tem pool global rastreável (frags são por hero específico) → `resource_cost = []` → sempre affordable (não bloqueia).
+
+#### Schema
+Migration `2026_05_17_010000_create_user_resources_table`:
+- 1:1 com `users` via FK unique cascade
+- 5 colunas `unsignedInteger` default 0
+- timestamps
+
+Model `UserResource` com `FIELDS` const exposto pra reusar em controller (fillable + validation rules).
+
+`User::resources()` retorna `HasOne`.
+
+#### Backend
+- **`UserResourceController::update`** (PATCH `/roster/resources`):
+  - Aceita JSON com **subset** de FIELDS (campos ausentes preservam valor atual via `updateOrCreate`)
+  - Validação: `integer min:0 max:99999999` por campo
+  - Retorna `{resources: {...}}` (200)
+- **`RosterPlannerController`** carrega/cria `UserResource` ao acessar `/roster/planner`, passa pro `InvestmentPlanner::plan()` e injeta no payload Inertia
+- **`InvestmentPlanner::plan()`** ganha 4º param `?UserResource $resources`. Cada sugestão recebe:
+  - `resource_cost`: map por recurso (null se chamada sem recursos)
+  - `affordable`: bool (null se sem recursos)
+- **`InvestmentPlanner::resourceCostFor()`** public — computa custo concreto por recurso:
+  - SI: query em `signature_item_costs` no range `[from+1, to]` agrupando por `emblem_type`
+  - Furniture/Engraving: 1 unidade por step (delta = to - from)
+  - Ascension: array vazio
+- `isAffordable()` retorna true se `array_empty(resource_cost)` OU **todos** os requisitos `<= resources[field]`
+
+#### Frontend
+- **`components/resource-editor-dialog.tsx`** — dialog com 5 inputs numéricos sanitizados (regex `[^\d]`), labels + hints PT-BR, salva via axios PATCH e atualiza state via callback
+- **`pages/roster/planner.tsx`** — novo card abaixo do header:
+  - Linha de chips com cada recurso atual (`Primordiais: 1.234 · Amplificantes: 567 · ...`)
+  - Checkbox "Só sugestões que cabem no orçamento" (visível só se algum recurso > 0)
+  - Botão "Editar recursos" abre o dialog
+  - Texto explicativo quando recursos zerados ("Informe seus recursos pra destacar...")
+- Cada sugestão ganha badge:
+  - **Cabe agora** (verde, ícone CheckCircle2) se `affordable === true`
+  - **Falta recursos** (rose, ícone XCircle, com `title` listando o que falta) se `affordable === false`
+- Após salvar recursos, `router.reload({only: ['suggestions', 'resources']})` recalcula só esses dois props sem perder scroll/state
+
+#### Trade-offs
+- **Por que 1 pool genérico pra furniture e engraving (não múltiplos tipos)?** O jogo distingue tipos (regular/elite/mythic furniture; common/rare/mythic scrolls). Rastrear todos exigiria 6+ inputs adicionais e o user provavelmente não conta separadamente. Pool agregado dá 80% do valor com 20% da fricção.
+- **Por que ascension sempre affordable em vez de excluí-la das sugestões?** Excluir penaliza users que ainda querem ver "subir asc é boa ideia" sem precisar rastrear frags. Marca como affordable (=neutro) preserva info sem bloquear.
+- **Por que `updateOrCreate` em vez de `firstOrCreate` + `update`?** Operação atômica + idempotente. O subset patch é semântica natural ("atualizo só o que mandei").
+- **Por que validar `max:99999999`?** unsignedInteger MySQL max é ~4B; 99.9M é folga confortável que ainda cabe em UI/display sem quebrar layout. Investimento real raramente passa de dezenas de milhões.
+- **Por que dialog em vez de página dedicada?** Recursos não são "conteúdo" pra navegar — é input rápido contextualizado pelo planner. Dialog mantém foco e evita context-switch desnecessário.
+- **Por que `router.reload({only: [...]})` em vez de re-fetch axios?** O Inertia mantém props sincronizadas e roteamento consistente. Axios duplicaria a lógica de carregar suggestions com formation_id atual.
+- **Por que recurso `null` no `resource_cost` em chamadas sem recursos (Fase 54)?** Backward compat: o teste antigo `pagina_planner_retorna_payload_correto` ainda passa porque ascende a um `UserResource` automático (`firstOrCreate`). Mas o service em si mantém comportamento antigo se `?UserResource = null`.
+- **Por que faction_emblems é coluna separada (não derivada via emblem_type)?** Pra simplificar UI: user vê 3 tipos distintos pra contabilizar. Reconciliação no backend evita lookup de seeder na hora da subtração.
+
+#### Testes (`InvestmentPlannerTest` + `UserResourceTest`)
+6 novos cenários no `InvestmentPlannerTest`:
+- `resource_cost_emblemas_si_diferentes_buckets` — SI 0→30 retorna primordial+amplifying; SI 30→40 retorna só faction
+- `resource_cost_furniture_e_engraving_pool` — delta unitário (F0→F3 = 3; E30→E60 = 30)
+- `affordable_flag_quando_recursos_passados` — recursos altos pra SI → true; recursos zero pra furniture/engraving → false
+- `affordable_null_quando_recursos_ausentes` — call sem `$resources` mantém comportamento antigo
+- `ascension_sem_pool_e_sempre_affordable` — recursos zerados não bloqueiam asc
+
+6 cenários em `UserResourceTest` (novo):
+- `guest_rejeitado` (401)
+- `update_cria_registro_quando_nao_existe` — `updateOrCreate` insert path
+- `update_atualiza_subset_preservando_outros_campos` — patch parcial
+- `validacao_rejeita_valores_negativos` (422)
+- `validacao_rejeita_overflow` (422 quando > 99.999.999)
+- `user_so_atualiza_proprios_recursos` — isolamento por user_id
+
+**453 testes verdes** (+11 novos).
+

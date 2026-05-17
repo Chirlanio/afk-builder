@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Formation;
+use App\Models\UserResource;
 use App\Services\Optimization\InvestmentPlanner;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,7 +30,13 @@ class RosterPlannerController extends Controller
 
         $topN = $data['top'] ?? 12;
 
-        $suggestions = $planner->plan($user, $formation, $topN);
+        // Carrega recursos (cria registro vazio se ainda não existir, simplifica frontend)
+        $resources = $user->resources;
+        if ($resources === null) {
+            $resources = UserResource::create(['user_id' => $user->id]);
+        }
+
+        $suggestions = $planner->plan($user, $formation, $topN, $resources);
 
         // Lista de formations do user (pra dropdown de filtro)
         $userFormations = $user->formations()
@@ -47,6 +54,7 @@ class RosterPlannerController extends Controller
             'selectedFormationId' => $formation?->id,
             'rosterSize' => $user->userHeroes()->count(),
             'topN' => $topN,
+            'resources' => $resources->only(UserResource::FIELDS),
         ]);
     }
 }
