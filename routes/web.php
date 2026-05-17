@@ -18,6 +18,7 @@ use App\Http\Controllers\HeroFavoriteController;
 use App\Http\Controllers\HeroUsageController;
 use App\Http\Controllers\RecommendedFormationController;
 use App\Http\Controllers\RosterAnalyticsController;
+use App\Http\Controllers\ResonatingCrystalController;
 use App\Http\Controllers\RosterPlannerController;
 use App\Http\Controllers\UserResourceController;
 use App\Http\Controllers\ScoringWeightPresetController;
@@ -48,6 +49,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('roster/analytics', [RosterAnalyticsController::class, 'index'])->name('roster.analytics');
     Route::get('roster/planner', [RosterPlannerController::class, 'index'])->name('roster.planner');
     Route::patch('roster/resources', [UserResourceController::class, 'update'])->name('roster.resources.update');
+
+    Route::get('cristal', [ResonatingCrystalController::class, 'show'])->name('cristal.show');
+    Route::patch('cristal', [ResonatingCrystalController::class, 'update'])->name('cristal.update');
+    Route::post('cristal/strengthen', [ResonatingCrystalController::class, 'strengthen'])->name('cristal.strengthen');
     Route::post('heroes/{hero}/favorite', [HeroFavoriteController::class, 'store'])
         ->name('heroes.favorite.store');
     Route::delete('heroes/{hero}/favorite', [HeroFavoriteController::class, 'destroy'])

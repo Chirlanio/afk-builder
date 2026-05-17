@@ -56,6 +56,11 @@ class User extends Authenticatable
         return $this->hasOne(UserResource::class);
     }
 
+    public function resonatingCrystal(): HasOne
+    {
+        return $this->hasOne(UserResonatingCrystal::class);
+    }
+
     /**
      * The attributes that are mass assignable.
      *

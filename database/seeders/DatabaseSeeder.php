@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             HeroSynergySeeder::class,
             GuideSeeder::class,
             SignatureItemCostsSeeder::class,
+            ResonatingCrystalCostsSeeder::class,
         ]);
     }
 }

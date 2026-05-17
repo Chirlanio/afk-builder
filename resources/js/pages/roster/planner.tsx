@@ -58,6 +58,10 @@ const RESOURCE_LABEL: Record<keyof UserResources, string> = {
     faction_emblems: 'Facção',
     mythic_furniture: 'Móveis',
     engraving_scrolls: 'Pergaminhos',
+    revigorating_essences: 'Ess. Revig.',
+    gold: 'Ouro',
+    hero_exp: 'EXP',
+    hero_essence: 'Essência',
 };
 
 const breadcrumbs: BreadcrumbItem[] = [

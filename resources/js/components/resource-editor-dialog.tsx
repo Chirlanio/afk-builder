@@ -11,6 +11,10 @@ export interface UserResources {
     faction_emblems: number;
     mythic_furniture: number;
     engraving_scrolls: number;
+    revigorating_essences: number;
+    gold: number;
+    hero_exp: number;
+    hero_essence: number;
 }
 
 interface FieldMeta {
@@ -25,6 +29,10 @@ const FIELDS: FieldMeta[] = [
     { key: 'faction_emblems', label: 'Emblemas de Facção', hint: 'Para Assinatura +31 a +40 (Celestial/Hypogean)' },
     { key: 'mythic_furniture', label: 'Móveis Míticos', hint: 'Frags pra subir F0→F9 (pool agregado)' },
     { key: 'engraving_scrolls', label: 'Pergaminhos de Inscrição', hint: 'Pra subir engravings (pool agregado)' },
+    { key: 'revigorating_essences', label: 'Essências Revigorantes', hint: 'Destravam slots do Cristal Ressonante' },
+    { key: 'gold', label: 'Ouro', hint: 'Recurso geral + fortalecer Cristal' },
+    { key: 'hero_exp', label: 'EXP de Herói', hint: 'Sobe nível do hero / fortalecer Cristal' },
+    { key: 'hero_essence', label: 'Essência de Herói', hint: 'Última etapa de cada nível do Cristal' },
 ];
 
 interface Props {

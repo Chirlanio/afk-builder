@@ -13,6 +13,10 @@ class UserResource extends Model
         'faction_emblems',
         'mythic_furniture',
         'engraving_scrolls',
+        'revigorating_essences',
+        'gold',
+        'hero_exp',
+        'hero_essence',
     ];
 
     protected $fillable = [
@@ -22,6 +26,10 @@ class UserResource extends Model
         'faction_emblems',
         'mythic_furniture',
         'engraving_scrolls',
+        'revigorating_essences',
+        'gold',
+        'hero_exp',
+        'hero_essence',
     ];
 
     protected $casts = [
@@ -30,6 +38,10 @@ class UserResource extends Model
         'faction_emblems' => 'integer',
         'mythic_furniture' => 'integer',
         'engraving_scrolls' => 'integer',
+        'revigorating_essences' => 'integer',
+        'gold' => 'integer',
+        'hero_exp' => 'integer',
+        'hero_essence' => 'integer',
     ];
 
     public function user(): BelongsTo
