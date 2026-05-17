@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, BarChart3, ChevronRight, Crown, Flame, Sparkles, Target, TrendingUp, Users } from 'lucide-react';
+import { AlertTriangle, BarChart3, ChevronRight, Crown, Flame, Gem, Sparkles, Target, TrendingUp, Users } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import AppLayout from '@/layouts/app-layout';
 import { CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
@@ -68,6 +68,24 @@ interface Gap {
     hint: string;
 }
 
+interface PentagramHero {
+    hero_id: number;
+    slug: string;
+    name: string;
+    portrait_url: string | null;
+    faction_code: FactionCode;
+    level: number;
+    tier_code: TierCode;
+}
+
+interface Pentagram {
+    heroes: PentagramHero[];
+    shared_level: number | null;
+    is_full: boolean;
+    is_at_240: boolean;
+    level_cap: number;
+}
+
 interface PageProps {
     rosterSize: number;
     summary: Summary;
@@ -76,6 +94,7 @@ interface PageProps {
     byTier: TierRow[];
     top10: TopHero[];
     gaps: Gap[];
+    pentagram: Pentagram;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -109,7 +128,7 @@ function severityColor(sev: Gap['severity']): string {
     }
 }
 
-export default function RosterAnalytics({ rosterSize, summary, byFaction, byClass, byTier, top10, gaps }: PageProps) {
+export default function RosterAnalytics({ rosterSize, summary, byFaction, byClass, byTier, top10, gaps, pentagram }: PageProps) {
     if (rosterSize === 0) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
@@ -149,6 +168,71 @@ export default function RosterAnalytics({ rosterSize, summary, byFaction, byClas
                         hint={`Nível médio ${summary.avg_level.toFixed(0)}`}
                         valueClass="text-xs sm:text-sm"
                     />
+                </section>
+
+                {/* Pentagrama do Cristal Ressonante */}
+                <section className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-5">
+                    <header className="mb-3 flex flex-wrap items-center gap-2">
+                        <Gem className="size-4 text-amber-300" />
+                        <h2 className="text-sm font-semibold text-amber-100">Pentagrama (Cristal Ressonante)</h2>
+                        {pentagram.shared_level !== null && (
+                            <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-mono text-amber-200">
+                                Nível compartilhado: {pentagram.shared_level}
+                            </span>
+                        )}
+                        {pentagram.is_at_240 && (
+                            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-300">
+                                Pronto pra upgrade
+                            </span>
+                        )}
+                        <Link href="/cristal" className="ml-auto text-[10px] text-amber-200/70 hover:text-amber-200 underline">
+                            Detalhes →
+                        </Link>
+                    </header>
+
+                    {pentagram.heroes.length === 0 ? (
+                        <p className="text-xs text-amber-100/50">Sem heróis no roster pra formar o pentagrama.</p>
+                    ) : (
+                        <>
+                            <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                                {pentagram.heroes.map((h, idx) => (
+                                    <div
+                                        key={h.hero_id}
+                                        className={cn(
+                                            'flex items-center gap-2 rounded-lg border border-amber-400/10 bg-black/30 p-2',
+                                            idx === 4 && 'border-amber-400/40',
+                                        )}
+                                    >
+                                        <span className="grid size-5 flex-shrink-0 place-items-center rounded-full bg-amber-400/15 font-mono text-[9px] font-bold text-amber-200">
+                                            {idx + 1}
+                                        </span>
+                                        {h.portrait_url ? (
+                                            <img
+                                                src={h.portrait_url}
+                                                alt={h.name}
+                                                loading="lazy"
+                                                className={cn(
+                                                    'size-8 rounded-md object-cover object-top',
+                                                    FACTION_THEME[h.faction_code]?.cardGradient,
+                                                )}
+                                            />
+                                        ) : (
+                                            <div className="size-8 rounded-md bg-zinc-800" />
+                                        )}
+                                        <div className="flex min-w-0 flex-1 flex-col">
+                                            <span className="truncate text-[11px] font-medium text-amber-100">{h.name}</span>
+                                            <span className="font-mono text-[10px] text-amber-200">Nv {h.level}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="mt-2 text-[10px] text-amber-100/40">
+                                {pentagram.is_at_240
+                                    ? `Teto do cristal pós-upgrade: ${pentagram.level_cap} (cresce +5 por hero Ascendido não-Dimensional).`
+                                    : `Subir o 5º maior (atualmente ${pentagram.shared_level}) eleva o cristal inteiro. Quando os 5 chegarem ao 240, você destrava o upgrade.`}
+                            </p>
+                        </>
+                    )}
                 </section>
 
                 {/* Gaps em destaque */}

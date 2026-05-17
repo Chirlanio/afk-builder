@@ -309,6 +309,42 @@ class InvestmentPlannerTest extends TestCase
         $this->assertNull($suggestions[0]['resource_cost']);
     }
 
+    public function test_pentagram_hero_recebe_multiplier_in_pentagram(): void
+    {
+        $this->seedCatalog();
+        $user = User::factory()->create();
+
+        // 6 heros idênticos exceto pelo nível — top 5 vai pro pentagrama
+        $levels = [240, 220, 200, 180, 160, 100];
+        $heroes = [];
+        foreach ($levels as $i => $level) {
+            $h = $this->makeHero("h{$i}", 'lightbearer', 'tank', 'ascended');
+            $user->userHeroes()->create([
+                'hero_id' => $h->id, 'level' => $level, 'ascension_value' => 12,
+                'ascension_code' => 'ascended_1_star', 'signature_item' => 10, 'furniture' => 0, 'engraving' => 0,
+            ]);
+            $heroes[$i] = $h;
+        }
+
+        $suggestions = app(InvestmentPlanner::class)->plan($user, null, 20);
+        $byHero = collect($suggestions)->keyBy('hero_id');
+
+        // h0..h4 estão no pentagrama; h5 não
+        $this->assertContains('in_pentagram', $byHero[$heroes[0]->id]['reasons']);
+        $this->assertContains('in_pentagram', $byHero[$heroes[4]->id]['reasons']);
+        $this->assertNotContains('in_pentagram', $byHero[$heroes[5]->id]['reasons']);
+
+        // h0 e h5 têm SI=10 idêntico, ambos ascended, mesma faction, mesma classe.
+        // A única diff é o nível (level 240 vs 100) e o pentagrama. SI 10→30 dá o mesmo
+        // power gain pra ambos (não depende de level). Logo h0 (com multiplier 1.3 do
+        // pentagrama) deve ter score MAIOR que h5.
+        $h0Si = collect($suggestions)->first(fn ($s) => $s['hero_id'] === $heroes[0]->id && $s['kind'] === 'signature_item');
+        $h5Si = collect($suggestions)->first(fn ($s) => $s['hero_id'] === $heroes[5]->id && $s['kind'] === 'signature_item');
+        $this->assertNotNull($h0Si);
+        $this->assertNotNull($h5Si);
+        $this->assertGreaterThan($h5Si['score'], $h0Si['score']);
+    }
+
     public function test_ascension_sem_pool_e_sempre_affordable(): void
     {
         $this->seedCatalog();

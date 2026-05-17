@@ -3413,3 +3413,116 @@ Model `UserResource` com `FIELDS` const exposto pra reusar em controller (fillab
 
 **453 testes verdes** (+11 novos).
 
+### ✅ Fase 56 — Cristal Ressonante (guia + tracker + integração)
+
+Sistema completo pra rastrear o **Cristal Ressonante** do AFK Arena: guia textual rico, página dedicada `/cristal` com pentagrama auto-detectado e fortalecimento custom, integração no Analytics e Planner. Entregue em 3 sub-fases pra commits limpos.
+
+#### 56a — Guia textual
+
+Renomeou slug typo `critico-ressonante` → `cristal-ressonante` e substituiu content fetched-from-wiki por **markdown PT-BR rico** em `database/seeders/guides/cristal-ressonante.md`:
+- Visão geral + lore breve
+- Modo pentagrama (pré-240): regras de slots, cooldown 24h, exceções
+- Modo upgrade (pós-240): barra de progresso, fortalecer ×10 por nível
+- Limite de nível: 240 + 5 × ascendidos não-dimensionais (cap 475)
+- Tabela de custos (selecionados: 240/250/.../475)
+- Recursos: Essências Revigorantes / Ouro / EXP / Essência de Herói
+- Estratégia recomendada
+
+`GuideSeeder` ganhou suporte a `static_content` (markdown do disco) com **fallback** pro fetch da Fandom Wiki. Slug antigo é deletado no início do `run()`.
+
+Commit: `ed1d25c`.
+
+#### 56b — Tracker completo
+
+**Schema:**
+- Migration extende `user_resources` com 4 colunas: `revigorating_essences`, `gold` (bigInt), `hero_exp` (bigInt), `hero_essence` — recursos que cabem tanto no Planner quanto no Cristal
+- Nova tabela `resonating_crystal_costs` (PK = level 240-501, com `gold_cost`, `hero_exp_cost`, `dust_cost`) populada via `ResonatingCrystalCostsSeeder` (262 níveis)
+- Nova tabela `user_resonating_crystals` (1:1 user): `level` (default 240), `strengthen_progress` (0-9), `slots_unlocked` (default 5)
+
+`UserResonatingCrystal` constants:
+- `MIN_LEVEL=240`, `MAX_LEVEL=501`, `STRENGTHENS_PER_LEVEL=10`, `LEVEL_CAP_PER_ASCENDED=5`
+- `levelCapForUser(User)`: 240 + 5 × `count(ascendidos não-dimensional)`, max 501
+
+**Backend** (`ResonatingCrystalController`):
+- `show` — calcula `effective_level` (5º maior pré-upgrade ou `crystal.level` pós-upgrade), `level_cap`, `can_upgrade`, custo do próximo fortalecimento (rateio do ciclo + dust no 10º)
+- `update` — sync manual de level/progress/slots (PATCH)
+- `strengthen` — debita recursos atomicamente via `DB::transaction`, incrementa `strengthen_progress`; ao chegar em 10, sobe `level` e zera `progress`
+
+**Rotas:**
+- GET `/cristal` (`cristal.show`)
+- PATCH `/cristal` (`cristal.update`)
+- POST `/cristal/strengthen` (`cristal.strengthen`)
+
+**UI** (`pages/cristal/index.tsx`):
+- 3 KPIs: Nível efetivo · Teto destravado · Slots desbloqueados
+- Pentagrama: top 5 do roster ordenado DESC, 5º hero destacado (define nível compartilhado)
+- Card "Fortalecer cristal" (só pós-upgrade) com:
+  - Barra de progresso 0-10 colorida (amber → rose)
+  - Grid de custos por fortalecimento (ouro/EXP/essência) com cores baseadas em recursos atuais
+  - Custo total do ciclo abaixo
+  - Botão "Fortalecer ×1" que chama o endpoint
+  - Estado de erro inline (insufficient/cap reached)
+- Card de recursos com 4 chips + botões "Sincronizar com o jogo" e "Editar recursos"
+- Dialog de sync (`level` + `strengthen_progress` + `slots_unlocked`)
+- `ResourceEditorDialog` estendido com 4 novos campos
+- Sidebar item "Cristal Ressonante" (ícone `Gem`)
+
+**Defaults via `$attributes` no model**: SQLite (testes) ignora defaults do schema; setar no atributo do model garante consistência.
+
+Commit: `cb074e4`.
+
+#### 56c — Integração no Analytics e Planner
+
+**`RosterAnalyticsController`** ganha `pentagramSummary()`:
+- Top 5 do roster ordenado por nível (mini-portraits + slug + faction theme)
+- `shared_level` (5º maior) e `is_at_240` (flag de "pronto pra upgrade")
+- `level_cap` via `UserResonatingCrystal::levelCapForUser`
+
+Página `/roster/analytics` ganha card "Pentagrama (Cristal Ressonante)" entre KPIs e Lacunas com:
+- Badge do nível compartilhado e "Pronto pra upgrade" quando aplicável
+- Link "Detalhes →" pra `/cristal`
+- 5 mini-cards (3 cols mobile, 5 desktop) com 5º hero highlighted
+- Texto explicativo dinâmico ("Teto: X" pós-240, ou "Subir o 5º eleva o cristal inteiro" pré-240)
+
+**`InvestmentPlanner`** ganha:
+- Const `IN_PENTAGRAM_MULTIPLIER = 1.30`
+- `buildContext` calcula `pentagram_hero_ids` (top 5 do roster por level)
+- Sugestão pra hero no pentagrama recebe `multiplier × 1.30` + reason `in_pentagram`
+
+Página `/roster/planner` ganha entry em `REASON_LABEL` com badge âmbar "No pentagrama".
+
+#### Trade-offs
+
+- **Por que 1:1 `user_resonating_crystals` (não embedar em users)?** Mantém users table enxuta. A relação 1:1 com lazy create via `firstOrCreate` no controller é trivial.
+- **Por que `slots_unlocked` é manual (não derivado de essências consumidas)?** O usuário pode ter destravado slots no jogo antes de começar a usar o app. Sync manual é mais honesto que tentar reconstruir histórico.
+- **Por que `strengthen()` faz transação em vez de incrementos diretos?** Decremento de 3 recursos + update de 2 campos precisa atomicidade. Sem transação, falha parcial deixaria estado inválido.
+- **Por que custos no DB e não em PHP const?** 262 níveis = 262 linhas de array. Tabela permite query/seeder limpo, indexação por level, e atualização incremental quando o jogo subir o cap.
+- **Por que rateio `ceil()` no custo por fortalecimento?** Se o total não divide por 10 perfeitamente, `floor()` resultaria em "sobra" não-cobrada no último. `ceil()` arredonda pra cima, garantindo que 10 fortalecimentos × cost-por-fortalecimento ≥ cost total.
+- **Por que o 10º cobra `dust_cost` total (não rateado)?** Espelha o jogo: essência só entra no último step. Modelo "complete o ciclo" — quem chega no 10 paga.
+- **Por que `level_cap` desconta Dimensionais?** Regra documentada do jogo. Dimensionais (slots auto-rotacionados) não contam pro teto.
+- **Por que `IN_PENTAGRAM_MULTIPLIER = 1.30`?** Menor que `IN_FORMATION (1.50)` porque o usuário não escolheu explicitamente o pentagrama (é auto-detectado). Maior que `TIER_ASCENDED (1.15)` porque pentagrama é o gatilho real pra subir cristal inteiro — alto valor estratégico.
+- **Por que `effective_level` é computed (não persistido)?** Pré-upgrade depende do top 5 do roster (varia constantemente). Persistir geraria staleness. Read derived é simples e correto.
+- **Por que setar `$attributes` defaults no model em vez de só na migration?** SQLite (testes) ignora defaults do schema em alguns casos. `$attributes` garante consistência sem precisar mexer no driver.
+- **Por que tabela de costs é PK = level (não auto-increment)?** `level` é único, ordenado, e usado como lookup principal (`forLevel($n)`). PK natural elimina coluna `id` redundante.
+- **Por que UI deixa o user fortalecer mesmo sem ter realmente upgrado o cristal no jogo?** App é tracker, não fonte da verdade. User pode usar como "simulador" pra planejar quanto tempo até X nível.
+
+#### Testes
+
+**`ResonatingCrystalTest` (10 cenários):**
+- `guest_redireciona`
+- `show_inicializa_crystal_e_resources` — firstOrCreate cria registros corretos
+- `pentagram_lista_top_5_por_level`
+- `is_upgraded_quando_5_heros_no_240` — flag flip + cap = 265
+- `dimensionais_nao_contam_no_level_cap` — 3 reg + 3 dim → cap 255
+- `update_aceita_sync_de_level` (PATCH)
+- `update_rejeita_level_abaixo_de_240` (422)
+- `strengthen_falha_sem_recursos` (422 `insufficient_resources`)
+- `strengthen_incrementa_progress_e_debita_recursos`
+- `strengthen_10x_sobe_level_e_zera_progress`
+
+**`RosterAnalyticsTest`** +1: `payload_inclui_pentagrama_do_cristal`
+
+**`InvestmentPlannerTest`** +1: `pentagram_hero_recebe_multiplier_in_pentagram`
+
+**465 testes verdes** (+12 nesta fase: 10 + 1 + 1).
+

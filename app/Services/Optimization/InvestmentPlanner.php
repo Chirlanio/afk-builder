@@ -59,6 +59,9 @@ class InvestmentPlanner
     /** Multiplicador aplicado quando hero está numa formação selecionada (scope). */
     private const IN_FORMATION_MULTIPLIER = 1.50;
 
+    /** Multiplicador aplicado a heros do pentagrama (top 5 do roster por nível). */
+    private const IN_PENTAGRAM_MULTIPLIER = 1.30;
+
     public function __construct(
         private readonly PowerCalculator $power = new PowerCalculator,
     ) {}
@@ -280,6 +283,11 @@ class InvestmentPlanner
             $reasons[] = 'in_formation';
         }
 
+        if (! empty($context['pentagram_hero_ids']) && in_array($uh->hero_id, $context['pentagram_hero_ids'], true)) {
+            $multiplier *= self::IN_PENTAGRAM_MULTIPLIER;
+            $reasons[] = 'in_pentagram';
+        }
+
         return [
             'hero_id' => $uh->hero_id,
             'slug' => $uh->hero?->slug,
@@ -381,9 +389,10 @@ class InvestmentPlanner
      * Pré-calcula contexto reusado por todas as sugestões:
      * - Facções com poucos heros investidos no roster (FACTION_GAP_MULTIPLIER alvo)
      * - IDs dos heros pertencentes à formation selecionada (IN_FORMATION_MULTIPLIER alvo)
+     * - IDs do top 5 do roster por nível (IN_PENTAGRAM_MULTIPLIER alvo)
      *
      * @param  \Illuminate\Support\Collection<int, UserHero>  $userHeroes
-     * @return array{gap_factions: array<int, string>, formation_hero_ids: array<int, int>}
+     * @return array{gap_factions: array<int, string>, formation_hero_ids: array<int, int>, pentagram_hero_ids: array<int, int>}
      */
     private function buildContext(\Illuminate\Support\Collection $userHeroes, ?Formation $formation): array
     {
@@ -417,9 +426,18 @@ class InvestmentPlanner
             $formationHeroIds = array_keys($formationHeroIds);
         }
 
+        // Top 5 do roster por nível — heros do pentagrama do Cristal Ressonante.
+        // Investir num desses puxa o "5º maior" pra cima e eleva o cristal inteiro.
+        $pentagramHeroIds = $userHeroes
+            ->sortByDesc('level')
+            ->take(5)
+            ->pluck('hero_id')
+            ->all();
+
         return [
             'gap_factions' => $gapFactions,
             'formation_hero_ids' => $formationHeroIds,
+            'pentagram_hero_ids' => $pentagramHeroIds,
         ];
     }
 

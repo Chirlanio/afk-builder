@@ -6,6 +6,7 @@ use App\Models\Faction;
 use App\Models\HeroClass;
 use App\Models\Tier;
 use App\Models\UserHero;
+use App\Models\UserResonatingCrystal;
 use App\Services\Optimization\PowerCalculator;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -54,6 +55,7 @@ class RosterAnalyticsController extends Controller
         $byTier = $this->groupByTier($userHeroes, $powerByHeroId);
         $top10 = $this->top10Heroes($userHeroes, $powerByHeroId);
         $gaps = $this->detectGaps($userHeroes, $byFaction, $byClass);
+        $pentagram = $this->pentagramSummary($userHeroes, $user);
 
         return Inertia::render('roster/analytics', [
             'rosterSize' => $rosterSize,
@@ -63,7 +65,43 @@ class RosterAnalyticsController extends Controller
             'byTier' => $byTier,
             'top10' => $top10,
             'gaps' => $gaps,
+            'pentagram' => $pentagram,
         ]);
+    }
+
+    /**
+     * Sumariza o pentagrama do Cristal Ressonante: top 5 do roster + nível
+     * compartilhado (5º maior) + teto destravado.
+     *
+     * @param  iterable<UserHero>  $userHeroes
+     * @return array<string, mixed>
+     */
+    private function pentagramSummary(iterable $userHeroes, \App\Models\User $user): array
+    {
+        $sorted = collect($userHeroes)
+            ->sortByDesc('level')
+            ->take(5)
+            ->values();
+
+        $heroes = $sorted->map(fn (UserHero $uh) => [
+            'hero_id' => $uh->hero_id,
+            'slug' => $uh->hero?->slug,
+            'name' => $uh->hero?->name,
+            'portrait_url' => $uh->hero?->portrait_url,
+            'faction_code' => $uh->hero?->faction?->code,
+            'level' => (int) $uh->level,
+            'tier_code' => $uh->hero?->tier?->code,
+        ])->all();
+
+        $fifthLevel = $sorted->count() >= 5 ? (int) $sorted->last()->level : null;
+
+        return [
+            'heroes' => $heroes,
+            'shared_level' => $fifthLevel,
+            'is_full' => $sorted->count() >= 5,
+            'is_at_240' => $fifthLevel !== null && $fifthLevel >= UserResonatingCrystal::MIN_LEVEL,
+            'level_cap' => UserResonatingCrystal::levelCapForUser($user),
+        ];
     }
 
     /**

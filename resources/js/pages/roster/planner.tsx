@@ -95,6 +95,7 @@ const REASON_LABEL: Record<string, { label: string; className: string }> = {
     tier_ascended: { label: 'Tier Ascended', className: 'border-violet-500/40 text-violet-300' },
     awakened: { label: 'Desperto', className: 'border-rose-500/40 text-rose-300' },
     in_formation: { label: 'Na formação', className: 'border-sky-500/40 text-sky-300' },
+    in_pentagram: { label: 'No pentagrama', className: 'border-amber-400/40 text-amber-200' },
 };
 
 function formatStep(kind: UpgradeKind, from: number, to: number): string {

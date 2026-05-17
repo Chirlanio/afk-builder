@@ -115,6 +115,32 @@ class RosterAnalyticsTest extends TestCase
         $this->assertGreaterThan($top[1]['power'], $top[0]['power']);
     }
 
+    public function test_payload_inclui_pentagrama_do_cristal(): void
+    {
+        $this->seedCatalog();
+        $user = User::factory()->create();
+
+        // 7 heros com niveis variados — top 5 vai ser o pentagrama
+        $levels = [240, 220, 200, 180, 160, 100, 50];
+        foreach ($levels as $i => $level) {
+            $h = $this->makeHero("h{$i}", 'lightbearer', 'tank', 'ascended');
+            $user->userHeroes()->create([
+                'hero_id' => $h->id, 'level' => $level, 'ascension_value' => 12,
+                'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get('/roster/analytics')->assertOk();
+        $pentagram = $response->viewData('page')['props']['pentagram'];
+
+        $this->assertCount(5, $pentagram['heroes']);
+        $this->assertSame([240, 220, 200, 180, 160], collect($pentagram['heroes'])->pluck('level')->all());
+        $this->assertSame(160, $pentagram['shared_level']);
+        $this->assertTrue($pentagram['is_full']);
+        $this->assertFalse($pentagram['is_at_240']); // 5º maior = 160 < 240
+        $this->assertSame(275, $pentagram['level_cap']); // 240 + 7*5 (7 ascendidos não-dim)
+    }
+
     public function test_gaps_reporta_faccoes_sub_investidas(): void
     {
         $this->seedCatalog();
