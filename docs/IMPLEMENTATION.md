@@ -3197,3 +3197,62 @@ Exemplo: hero E80 = 80×0.5 (linear) + 50 + 100 + 50 = **240 power** (antes 40).
 `FormationEditScoreBreakdownTest` atualizado pra esperar a chave `engraving_bonus` no payload.
 
 **429 testes verdes** (+6 novos: 3 unit PowerCalculator + 3 feature TeamScorer).
+
+### ✅ Fase 53 — Página de análise do roster (`/roster/analytics`)
+
+Dashboard dedicada com visão profunda do roster: distribuição de power por facção/classe/tier, médias de investimento (SI/F/Eng/Level/Ascensão), top 10 heroes por power, KPIs de "investidos" e lacunas detectadas (facções sub-investidas, classes faltando). Complementa o `/dashboard` (overview rápida) com análise dirigida a decisões de farming.
+
+#### Backend
+`RosterAnalyticsController::index(Request, PowerCalculator)`:
+- Carrega `UserHero` com eager-load completo (hero + faction/class/tier/stats + artifact + collection)
+- Calcula `powerByHeroId` em 1 passada via `PowerCalculator::forUserHero`
+- Agrega em 6 outputs:
+  - **`summary`**: total_power, avg/max_power, avg_level/SI/F/Eng/ascension, invested_count
+  - **`byFaction`**: bucket por facção (8) com count, total_power, avg_power, invested_count
+  - **`byClass`**: bucket por classe (5) com mesma estrutura
+  - **`byTier`**: bucket por tier (3) só com count/power (sem invested_count — tier não muda com investimento)
+  - **`top10`**: array sorted DESC de heroes com slug/name/portrait/stats + power
+  - **`gaps`**: array de objetos `{type, severity, label, hint}` reportando lacunas
+
+**Heurística de "investido"**: hero atinge UM dos thresholds → `ascension_value >= 10` (Ascended/Mythic+) OU `signature_item >= 30` OU `furniture >= 9`. Engraving 80 sozinho **não conta** porque é late-game e raro — não penaliza users mid-game.
+
+**Detecção de gaps**:
+- `faction_underinvested`: facção com < 3 heroes investidos (severity `high` se 0, senão `medium`)
+- `class_missing`: classe sem nenhum hero (severity `high`)
+- `class_underinvested`: classe com heroes mas nenhum investido (severity `low`)
+
+#### Frontend
+- **`pages/roster/analytics.tsx`** — página com 5 seções:
+  1. **KPIs** (4 cards): roster size, total power, max power + nome do top hero, investimento médio (`AS X · FY · EZ`)
+  2. **Lacunas detectadas** (se houver) — grid 2 cols com cards coloridos por severity (rose=high, amber=medium, zinc=low)
+  3. **Power por facção** — `BarChart` Recharts com cores das facções + grid de legendas abaixo
+  4. **Power por classe + Power por tier** (lado a lado em desktop) — barras horizontais % do total
+  5. **Top 10 por power** — lista numerada com portrait, badges de investimento, `EngravingBadge`, valor de power
+- **Empty state** quando roster vazio: ícone + CTA "Ir para o catálogo"
+
+#### Navegação
+- Item "Análise do roster" no sidebar entre "Uso de heróis" e "Formações" (ícone `Gauge`)
+- Rota `GET /roster/analytics` nomeada `roster.analytics` no grupo auth
+
+#### Trade-offs
+- **Por que página separada e não tab no Dashboard?** Dashboard é entry point (overview rápida + ações comuns). Analytics é deep-dive — usuário entra explicitamente quando quer analisar gaps/distribuição. Mistura faria Dashboard pesar mais.
+- **Por que `byFaction` retorna 8 buckets mesmo com count=0?** Render do chart fica consistente (mesma ordem, mesmas cores). Gaps inferem o "faltando" via `invested_count`, não via ausência. Tradeoff: payload sempre 8 itens vs zerados — irrelevante (poucos KB).
+- **Por que invested_count com 3 critérios OR (ASC/SI/F) e não AND?** O jogo permite caminhos diferentes (algumas factions ganham mais com SI, outras com F). Critério OR captura "user fez investimento real", critério AND seria estrito demais e penalizaria caminhos legítimos.
+- **Por que MIN_INVESTED_PER_FACTION = 3?** No PvE multi-team (Heroes of Esperia, 5 equipes), cada facção típica precisa ao menos 3 heroes pra rotacionar. Menor que isso = lacuna real.
+- **Por que `class_missing` é severity `high` e `class_underinvested` é `low`?** Faltar Tank/Support quebra scoring no `TeamScorer::classBalance` (−0.3 cada). Ter classe sem investimento ainda permite usar pra completar 5-stacks, só não como carry/core.
+- **Por que mostrar `avg_*` em vez de medianas?** Média é mais legível pro user médio (não precisa explicar mediana). Para roster pequeno (< 10), distorção é aceitável; pra roster grande, ambas convergem.
+- **Por que power calculado em PHP em vez de SQL?** `PowerCalculator` tem 30+ regras (stats, equipment, artifact, collection, beast) — replicar em SQL viraria query monstro. O eager-load + loop PHP é O(N) sobre roster e respeita single source of truth.
+- **Por que cores das facções hardcoded no front (não vêm do backend)?** Já temos `FACTION_THEME` em `lib/afk.ts` com gradientes para cards; cores sólidas pra Recharts são uma necessidade nova e específica do componente — ficam locais à página.
+- **Por que `top10` e não `top20`?** Visual fit: 10 entries cabem confortavelmente sem scroll na maioria das telas. User com roster grande já tem `/heroes` com sort por power pra ver lista completa.
+- **Por que Engraving 80 não conta como "investido"?** É um critério a mais que segrega heroes que já passaram outros gates. Sair de 3 critérios pra 4 com OR diluiria o sinal — qualquer hero E80 já é Ascended (não há rota pra E80 sem first ser Mythic+).
+
+#### Testes (`RosterAnalyticsTest`)
+5 cenários:
+- `guest_redireciona_para_login`
+- `roster_vazio_renderiza_componente_com_size_zero` — payload tem buckets zerados mas chart-friendly
+- `payload_calcula_summary_e_distribuicoes` — 3 heroes diferentes → counts corretos por facção/classe/tier
+- `top10_ordenado_por_power_desc` — hero forte aparece antes do fraco
+- `gaps_reporta_faccoes_sub_investidas` — 1 hero solo → 8 gaps de facção + 4 de classe missing
+
+**434 testes verdes** (+5 novos).
+

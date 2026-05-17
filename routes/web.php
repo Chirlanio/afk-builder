@@ -17,6 +17,7 @@ use App\Http\Controllers\HeroController;
 use App\Http\Controllers\HeroFavoriteController;
 use App\Http\Controllers\HeroUsageController;
 use App\Http\Controllers\RecommendedFormationController;
+use App\Http\Controllers\RosterAnalyticsController;
 use App\Http\Controllers\ScoringWeightPresetController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\UserHeroController;
@@ -42,6 +43,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('heroes', [HeroController::class, 'index'])->name('heroes.index');
     Route::get('heroes/usage', [HeroUsageController::class, 'index'])->name('heroes.usage');
+    Route::get('roster/analytics', [RosterAnalyticsController::class, 'index'])->name('roster.analytics');
     Route::post('heroes/{hero}/favorite', [HeroFavoriteController::class, 'store'])
         ->name('heroes.favorite.store');
     Route::delete('heroes/{hero}/favorite', [HeroFavoriteController::class, 'destroy'])
