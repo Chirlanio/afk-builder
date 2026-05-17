@@ -35,6 +35,7 @@ class ScoringProfile
         public readonly float $tierRatingWeight = 1.0,
         public readonly float $featureWeight = 0.5,
         public readonly float $furnitureEffectWeight = 0.4,
+        public readonly float $engravingWeight = 0.3,
         public readonly array $furnitureEffectTagWeights = [],
         public readonly bool $pvp = false,
         public readonly bool $dpsFocus = false,
@@ -53,6 +54,7 @@ class ScoringProfile
             tierRatingWeight: (float) ($data['tier_rating_weight'] ?? 1.0),
             featureWeight: (float) ($data['feature_weight'] ?? 0.5),
             furnitureEffectWeight: (float) ($data['furniture_effect_weight'] ?? 0.4),
+            engravingWeight: (float) ($data['engraving_weight'] ?? 0.3),
             furnitureEffectTagWeights: is_array($data['furniture_effect_tag_weights'] ?? null)
                 ? $data['furniture_effect_tag_weights']
                 : [],
@@ -73,14 +75,14 @@ class ScoringProfile
     }
 
     /**
-     * Retorna uma nova ScoringProfile aplicando overrides sobre os 7 pesos
+     * Retorna uma nova ScoringProfile aplicando overrides sobre os 8 pesos
      * principais. Demais campos (pvp, dpsFocus, partitionOptimization,
      * furnitureEffectTagWeights) são preservados.
      *
      * Cada chave do array é opcional. Aceita as mesmas chaves snake_case do
      * scoring_profile JSON: faction_bonus_weight, class_balance_weight,
      * synergy_weight, power_weight, tier_rating_weight, feature_weight,
-     * furniture_effect_weight.
+     * furniture_effect_weight, engraving_weight.
      *
      * @param  array<string, float>  $overrides
      */
@@ -94,6 +96,7 @@ class ScoringProfile
             tierRatingWeight: isset($overrides['tier_rating_weight']) ? (float) $overrides['tier_rating_weight'] : $this->tierRatingWeight,
             featureWeight: isset($overrides['feature_weight']) ? (float) $overrides['feature_weight'] : $this->featureWeight,
             furnitureEffectWeight: isset($overrides['furniture_effect_weight']) ? (float) $overrides['furniture_effect_weight'] : $this->furnitureEffectWeight,
+            engravingWeight: isset($overrides['engraving_weight']) ? (float) $overrides['engraving_weight'] : $this->engravingWeight,
             furnitureEffectTagWeights: $this->furnitureEffectTagWeights,
             pvp: $this->pvp,
             dpsFocus: $this->dpsFocus,

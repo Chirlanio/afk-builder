@@ -3110,3 +3110,90 @@ Comando `php artisan beasts:seed-buffs` populado com valores realistas baseados 
 - `BeastAdminTest` atualizado pra validar payload com `buffs_strength`/`buffs_team` em vez dos inteiros antigos
 
 **423 testes verdes** (+4 novos no PowerCalculator + reformulação).
+
+### ✅ Fase 52 — Engravings (Inscrições) integradas no scoring
+
+Sistema de **Inscrições** (E30/E60/E80) já existia em `user_heroes.engraving` (0-100) e na catalog `hero_engravings`, mas o algoritmo só usava com peso linear desprezível (`engraving * 0.5`). Agora milestones disparam bônus discretos no **power** E o `TeamScorer` ganha um **eixo novo** ponderado por `engraving_weight` no profile.
+
+#### Modelagem do milestone
+No jogo, cada faixa libera unlocks reais:
+- **E30** — primeiro tier ativo (~50 power)
+- **E60** — combat tier (+100 power, cumulativo)
+- **E80** — exclusivo Celestials/Hypogeans (+50 power, cumulativo)
+
+Exemplo: hero E80 = 80×0.5 (linear) + 50 + 100 + 50 = **240 power** (antes 40).
+
+#### Backend
+
+`PowerCalculator`:
+- `engravingMilestoneBonus(int $engraving): float` — retorna 0/50/150/200 conforme thresholds
+- `engravingMilestoneLabel(int $engraving): ?string` — `'E30'/'E60'/'E80'` ou null (< 30)
+- `forUserHero()` soma o bônus discreto no `$base`
+
+`TeamScorer`:
+- Novo método privado `engravingScore(heroes, userHeroesById)` retorna `{score, milestones: {e30, e60, e80}}`
+  - Cada hero contribui: `+0.10 (E30) + 0.15 (E60) + 0.10 (E80)` (cumulativo)
+  - Time totalmente E80 = `5 × 0.35 = 1.75` (max)
+- `total` agora soma `engravingScore * profile->engravingWeight`
+- `ScoreBreakdown` ganha `$engravingBonus` + entry `engraving_milestones` em details
+
+`ScoringProfile`:
+- Novo `$engravingWeight = 0.3` no construtor
+- `fromArray()` + `withOverrides()` aceitam `engraving_weight`
+
+`FormationController::extractScoringWeights()` retorna 8 chaves (era 7).
+
+`ScoringWeightPreset::WEIGHT_KEYS` ganha `engraving_weight` (preset salvo no DB cobre o slider novo).
+
+#### Frontend
+
+**Badge reutilizável** (`components/engraving-badge.tsx`):
+- Renderiza `E30/E60/E80` com cores graduais: âmbar (E30) → rose (E60) → fuchsia gradient (E80)
+- 3 tamanhos: `xs` (9px), `sm` (10px, default), `md` (11px)
+- Title HTML mostra o nível raw ("Inscrições 65")
+
+**Helpers em `lib/afk.ts`**:
+- `engravingMilestone(level)` — espelha a função PHP
+- `ENGRAVING_MILESTONE_LABEL` + `ENGRAVING_MILESTONE_BADGE` (classes Tailwind)
+
+**Aplicações:**
+- `HeroCard` — badge ao lado de `Nv X · AS X` (rows wrap)
+- `TeamSlot` — badge `xs` ancorada no canto inferior central (overlay sob portrait)
+- `ScoreBreakdownCard` — nova linha "Inscrições" no detalhamento (entre Móveis F3/F9 e Total)
+- `WeightTunerSheet` — novo slider "Inscrições" (8º), default 0.3
+- `formations/compare.tsx` — novo eixo no diff lado-a-lado
+
+**Backend passa map** `engravingByHeroId: Record<heroId, level>` pra `formations/edit.tsx` (consumido só pelo `TeamSlot`, sem aumentar payload em outras páginas).
+
+#### Trade-offs
+
+- **Por que milestones discretos em vez de só aumentar `engraving * 0.5`?** No jogo, E30/E60/E80 são unlocks **categóricos** (atributos novos ativam). Linear não modela "hero está perto do próximo unlock vs. já passou". Discreto reflete o salto real.
+- **Por que `50/100/50` e não `50/50/50`?** E60 é onde a maior parte do ganho de combate real entra (segundo atributo majoritário). E80 é exclusivo de poucas factions, mas o investimento já dobrou em recursos — daí o bônus extra. Calibração heurística sujeita a refinamento futuro.
+- **Por que o eixo novo no `TeamScorer` em vez de só somar via power?** O power já inclui o bônus (efeito direto no number). O eixo no scorer dá pra **ponderar separadamente por challenge_type** (PvE pesa menos, PvP pesa mais) e expor no breakdown como linha distinta — usuário entende "minhas inscrições subiram 0.4 do score do time" sem ter que decompor power.
+- **Por que `engravingWeight = 0.3` (default)?** Time full E80 contribui 1.75 × 0.3 = 0.525 — comparável ao `feature_bonus` (0.5) e ao `furniture_effect_weight` (0.4). Pesa menos que faction/synergy mas é relevante. Ajustável por challenge_type no scoring_profile JSON.
+- **Por que cumulativo em vez de "maior milestone só"?** Cumulativo = invariante natural: hero E60 dominado por hero E30 sempre. Não-cumulativo criaria casos esquisitos (hero E59 = 50, hero E60 = só 100 sem o 50 do E30).
+- **Por que `engraving_milestones` em details retorna contagens (não bonus por hero)?** Display friendly: "3 heroes E60+" é mais útil que "0.45 score". Bonus pode ser inferido via `score`. Mantém payload pequeno.
+- **Por que `BadgeEngraving` aceita `null/undefined` e retorna null?** API friendly — caller passa `userHero?.engraving` sem checar antes.
+- **Por que badge no `TeamSlot` é overlay e não inline?** Espaço escasso (slots 96×96 em desktop). Overlay no canto inferior preserva o portrait + permite escalar badge pra `xs` sem quebrar layout.
+- **Por que mostro o nível raw no `title` (tooltip) e não na label?** Label fixa por milestone (E30/E60/E80) é mais escaneável. Quem quer o nível exato passa o mouse.
+
+#### Testes
+
+`PowerCalculatorTest` (Unit) — 3 novos:
+- `engraving_milestone_bonus_aplica_em_thresholds` — testa 0/29/30/59/60/79/80/100
+- `engraving_milestone_label` — equivalente para labels
+- `for_user_hero_inclui_engraving_milestone_bonus` — diff eng29→eng30 = +50.5 (50 milestone + 0.5 linear)
+
+3 testes ajustados:
+- `test_formula_basica_sem_furniture` — eng 60 agora soma +150 (E30+E60)
+- `test_furniture_9_adiciona_bonus_f3_e_f9_cumulativo` — eng 100 agora soma +200
+- `test_for_user_hero_sem_hero_mantem_calculo_antigo` — idem
+
+`TeamScorerTest` (Feature) — 3 novos:
+- `engraving_bonus_acumula_milestones_por_hero` — heroes com eng 29/30/80 → 0.45 bonus + counts `{e30: 2, e60: 1, e80: 1}`
+- `engraving_bonus_zero_sem_roster` — target mode (sem userHeroesById) → 0.0
+- `engraving_weight_aplica_no_total` — peso 2.0 → total = engravingBonus × 2
+
+`FormationEditScoreBreakdownTest` atualizado pra esperar a chave `engraving_bonus` no payload.
+
+**429 testes verdes** (+6 novos: 3 unit PowerCalculator + 3 feature TeamScorer).

@@ -1,6 +1,7 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Plus, X } from 'lucide-react';
+import { EngravingBadge } from '@/components/engraving-badge';
 import { cn } from '@/lib/utils';
 import type { ClassCode, FactionCode, Hero, TierCode } from '@/types/afk';
 import { HeroChip } from './hero-chip';
@@ -13,13 +14,15 @@ interface TeamSlotProps {
     classCode: ClassCode | null;
     tierCode: TierCode | null;
     onRemove: () => void;
+    /** Investimento em Inscrições do user (0-100) — exibe badge E30/E60/E80 quando aplicável. */
+    engraving?: number | null;
 }
 
 /**
  * One slot in a team row. Acts as both a droppable target and (when occupied)
  * a draggable source so heroes can be dragged between slots.
  */
-export function TeamSlot({ teamPosition, slotPosition, hero, factionCode, classCode, tierCode, onRemove }: TeamSlotProps) {
+export function TeamSlot({ teamPosition, slotPosition, hero, factionCode, classCode, tierCode, onRemove, engraving }: TeamSlotProps) {
     const dropId = `slot:${teamPosition}:${slotPosition}`;
 
     const { setNodeRef: setDropRef, isOver, active } = useDroppable({
@@ -90,6 +93,12 @@ export function TeamSlot({ teamPosition, slotPosition, hero, factionCode, classC
                 >
                     <X className="size-4 lg:size-3" />
                 </button>
+            )}
+
+            {hero && (engraving ?? 0) >= 30 && (
+                <div className="pointer-events-none absolute -bottom-1.5 left-1/2 z-10 -translate-x-1/2">
+                    <EngravingBadge engraving={engraving} size="xs" />
+                </div>
             )}
         </div>
     );

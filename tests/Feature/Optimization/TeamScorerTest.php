@@ -6,6 +6,8 @@ use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroClass;
 use App\Models\Tier;
+use App\Models\User;
+use App\Models\UserHero;
 use App\Services\Optimization\PowerCalculator;
 use App\Services\Optimization\ScoringProfile;
 use App\Services\Optimization\TeamScorer;
@@ -227,5 +229,83 @@ class TeamScorerTest extends TestCase
 
         // faction(1.0)*2.0 + class(0.95)*0.5 + synergy(0)*1.0 + power(0)*0.0 = 2.475
         $this->assertEqualsWithDelta(2.475, $score->total, 0.001);
+    }
+
+    public function test_engraving_bonus_acumula_milestones_por_hero(): void
+    {
+        $user = User::factory()->create();
+        $heroes = [
+            $this->makeHero('h1', 'lightbearer', 'tank'),
+            $this->makeHero('h2', 'mauler', 'warrior'),
+            $this->makeHero('h3', 'wilder', 'ranger'),
+        ];
+
+        $userHeroes = [];
+        $engravings = [29, 30, 80]; // sem milestone, E30, E80
+        foreach ($heroes as $i => $hero) {
+            $uh = UserHero::create([
+                'user_id' => $user->id,
+                'hero_id' => $hero->id,
+                'level' => 100,
+                'ascension_code' => 'mythic',
+                'ascension_value' => 5,
+                'signature_item' => 0,
+                'furniture' => 0,
+                'engraving' => $engravings[$i],
+            ]);
+            $userHeroes[$hero->id] = $uh;
+        }
+
+        $score = $this->scorer->score($heroes, $userHeroes, [], $this->defaultProfile);
+
+        // h1 (eng 29): 0
+        // h2 (eng 30): +0.10 (E30)
+        // h3 (eng 80): +0.10 (E30) + 0.15 (E60) + 0.10 (E80) = +0.35
+        // Total: 0.45
+        $this->assertEqualsWithDelta(0.45, $score->engravingBonus, 0.001);
+        $this->assertSame(['e30' => 2, 'e60' => 1, 'e80' => 1], $score->details['engraving_milestones']);
+    }
+
+    public function test_engraving_bonus_zero_sem_roster(): void
+    {
+        $heroes = [
+            $this->makeHero('h1', 'lightbearer', 'tank'),
+            $this->makeHero('h2', 'lightbearer', 'warrior'),
+        ];
+
+        // Target mode: userHeroesById vazio → engraving sempre 0
+        $score = $this->scorer->score($heroes, [], [], $this->defaultProfile);
+
+        $this->assertSame(0.0, $score->engravingBonus);
+        $this->assertSame(['e30' => 0, 'e60' => 0, 'e80' => 0], $score->details['engraving_milestones']);
+    }
+
+    public function test_engraving_weight_aplica_no_total(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero('h1', 'lightbearer', 'tank');
+        $uh = UserHero::create([
+            'user_id' => $user->id,
+            'hero_id' => $hero->id,
+            'level' => 100, 'ascension_code' => 'mythic', 'ascension_value' => 5,
+            'signature_item' => 0, 'furniture' => 0, 'engraving' => 80,
+        ]);
+
+        $profile = new ScoringProfile(
+            factionBonusWeight: 0.0,
+            classBalanceWeight: 0.0,
+            synergyWeight: 0.0,
+            powerWeight: 0.0,
+            tierRatingWeight: 0.0,
+            featureWeight: 0.0,
+            furnitureEffectWeight: 0.0,
+            engravingWeight: 2.0,  // 2× pra isolar
+        );
+
+        $score = $this->scorer->score([$hero], [$hero->id => $uh], [], $profile);
+
+        // engraving_bonus = 0.35 (E30+E60+E80), weight 2.0 → total 0.70
+        $this->assertEqualsWithDelta(0.35, $score->engravingBonus, 0.001);
+        $this->assertEqualsWithDelta(0.70, $score->total, 0.001);
     }
 }

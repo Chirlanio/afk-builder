@@ -1,5 +1,6 @@
 import { Check, CheckCircle2, Flame } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { EngravingBadge } from '@/components/engraving-badge';
 import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME, tierFromAscension } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { ClassCode, FactionCode, Hero, TierCode, UserHero } from '@/types/afk';
@@ -133,7 +134,7 @@ export function HeroCard({
                     <div className="truncate text-[11px] leading-tight text-muted-foreground">{hero.title}</div>
                 )}
                 {owned && userHero && (
-                    <div className="mt-1 flex items-center gap-1">
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
                         <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
                             Nv {userHero.level}
                         </Badge>
@@ -142,6 +143,7 @@ export function HeroCard({
                                 AS {userHero.signature_item}
                             </Badge>
                         )}
+                        <EngravingBadge engraving={userHero.engraving} size="sm" />
                     </div>
                 )}
             </div>

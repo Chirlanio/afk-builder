@@ -31,6 +31,8 @@ interface TeamRowProps {
     factionById: Record<number, Faction>;
     classById: Record<number, HeroClass>;
     tierById: Record<number, Tier>;
+    /** Fase 52: hero_id → engraving level pra exibir badge E30/E60/E80 no slot. */
+    engravingByHeroId?: Record<number, number>;
     onRemoveHero: (slotPosition: number) => void;
     onClearBeast: () => void;
     onBeastLevelChange: (level: number) => void;
@@ -100,7 +102,7 @@ function computeFactionBonus(
     return null;
 }
 
-export function TeamRow({ team, heroById, beastById, factionById, classById, tierById, onRemoveHero, onClearBeast, onBeastLevelChange, onAutoBestBeast, isPickingBeast, onSuggest, isSuggesting }: TeamRowProps) {
+export function TeamRow({ team, heroById, beastById, factionById, classById, tierById, engravingByHeroId, onRemoveHero, onClearBeast, onBeastLevelChange, onAutoBestBeast, isPickingBeast, onSuggest, isSuggesting }: TeamRowProps) {
     const heroesInTeam: Hero[] = team.slots
         .map((s) => (s.heroId ? heroById[s.heroId] : null))
         .filter((h): h is Hero => h !== null);
@@ -188,6 +190,7 @@ export function TeamRow({ team, heroById, beastById, factionById, classById, tie
                             factionCode={(faction?.code ?? null) as FactionCode | null}
                             classCode={(klass?.code ?? null) as ClassCode | null}
                             tierCode={(tier?.code ?? null) as TierCode | null}
+                            engraving={hero ? engravingByHeroId?.[hero.id] : undefined}
                             onRemove={() => onRemoveHero(slotPosition)}
                         />
                     );

@@ -55,13 +55,16 @@ class TeamScorer
             ? $this->furnitureEffectScorer->score($heroes, $userHeroesById, $ctx->furnitureAbilitiesByHeroId, $profile)
             : 0.0;
 
+        $engravingResult = $this->engravingScore($heroes, $userHeroesById);
+
         $total = $factionBonus * $profile->factionBonusWeight
             + $classBalance * $profile->classBalanceWeight
             + $synergy * $profile->synergyWeight
             + $power * $profile->powerWeight
             + $tierRating * $profile->tierRatingWeight
             + $featureBonus * $profile->featureWeight
-            + $furnitureEffects * $profile->furnitureEffectWeight;
+            + $furnitureEffects * $profile->furnitureEffectWeight
+            + $engravingResult['score'] * $profile->engravingWeight;
 
         return new ScoreBreakdown(
             factionBonus: $factionBonus,
@@ -71,6 +74,7 @@ class TeamScorer
             tierRating: $tierRating,
             featureBonus: $featureBonus,
             furnitureEffects: $furnitureEffects,
+            engravingBonus: $engravingResult['score'],
             total: $total,
             details: [
                 'faction_counts' => $counts,
@@ -78,6 +82,7 @@ class TeamScorer
                 'special_faction' => $specialFaction['notes'],
                 'mode' => $ctx->mode,
                 'stage' => $ctx->stage,
+                'engraving_milestones' => $engravingResult['milestones'],
             ],
         );
     }
@@ -294,6 +299,47 @@ class TeamScorer
         }
 
         return $total / self::POWER_NORMALIZER;
+    }
+
+    /**
+     * Bônus por engravings investidas no team (modo real só — target ignora).
+     * Cada milestone atingido por hero contribui um valor fixo:
+     *   E30 → +0.10
+     *   E60 → +0.15 (cumulativo com E30)
+     *   E80 → +0.10 (cumulativo com E30+E60)
+     *
+     * Time totalmente E80 = 5 * (0.10 + 0.15 + 0.10) = 1.75 (max).
+     *
+     * @param  Hero[]  $heroes
+     * @param  array<int, UserHero>  $userHeroesById
+     * @return array{score: float, milestones: array<string, int>}
+     */
+    private function engravingScore(array $heroes, array $userHeroesById): array
+    {
+        $score = 0.0;
+        $milestones = ['e30' => 0, 'e60' => 0, 'e80' => 0];
+
+        foreach ($heroes as $hero) {
+            $userHero = $userHeroesById[$hero->id] ?? null;
+            if (! $userHero) {
+                continue;
+            }
+            $eng = (int) $userHero->engraving;
+            if ($eng >= 30) {
+                $score += 0.10;
+                $milestones['e30']++;
+            }
+            if ($eng >= 60) {
+                $score += 0.15;
+                $milestones['e60']++;
+            }
+            if ($eng >= 80) {
+                $score += 0.10;
+                $milestones['e80']++;
+            }
+        }
+
+        return ['score' => $score, 'milestones' => $milestones];
     }
 
     public static function pairKey(int $a, int $b): string

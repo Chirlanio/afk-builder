@@ -34,6 +34,22 @@ class PowerCalculator
     private const BEAST_BUFF_FACTOR = 0.5;
 
     /**
+     * Engraving (Inscrições) milestones. Linear `engraving * 0.5` permanece, mas
+     * cada milestone atingido injeta um bônus discreto que reflete o unlock real
+     * no jogo (E30 = ativação inicial, E60 = camada de combate avançada, E80 =
+     * pico exclusivo de heroes Ascended Celestial/Hypogean).
+     *
+     * Resultado típico:
+     *   Eng 0  → 0
+     *   Eng 30 → 30*0.5 + 50           = 65
+     *   Eng 60 → 60*0.5 + 50 + 100     = 180
+     *   Eng 80 → 80*0.5 + 50 + 100 + 50= 240
+     */
+    private const ENGRAVING_MILESTONE_E30 = 50.0;
+    private const ENGRAVING_MILESTONE_E60 = 100.0;
+    private const ENGRAVING_MILESTONE_E80 = 50.0;
+
+    /**
      * Multiplicador por tier do beast (afk.guide). Beasts S+ valem mais que tier C/D.
      * Aplicado em vez de BEAST_BUFF_FACTOR quando o beast tem `tier` cadastrado.
      */
@@ -63,7 +79,8 @@ class PowerCalculator
             + $userHero->level
             + $siInvested * self::SI_CUMULATIVE_FACTOR
             + $userHero->furniture * 30
-            + $userHero->engraving * 0.5;
+            + $userHero->engraving * 0.5
+            + $this->engravingMilestoneBonus((int) $userHero->engraving);
 
         // Bônus de Mythic Furniture: F3 desbloqueia uma habilidade transformadora,
         // F9 melhora pra versão mais forte. Reflete que esses unlocks valem
@@ -95,6 +112,44 @@ class PowerCalculator
         }
 
         return $base;
+    }
+
+    /**
+     * Bônus discreto somado ao power quando o user atinge E30/E60/E80.
+     * Cumulativo: E80 paga os três milestones.
+     */
+    public function engravingMilestoneBonus(int $engraving): float
+    {
+        $bonus = 0.0;
+        if ($engraving >= 30) {
+            $bonus += self::ENGRAVING_MILESTONE_E30;
+        }
+        if ($engraving >= 60) {
+            $bonus += self::ENGRAVING_MILESTONE_E60;
+        }
+        if ($engraving >= 80) {
+            $bonus += self::ENGRAVING_MILESTONE_E80;
+        }
+
+        return $bonus;
+    }
+
+    /**
+     * Milestone atingido pelo nível de engraving informado, ou null se < 30.
+     */
+    public static function engravingMilestoneLabel(int $engraving): ?string
+    {
+        if ($engraving >= 80) {
+            return 'E80';
+        }
+        if ($engraving >= 60) {
+            return 'E60';
+        }
+        if ($engraving >= 30) {
+            return 'E30';
+        }
+
+        return null;
     }
 
     /**

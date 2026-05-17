@@ -68,7 +68,8 @@ class PowerCalculatorTest extends TestCase
         ]);
 
         // 10*100 + 240 + SI(30)=720*0.2=144 + 0*30 + 60*0.5 = 1000 + 240 + 144 + 0 + 30 = 1414
-        $this->assertEqualsWithDelta(1414.0, $this->calc->forUserHero($uh), 0.001);
+        // + engraving milestones E30 (+50) + E60 (+100) = +150 → 1564
+        $this->assertEqualsWithDelta(1564.0, $this->calc->forUserHero($uh), 0.001);
     }
 
     public function test_furniture_3_adiciona_bonus_f3(): void
@@ -97,7 +98,8 @@ class PowerCalculatorTest extends TestCase
 
         // 16*100 + 240 + SI(40)=1530*0.2=306 + 9*30 + 100*0.5 + 100 (F3) + 200 (F9)
         // = 1600 + 240 + 306 + 270 + 50 + 300 = 2766
-        $this->assertEqualsWithDelta(2766.0, $this->calc->forUserHero($uh), 0.001);
+        // + engraving milestones E30+E60+E80 = 50+100+50 = 200 → 2966
+        $this->assertEqualsWithDelta(2966.0, $this->calc->forUserHero($uh), 0.001);
     }
 
     public function test_furniture_entre_3_e_9_so_aplica_f3(): void
@@ -175,8 +177,9 @@ class PowerCalculatorTest extends TestCase
             'furniture' => 0, 'engraving' => 60,
         ]);
 
-        // Mesma fórmula do test_formula_basica: SI 30 cumulativo = 720 × 0.2 = 144
-        $this->assertEqualsWithDelta(1414.0, $this->calc->forUserHero($uh), 0.001);
+        // Mesma fórmula do test_formula_basica: SI 30 cumulativo = 720 × 0.2 = 144,
+        // engraving 60 = 30 (linear) + 150 (milestones E30+E60) → 1564.
+        $this->assertEqualsWithDelta(1564.0, $this->calc->forUserHero($uh), 0.001);
     }
 
     public function test_si_salto_30_para_40_reflete_custo_real(): void
@@ -435,5 +438,51 @@ class PowerCalculatorTest extends TestCase
 
         // base 1240 + 200 * 0.5 = 1340
         $this->assertEqualsWithDelta(1340.0, $this->calc->forUserHero($uh, $hero, $beast), 0.001);
+    }
+
+    public function test_engraving_milestone_bonus_aplica_em_thresholds(): void
+    {
+        $this->assertSame(0.0, $this->calc->engravingMilestoneBonus(0));
+        $this->assertSame(0.0, $this->calc->engravingMilestoneBonus(29));
+        // E30: +50
+        $this->assertSame(50.0, $this->calc->engravingMilestoneBonus(30));
+        $this->assertSame(50.0, $this->calc->engravingMilestoneBonus(59));
+        // E60: cumulativo +100 (total 150)
+        $this->assertSame(150.0, $this->calc->engravingMilestoneBonus(60));
+        $this->assertSame(150.0, $this->calc->engravingMilestoneBonus(79));
+        // E80: cumulativo +50 (total 200)
+        $this->assertSame(200.0, $this->calc->engravingMilestoneBonus(80));
+        $this->assertSame(200.0, $this->calc->engravingMilestoneBonus(100));
+    }
+
+    public function test_engraving_milestone_label(): void
+    {
+        $this->assertNull(PowerCalculator::engravingMilestoneLabel(0));
+        $this->assertNull(PowerCalculator::engravingMilestoneLabel(29));
+        $this->assertSame('E30', PowerCalculator::engravingMilestoneLabel(30));
+        $this->assertSame('E30', PowerCalculator::engravingMilestoneLabel(59));
+        $this->assertSame('E60', PowerCalculator::engravingMilestoneLabel(60));
+        $this->assertSame('E60', PowerCalculator::engravingMilestoneLabel(79));
+        $this->assertSame('E80', PowerCalculator::engravingMilestoneLabel(80));
+        $this->assertSame('E80', PowerCalculator::engravingMilestoneLabel(100));
+    }
+
+    public function test_for_user_hero_inclui_engraving_milestone_bonus(): void
+    {
+        // Hero idêntico exceto pelo engraving — verifica que cruzar 30 dispara o salto
+        $eng29 = $this->makeUserHero([
+            'ascension_value' => 0, 'level' => 0, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 29,
+        ]);
+        $eng30 = $this->makeUserHero([
+            'ascension_value' => 0, 'level' => 0, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 30,
+        ]);
+
+        // eng29: 0 + 29*0.5 = 14.5
+        // eng30: 0 + 30*0.5 + 50 (E30) = 65
+        // diff: 50.5 (= 50 do milestone + 0.5 linear)
+        $diff = $this->calc->forUserHero($eng30) - $this->calc->forUserHero($eng29);
+        $this->assertEqualsWithDelta(50.5, $diff, 0.001);
     }
 }

@@ -143,6 +143,7 @@ export interface ScoreBreakdownPayload {
     tier_rating: number;
     feature_bonus: number;
     furniture_effects: number;
+    engraving_bonus: number;
     total: number;
     details?: Record<string, unknown>;
 }

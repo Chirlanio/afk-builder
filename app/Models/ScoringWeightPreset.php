@@ -15,6 +15,7 @@ class ScoringWeightPreset extends Model
         'tier_rating_weight',
         'feature_weight',
         'furniture_effect_weight',
+        'engraving_weight',
     ];
 
     protected $fillable = [

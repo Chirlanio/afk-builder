@@ -220,6 +220,32 @@ export function tierFromAscension(ascensionValue: number | null | undefined): Ti
     return 'common';
 }
 
+export type EngravingMilestone = 'e30' | 'e60' | 'e80';
+
+/** Retorna o milestone máximo atingido pelo nível de engraving, ou null se < 30. */
+export function engravingMilestone(engraving: number | null | undefined): EngravingMilestone | null {
+    const v = engraving ?? 0;
+    if (v >= 80) return 'e80';
+    if (v >= 60) return 'e60';
+    if (v >= 30) return 'e30';
+    return null;
+}
+
+export const ENGRAVING_MILESTONE_LABEL: Record<EngravingMilestone, string> = {
+    e30: 'E30',
+    e60: 'E60',
+    e80: 'E80',
+};
+
+export const ENGRAVING_MILESTONE_BADGE: Record<EngravingMilestone, string> = {
+    // E30 — pedra/desperto inicial: âmbar suave
+    e30: 'border-amber-500/50 bg-amber-500/15 text-amber-700 dark:text-amber-300',
+    // E60 — pico real: rose forte
+    e60: 'border-rose-500/55 bg-rose-500/15 text-rose-700 dark:text-rose-300',
+    // E80 — exclusivo Celestial/Hypogean: gradient fuchsia
+    e80: 'border-fuchsia-500/60 bg-gradient-to-r from-fuchsia-500/25 to-rose-500/25 text-fuchsia-700 dark:text-fuchsia-200',
+};
+
 /**
  * Conta as estrelas de Ascendido a partir do ascension_value (0-16).
  * Ascended 1★=12, 2★=13, ..., 5★=16. Abaixo de 12 retorna 0/5 (Ascendido sem estrelas)

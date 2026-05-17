@@ -190,6 +190,7 @@ class FormationController extends Controller
             'formation' => $formation,
             'heroPool' => $heroPool['heroes'],
             'rosterByHeroId' => $heroPool['roster'],
+            'engravingByHeroId' => $heroPool['engravings'],
             'beasts' => $beasts,
             'recommendedMatches' => $matchesByTeam,
             'scoresByTeamPosition' => $scoresByTeamPosition,
@@ -207,7 +208,7 @@ class FormationController extends Controller
     }
 
     /**
-     * Extrai apenas os 7 pesos relevantes do scoring_profile (ignora flags
+     * Extrai apenas os 8 pesos relevantes do scoring_profile (ignora flags
      * como pvp/dps_focus/partition_optimization). Aplica defaults idênticos
      * aos do PHP ScoringProfile constructor para profiles incompletos.
      *
@@ -224,6 +225,7 @@ class FormationController extends Controller
             'tier_rating_weight' => (float) ($profile['tier_rating_weight'] ?? 1.0),
             'feature_weight' => (float) ($profile['feature_weight'] ?? 0.5),
             'furniture_effect_weight' => (float) ($profile['furniture_effect_weight'] ?? 0.4),
+            'engraving_weight' => (float) ($profile['engraving_weight'] ?? 0.3),
         ];
     }
 
@@ -865,13 +867,19 @@ class FormationController extends Controller
     }
 
     /**
-     * @return array{heroes: array<int, array<string, mixed>>, roster: array<int, int>}
+     * @return array{heroes: array<int, array<string, mixed>>, roster: array<int, int>, engravings: array<int, int>}
      */
     private function buildHeroPool(Formation $formation, int $userId): array
     {
-        $rosterByHeroId = UserHero::where('user_id', $userId)
-            ->pluck('id', 'hero_id')
-            ->all();
+        $rosterRows = UserHero::where('user_id', $userId)
+            ->get(['id', 'hero_id', 'engraving']);
+
+        $rosterByHeroId = [];
+        $engravingByHeroId = [];
+        foreach ($rosterRows as $uh) {
+            $rosterByHeroId[$uh->hero_id] = $uh->id;
+            $engravingByHeroId[$uh->hero_id] = (int) $uh->engraving;
+        }
 
         $query = Hero::query()
             ->where('is_active', true)
@@ -898,6 +906,7 @@ class FormationController extends Controller
         return [
             'heroes' => $heroes,
             'roster' => $rosterByHeroId,
+            'engravings' => $engravingByHeroId,
         ];
     }
 }

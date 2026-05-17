@@ -12,6 +12,7 @@ class ScoreBreakdown
         public readonly float $tierRating,
         public readonly float $featureBonus,
         public readonly float $furnitureEffects,
+        public readonly float $engravingBonus,
         public readonly float $total,
         public readonly array $details = [],
     ) {}
@@ -26,6 +27,7 @@ class ScoreBreakdown
             'tier_rating' => round($this->tierRating, 3),
             'feature_bonus' => round($this->featureBonus, 3),
             'furniture_effects' => round($this->furnitureEffects, 3),
+            'engraving_bonus' => round($this->engravingBonus, 3),
             'total' => round($this->total, 3),
             'details' => $this->details,
         ];

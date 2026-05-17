@@ -21,6 +21,7 @@ export interface WeightOverrides {
     tier_rating_weight: number;
     feature_weight: number;
     furniture_effect_weight: number;
+    engraving_weight: number;
 }
 
 interface SliderMeta {
@@ -37,6 +38,7 @@ const SLIDERS: SliderMeta[] = [
     { key: 'tier_rating_weight', label: 'Tier rating', description: 'Rating S+/A/B etc do afk.guide.' },
     { key: 'feature_weight', label: 'Destaques', description: 'PvP Top, Early Carry, etc.' },
     { key: 'furniture_effect_weight', label: 'Móveis F3/F9', description: 'Effects das habilidades de móveis.' },
+    { key: 'engraving_weight', label: 'Inscrições', description: 'Bônus por milestones E30/E60/E80 do roster.' },
 ];
 
 interface Props {

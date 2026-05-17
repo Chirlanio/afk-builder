@@ -64,6 +64,12 @@ const COMPONENTS: ComponentMeta[] = [
         label: 'Móveis F3/F9',
         tooltip: 'Effects das habilidades F3/F9 (damage_boost, cc_immunity, etc.) ponderados pelo modo.',
     },
+    {
+        key: 'engraving_bonus',
+        weightKey: 'engraving_weight',
+        label: 'Inscrições',
+        tooltip: 'Bônus por milestones de Inscrições (E30/E60/E80) atingidos pelos heróis do time.',
+    },
 ];
 
 function formatValue(value: number, scale: 'normalized' | 'absolute' = 'normalized'): string {

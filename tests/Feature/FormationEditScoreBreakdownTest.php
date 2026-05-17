@@ -80,6 +80,7 @@ class FormationEditScoreBreakdownTest extends TestCase
                     ->where('tier_rating', fn ($v) => is_numeric($v))
                     ->where('feature_bonus', fn ($v) => is_numeric($v))
                     ->where('furniture_effects', fn ($v) => is_numeric($v))
+                    ->where('engraving_bonus', fn ($v) => is_numeric($v))
                     ->where('total', fn ($v) => is_numeric($v))
                     ->etc()
                 )

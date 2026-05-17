@@ -58,6 +58,8 @@ interface PageProps {
     scoringProfileOverrides?: Partial<WeightOverrides> | null;
     weightPresets?: WeightPreset[];
     availableTags?: FormationTagPayload[];
+    /** Fase 52: hero_id → engraving level do roster do user (badges E30/E60/E80 nos slots). */
+    engravingByHeroId?: Record<number, number>;
 }
 
 const BEAST_DEFAULT_LEVEL = 36;
@@ -96,6 +98,7 @@ export default function FormationsEdit({
     scoringProfileOverrides,
     weightPresets = [],
     availableTags = [],
+    engravingByHeroId = {},
 }: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Formações', href: '/formations' },
@@ -803,6 +806,7 @@ export default function FormationsEdit({
                                             factionById={factionById}
                                             classById={classById}
                                             tierById={tierById}
+                                            engravingByHeroId={engravingByHeroId}
                                             onRemoveHero={(slotPosition) => removeFromSlot(team.position, slotPosition)}
                                             onClearBeast={() => clearBeastForTeam(team.position)}
                                             onBeastLevelChange={(level) => setBeastLevelForTeam(team.position, level)}
@@ -826,7 +830,8 @@ export default function FormationsEdit({
                                                                   teamScore.class_balance * customWeights.class_balance_weight +
                                                                   teamScore.tier_rating * customWeights.tier_rating_weight +
                                                                   teamScore.feature_bonus * customWeights.feature_weight +
-                                                                  teamScore.furniture_effects * customWeights.furniture_effect_weight
+                                                                  teamScore.furniture_effects * customWeights.furniture_effect_weight +
+                                                                  teamScore.engraving_bonus * customWeights.engraving_weight
                                                               ).toFixed(2)}
                                                     </span>
                                                 </summary>

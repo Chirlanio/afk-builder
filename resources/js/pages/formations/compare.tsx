@@ -64,6 +64,7 @@ const SCORE_COMPONENTS: ComponentMetric[] = [
     { key: 'tier_rating', label: 'Tier rating' },
     { key: 'feature_bonus', label: 'Destaques' },
     { key: 'furniture_effects', label: 'Móveis F3/F9' },
+    { key: 'engraving_bonus', label: 'Inscrições' },
 ];
 
 const EPSILON = 0.01;
