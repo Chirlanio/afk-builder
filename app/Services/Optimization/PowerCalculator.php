@@ -71,6 +71,39 @@ class PowerCalculator
     /** Slots de equipamento esperados no UserHero. */
     private const EQUIPMENT_SLOTS = ['weapon', 'helmet', 'chest', 'boots'];
 
+    /**
+     * Fatores aplicados aos atributos REAIS do UserHero (valores do jogo, ordem de
+     * 10^5 em HP em estágios avançados). Calibrados a partir de snapshots empíricos:
+     *
+     *   Shemira Lendário (Graveborn Mage):    HP=642254  ATK=41552  DEF=9239
+     *   Thoran Lendário (Graveborn Warrior):  HP=642794  ATK=41471  DEF=9258
+     *   Baden Lendário (Celestial Warrior):   HP=890481  ATK=75446  DEF=13374
+     *   Thane Lendário (Mauler Warrior):      HP=890628  ATK=75438  DEF=13372
+     *   Ivan Elite (Lightbearer Tank):        HP=995903  ATK=69194  DEF=14051
+     *   Ivan Elite+ (Lightbearer Tank):       HP=997282  ATK=69292  DEF=14076
+     *
+     * Observação: stats são essencialmente idênticos entre heros do mesmo arquétipo
+     * (mage/warrior/tank) e mesma ascensão — variações <0.1%. Elite→Elite+ adiciona
+     * só ~0.14%. A função existente `statContribution(HeroStat)` usa fatores 10x
+     * maiores porque opera sobre stats do CATÁLOGO (Lv 1, ordem 10^3).
+     *
+     * Com os fatores abaixo, a contribuição fica comparável ao bloco `ascension*100
+     * + level` (~760 pra Lendário Lv 160), permitindo escalonamento intuitivo:
+     *   Shemira:  ~574  → mage padrão
+     *   Baden:    ~888  → warrior celestial (~55% acima da mage)
+     *   Ivan:     ~912  → tank lightbearer (mais HP que warriors)
+     */
+    private const REAL_STAT_HP_FACTOR = 0.0005;
+    private const REAL_STAT_ATK_FACTOR = 0.005;
+    private const REAL_STAT_DEF_FACTOR = 0.005;
+    private const REAL_STAT_CRIT_FACTOR = 0.3;
+    private const REAL_STAT_ACC_FACTOR = 0.2;
+    private const REAL_STAT_DODGE_FACTOR = 0.2;
+    private const REAL_STAT_HASTE_FACTOR = 0.2;
+
+    /** Limiar pra considerar que `UserHero->hp` tem valor REAL do jogo (não vazio). */
+    private const REAL_STAT_HP_THRESHOLD = 1000;
+
     public function forUserHero(UserHero $userHero, ?Hero $hero = null, ?Beast $beast = null, int $beastLevel = Beast::MAX_LEVEL): float
     {
         $siInvested = SignatureItemCost::cumulativeCostUpToLevel((int) $userHero->signature_item);
@@ -92,7 +125,11 @@ class PowerCalculator
             $base += 100;
         }
 
-        $base += $this->statContribution($this->safeStats($hero));
+        // Quando o UserHero tem stats REAIS do jogo preenchidos (player snapshot),
+        // usamos eles direto. Caso contrário, caímos pro baseline do catálogo (Lv 1).
+        $base += $this->hasRealStats($userHero)
+            ? $this->realStatContribution($userHero)
+            : $this->statContribution($this->safeStats($hero));
 
         // Equipamento padrão (4 slots: arma/capacete/peitoral/bota).
         $base += $this->totalEquipmentContribution($userHero);
@@ -223,6 +260,34 @@ class PowerCalculator
             + ($stats->accuracy ?? 0) * 0.2
             + ($stats->dodge ?? 0) * 0.2
             + ($stats->haste ?? 0) * 0.2;
+    }
+
+    /**
+     * Detecta se o UserHero tem stats REAIS do jogo preenchidos. Heurística: HP
+     * acima de REAL_STAT_HP_THRESHOLD (1k) — stats de catálogo (Lv 1) ficam abaixo
+     * disso, e nenhum hero in-game tem menos que ~30k de HP em qualquer ascensão.
+     */
+    public function hasRealStats(UserHero $userHero): bool
+    {
+        return (int) ($userHero->hp ?? 0) > self::REAL_STAT_HP_THRESHOLD;
+    }
+
+    /**
+     * Contribuição dos stats REAIS do UserHero (valores in-game). Multipliers MUITO
+     * menores que `statContribution()` porque opera sobre números de ordem 10^5
+     * (HP) em vez de 10^3 (stats de catálogo Lv 1).
+     *
+     * Calibrado a partir de snapshots reais — ver as constantes REAL_STAT_*_FACTOR.
+     */
+    public function realStatContribution(UserHero $userHero): float
+    {
+        return ((int) ($userHero->hp ?? 0)) * self::REAL_STAT_HP_FACTOR
+            + ((int) ($userHero->attack ?? 0)) * self::REAL_STAT_ATK_FACTOR
+            + ((int) ($userHero->defense ?? 0)) * self::REAL_STAT_DEF_FACTOR
+            + ((float) ($userHero->crit_rate ?? 0)) * self::REAL_STAT_CRIT_FACTOR
+            + ((float) ($userHero->accuracy ?? 0)) * self::REAL_STAT_ACC_FACTOR
+            + ((float) ($userHero->dodge ?? 0)) * self::REAL_STAT_DODGE_FACTOR
+            + ((float) ($userHero->haste ?? 0)) * self::REAL_STAT_HASTE_FACTOR;
     }
 
     /**

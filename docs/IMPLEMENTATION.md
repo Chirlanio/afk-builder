@@ -3596,3 +3596,54 @@ Empate → ninguém destacado. Tudo zero → ninguém destacado. Só um índice 
 
 **474 testes verdes** (+9 nesta fase). TypeScript ✅ ESLint ✅.
 
+---
+
+### Calibração — Stats reais no PowerCalculator (2026-05-20)
+
+Quando o player preenche stats reais do jogo no `UserHero` (HP/ATK/DEF/CRIT/etc), o `PowerCalculator` agora **prefere essas leituras empíricas** sobre o baseline do catálogo (`HeroStat`, que vale stats de Lv 1). Calibração ancorada em snapshots reais do PT-BR (versão 2026):
+
+| Hero    | Asc       | HP      | ATK    | DEF    | Stat contrib. |
+|---------|-----------|---------|--------|--------|---------------|
+| Shemira | Lendário  | 642,254 | 41,552 |  9,239 | ~592          |
+| Thoran  | Lendário  | 642,794 | 41,471 |  9,258 | ~592          |
+| Baden   | Lendário  | 890,481 | 75,446 | 13,374 | ~915          |
+| Thane   | Lendário  | 890,628 | 75,438 | 13,372 | ~913          |
+| Ivan    | Elite     | 995,903 | 69,194 | 14,051 | ~927          |
+| Ivan    | Elite+    | 997,282 | 69,292 | 14,076 | ~928          |
+
+**Insights empíricos (não-óbvios):**
+1. Stats reais são **virtualmente idênticos** entre heros de mesmo arquétipo (mage/warrior/tank) e mesma ascensão. Variações <0.1% (Shemira vs Thoran, Baden vs Thane).
+2. Incremento Elite → Elite+ é só **+0.14%** em stats — milestone visualmente menor que ascended_X_stars.
+3. Mage (Shemira) < Warrior (Baden) por ~55% em stat contribution.
+4. Tank Elite (Ivan) ≈ Warrior Lendário (Baden) — HP maior compensa ATK menor.
+
+**Multipliers (constants em PowerCalculator):**
+
+```php
+private const REAL_STAT_HP_FACTOR = 0.0005;     // HP de ~1M → ~500 power
+private const REAL_STAT_ATK_FACTOR = 0.005;     // ATK de ~75k → ~375
+private const REAL_STAT_DEF_FACTOR = 0.005;     // DEF de ~13k → ~65
+private const REAL_STAT_CRIT_FACTOR = 0.3;
+private const REAL_STAT_ACC_FACTOR = 0.2;
+private const REAL_STAT_DODGE_FACTOR = 0.2;
+private const REAL_STAT_HASTE_FACTOR = 0.2;
+private const REAL_STAT_HP_THRESHOLD = 1000;    // > 1000 = stats reais
+```
+
+São 10x menores que os do `statContribution(HeroStat)` porque operam em valores de jogo (~10^5 HP) em vez de stats do catálogo (~10^3 HP).
+
+**Comportamento:**
+- `hasRealStats($uh)`: HP > 1000.
+- `forUserHero`: usa `realStatContribution($uh)` quando true, senão `statContribution($hero->stats)`.
+- Backward-compat: nenhum hero existente sem stats preenchidos é afetado — continua usando o baseline do catálogo.
+
+**6 testes novos no PowerCalculatorTest:**
+- `has_real_stats_detecta_hp_acima_do_limiar`
+- `real_stat_contribution_calibrado_para_snapshots` — Shemira/Baden/Ivan com tolerância 0.5
+- `for_user_hero_prefere_stats_reais_quando_preenchidos` — ignora HeroStat com 99k quando UserHero tem 642k
+- `for_user_hero_cai_para_heroStat_quando_sem_real_stats` — fallback funcional
+- `baden_vs_thane_stats_iguais_geram_power_igual` — diff < 5 pontos
+- `ivan_elite_para_elite_plus_diff_minima` — diff ~101 (asc +1 + 1 ponto de stat)
+
+**480 testes verdes** (+6 desta calibração).
+

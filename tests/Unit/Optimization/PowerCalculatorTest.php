@@ -467,6 +467,151 @@ class PowerCalculatorTest extends TestCase
         $this->assertSame('E80', PowerCalculator::engravingMilestoneLabel(100));
     }
 
+    public function test_has_real_stats_detecta_hp_acima_do_limiar(): void
+    {
+        // HP=0 ou < 1000 → false
+        $empty = $this->makeUserHero(['hp' => 0]);
+        $low = $this->makeUserHero(['hp' => 999]);
+        $threshold = $this->makeUserHero(['hp' => 1000]);
+        $real = $this->makeUserHero(['hp' => 642254]); // Shemira Lendário
+
+        $this->assertFalse($this->calc->hasRealStats($empty));
+        $this->assertFalse($this->calc->hasRealStats($low));
+        $this->assertFalse($this->calc->hasRealStats($threshold)); // 1000 não passa, precisa > 1000
+        $this->assertTrue($this->calc->hasRealStats($real));
+    }
+
+    public function test_real_stat_contribution_calibrado_para_snapshots(): void
+    {
+        // Snapshots empíricos do jogo (PT-BR, versão 2026)
+
+        // Shemira Lendário (Graveborn Mage)
+        $shemira = $this->makeUserHero([
+            'hp' => 642254, 'attack' => 41552, 'defense' => 9239,
+            'crit_rate' => 5, 'accuracy' => 65, 'dodge' => 0, 'haste' => 14,
+        ]);
+        // 642254*0.0005 + 41552*0.005 + 9239*0.005 + 5*0.3 + 65*0.2 + 0 + 14*0.2
+        // = 321.127 + 207.76 + 46.195 + 1.5 + 13 + 0 + 2.8 = 592.382
+        $this->assertEqualsWithDelta(592.4, $this->calc->realStatContribution($shemira), 0.5);
+
+        // Baden Lendário (Celestial Warrior)
+        $baden = $this->makeUserHero([
+            'hp' => 890481, 'attack' => 75446, 'defense' => 13374,
+            'crit_rate' => 5, 'accuracy' => 60, 'dodge' => 50, 'haste' => 14,
+        ]);
+        // 445.24 + 377.23 + 66.87 + 1.5 + 12 + 10 + 2.8 = 915.64
+        $this->assertEqualsWithDelta(915.6, $this->calc->realStatContribution($baden), 0.5);
+
+        // Ivan Elite (Lightbearer Tank)
+        $ivan = $this->makeUserHero([
+            'hp' => 995903, 'attack' => 69194, 'defense' => 14051,
+            'crit_rate' => 5, 'accuracy' => 0, 'dodge' => 35, 'haste' => 20,
+        ]);
+        // 497.95 + 345.97 + 70.26 + 1.5 + 0 + 7 + 4 = 926.68
+        $this->assertEqualsWithDelta(926.7, $this->calc->realStatContribution($ivan), 0.5);
+
+        // Insight do snapshot: warrior > mage por stats reais (HP+ATK maiores),
+        // tank Elite ≈ warrior Lendário (HP maior, ATK menor — empate na prática).
+        $this->assertGreaterThan(
+            $this->calc->realStatContribution($shemira),
+            $this->calc->realStatContribution($baden),
+        );
+        // Baden e Ivan estão dentro de ~1% — não força ordenação rígida
+        $this->assertEqualsWithDelta(
+            $this->calc->realStatContribution($baden),
+            $this->calc->realStatContribution($ivan),
+            20.0,
+        );
+    }
+
+    public function test_for_user_hero_prefere_stats_reais_quando_preenchidos(): void
+    {
+        // UserHero com stats reais (Shemira Lendário, ascensão 6, level 160)
+        $uh = $this->makeUserHero([
+            'ascension_value' => 6, 'level' => 160, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 0,
+            'hp' => 642254, 'attack' => 41552, 'defense' => 9239,
+            'crit_rate' => 5, 'accuracy' => 65, 'haste' => 14,
+        ]);
+
+        // Hero do catálogo com stats DIFERENTES (não devem ser usados quando real stats presentes)
+        $stats = new HeroStat;
+        $stats->hp = 99999;
+        $stats->attack = 99999;
+        $hero = new Hero;
+        $hero->setRelation('stats', $stats);
+
+        // base = 6*100 + 160 = 760
+        // + realStatContribution(Shemira) ~= 592
+        // Total ~= 1352
+        $power = $this->calc->forUserHero($uh, $hero);
+        $this->assertEqualsWithDelta(1352.4, $power, 1.0);
+
+        // Garante que NÃO somou o HeroStat (que daria 99999*0.1+99999*1 ~= 110k)
+        $this->assertLessThan(2000.0, $power);
+    }
+
+    public function test_for_user_hero_cai_para_heroStat_quando_sem_real_stats(): void
+    {
+        // UserHero SEM stats reais (hp=0)
+        $uh = $this->makeUserHero([
+            'ascension_value' => 10, 'level' => 240, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 0,
+            'hp' => 0, 'attack' => 0,
+        ]);
+
+        $stats = new HeroStat;
+        $stats->hp = 1000;    // *0.1 = 100
+        $stats->attack = 200; // *1.0 = 200
+        $hero = new Hero;
+        $hero->setRelation('stats', $stats);
+
+        // base 1240 + heroStat 300 = 1540 (mesma fórmula antiga)
+        $this->assertEqualsWithDelta(1540.0, $this->calc->forUserHero($uh, $hero), 0.001);
+    }
+
+    public function test_baden_vs_thane_stats_iguais_geram_power_igual(): void
+    {
+        // Insight empírico: Baden e Thane (ambos warriors no Lendário) têm stats
+        // virtualmente idênticos no jogo (~0.02% diff). Verificamos que o calculator
+        // reflete isso — sem multipliers de hero-específicos que quebrem a regra.
+        $baden = $this->makeUserHero([
+            'ascension_value' => 6, 'level' => 160,
+            'hp' => 890481, 'attack' => 75446, 'defense' => 13374,
+            'crit_rate' => 5, 'accuracy' => 60, 'dodge' => 50, 'haste' => 14,
+        ]);
+        $thane = $this->makeUserHero([
+            'ascension_value' => 6, 'level' => 160,
+            'hp' => 890628, 'attack' => 75438, 'defense' => 13372,
+            'crit_rate' => 5, 'accuracy' => 60, 'dodge' => 50, 'haste' => 0,
+        ]);
+
+        // Diff esperado ~= 0.6 (variação de stats + diff haste de 14 vs 0 = 2.8)
+        $diff = abs($this->calc->forUserHero($baden) - $this->calc->forUserHero($thane));
+        $this->assertLessThan(5.0, $diff);
+    }
+
+    public function test_ivan_elite_para_elite_plus_diff_minima(): void
+    {
+        // Insight: estágios incrementais (Elite → Elite+) dão ganho minúsculo (<1%).
+        $elite = $this->makeUserHero([
+            'ascension_value' => 4, 'level' => 100,
+            'hp' => 995903, 'attack' => 69194, 'defense' => 14051,
+            'crit_rate' => 5, 'dodge' => 35, 'haste' => 20,
+        ]);
+        $elitePlus = $this->makeUserHero([
+            'ascension_value' => 5, 'level' => 100,
+            'hp' => 997282, 'attack' => 69292, 'defense' => 14076,
+            'crit_rate' => 5, 'dodge' => 35, 'haste' => 20,
+        ]);
+
+        // Stats sobem ~0.14%. Power total deve subir só pelo ascension+1 (+100)
+        // mais ~1 ponto dos stats reais.
+        $diff = $this->calc->forUserHero($elitePlus) - $this->calc->forUserHero($elite);
+        // Esperado ~101 (100 do asc + 1 do stat). Tolerância ampla.
+        $this->assertEqualsWithDelta(101.0, $diff, 2.0);
+    }
+
     public function test_for_user_hero_inclui_engraving_milestone_bonus(): void
     {
         // Hero idêntico exceto pelo engraving — verifica que cruzar 30 dispara o salto
