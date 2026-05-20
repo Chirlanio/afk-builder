@@ -119,6 +119,60 @@ class InvestmentPlanner
     }
 
     /**
+     * Gera sugestões para um único UserHero usando o contexto completo do roster
+     * do user (para que multipliers como faction_gap/in_pentagram funcionem certos).
+     * Retorna lista ordenada por score, sem cap. Útil pra páginas de detalhe ou
+     * comparação onde queremos ver todos os próximos passos do hero alvo.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function planForHero(User $user, UserHero $userHero, ?Formation $formation = null, ?UserResource $resources = null): array
+    {
+        $userHeroes = $user->userHeroes()
+            ->with([
+                'hero:id,slug,name,portrait_url,faction_id,hero_class_id,tier_id',
+                'hero.faction:id,code,name_pt',
+                'hero.heroClass:id,code,name_pt',
+                'hero.tier:id,code',
+                'hero.stats',
+                'artifact:id,attributes',
+                'collection:id,hp_bonus,attack_bonus,defense_bonus',
+            ])
+            ->get()
+            ->keyBy('hero_id');
+
+        if ($userHeroes->isEmpty()) {
+            return [];
+        }
+
+        // Garante que o target tem as mesmas relations carregadas (vem do mapa)
+        $target = $userHeroes->get($userHero->hero_id) ?? $userHero;
+
+        $context = $this->buildContext($userHeroes, $formation);
+
+        $suggestions = [];
+        $currentPower = $this->power->forUserHero($target, $target->hero);
+        foreach ($this->candidateUpgrades($target) as $upgrade) {
+            $entry = $this->scoreUpgrade($target, $upgrade, $currentPower, $context);
+            if ($entry === null) {
+                continue;
+            }
+            if ($resources !== null) {
+                $entry['resource_cost'] = $this->resourceCostFor($target, $upgrade);
+                $entry['affordable'] = $this->isAffordable($entry['resource_cost'], $resources);
+            } else {
+                $entry['resource_cost'] = null;
+                $entry['affordable'] = null;
+            }
+            $suggestions[] = $entry;
+        }
+
+        usort($suggestions, fn ($a, $b) => $b['score'] <=> $a['score']);
+
+        return $suggestions;
+    }
+
+    /**
      * Computa o custo concreto do upgrade em recursos rastreáveis. SI usa o
      * cost real por nível (com bucket de emblem_type); Furniture/Engraving usam
      * 1 unidade por step; Ascension não tem pool global (retorna array vazio).

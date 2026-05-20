@@ -13,6 +13,7 @@ use App\Http\Controllers\FormationTagController;
 use App\Http\Controllers\FormationVersionController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HeroBulkActionController;
+use App\Http\Controllers\HeroComparisonController;
 use App\Http\Controllers\HeroController;
 use App\Http\Controllers\HeroFavoriteController;
 use App\Http\Controllers\HeroUsageController;
@@ -47,6 +48,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('heroes', [HeroController::class, 'index'])->name('heroes.index');
     Route::get('heroes/usage', [HeroUsageController::class, 'index'])->name('heroes.usage');
     Route::get('roster/analytics', [RosterAnalyticsController::class, 'index'])->name('roster.analytics');
+    Route::get('roster/compare', [HeroComparisonController::class, 'index'])->name('roster.compare');
     Route::get('roster/planner', [RosterPlannerController::class, 'index'])->name('roster.planner');
     Route::patch('roster/resources', [UserResourceController::class, 'update'])->name('roster.resources.update');
 

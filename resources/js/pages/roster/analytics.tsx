@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, BarChart3, ChevronRight, Crown, Flame, Gem, Sparkles, Target, TrendingUp, Users } from 'lucide-react';
+import { AlertTriangle, BarChart3, ChevronRight, Crown, Flame, Gem, Scale, Sparkles, Target, TrendingUp, Users } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import AppLayout from '@/layouts/app-layout';
 import { CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
@@ -358,6 +358,15 @@ export default function RosterAnalytics({ rosterSize, summary, byFaction, byClas
                     <header className="mb-3 flex items-center gap-2">
                         <Crown className="size-4 text-amber-300" />
                         <h2 className="text-sm font-semibold text-amber-100">Top 10 por power</h2>
+                        {top10.length >= 2 && (
+                            <Link
+                                href={`/roster/compare?${top10.slice(0, 4).map((h) => `heroes[]=${h.slug}`).join('&')}`}
+                                className="ml-auto inline-flex items-center gap-1 rounded-md border border-amber-400/30 px-2 py-1 text-[10px] text-amber-200 hover:bg-amber-500/15"
+                            >
+                                <Scale className="size-3" />
+                                Comparar top {Math.min(top10.length, 4)}
+                            </Link>
+                        )}
                     </header>
                     <ol className="flex flex-col gap-1.5">
                         {top10.map((hero, idx) => (

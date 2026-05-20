@@ -3526,3 +3526,73 @@ Página `/roster/planner` ganha entry em `REASON_LABEL` com badge âmbar "No pen
 
 **465 testes verdes** (+12 nesta fase: 10 + 1 + 1).
 
+---
+
+### ✅ Fase 57 — Comparação de heróis lado a lado
+
+Página `/roster/compare` que permite comparar 2-4 heróis do roster do user em formato grid, com destaque automático do "vencedor" por métrica e próximos upgrades por hero via `InvestmentPlanner::planForHero()`.
+
+**Arquitetura:**
+- Rota GET `/roster/compare` aceita query string `heroes[]=<slug>` (2-4 slugs, validados com regex `^[a-z0-9-]+$`).
+- `HeroComparisonController::index()` valida, carrega só `UserHero` do user logado (filtro `whereHas('hero')` na slug list, segurança built-in: outsider slugs viram payload vazio), e monta payload por hero com power breakdown (stat/equipment/artifact/collection) + top 3 upgrades.
+- Ordem dos slugs na URL é preservada (não usa `keyBy` no return — itera pela ordem original).
+- Slugs duplicados na query são deduplicados via `unique()`.
+
+**Service estendido — `InvestmentPlanner::planForHero()`:**
+
+```php
+public function planForHero(User $user, UserHero $userHero, ?Formation $formation = null, ?UserResource $resources = null): array
+```
+
+Reusa o `buildContext()` completo do roster (faction_gap, pentagram_hero_ids) e gera só sugestões do hero alvo, sem cap de `topN`. Crítico: carrega o user inteiro pra contexto correto — investir num pentagram hero deve mostrar o multiplier de 1.30× nas razões.
+
+**Frontend — `pages/roster/compare.tsx`:**
+
+Layout grid responsivo (`grid-cols-2/3/4` conforme `heroes.length`):
+- Header com chips dos heros selecionados + picker autocompletar (busca por nome no roster, max 30 sugestões).
+- Card por hero com:
+  - Portrait + nome + tier badge + faction + class
+  - **Power total** com badge "Maior" + ring se vencedor único da métrica
+  - Métricas comparáveis (Nível, Ascensão, AS, F, E) — cada uma destaca o card vencedor com bg-amber + Trophy icon
+  - Equipamento por slot (4 slots) com `EQUIPMENT_TIER_BADGE` colorido
+  - Artefato/Coleção quando presentes
+  - Stats base (contribuição do catálogo)
+  - Próximos 3 upgrades (kind/from→to/power_gain/affordable)
+
+**Algoritmo de "vencedor":**
+```ts
+function winnerIndex(values: number[]): number | null {
+    if (values.length === 0) return null;
+    const max = Math.max(...values);
+    if (max <= 0) return null;
+    const winners = values.map((v, i) => (v === max ? i : -1)).filter((i) => i !== -1);
+    return winners.length === 1 ? winners[0] : null;
+}
+```
+
+Empate → ninguém destacado. Tudo zero → ninguém destacado. Só um índice é vencedor (não retorna lista) — UI mais limpa.
+
+**Trade-offs:**
+- **Slug como param em vez de ID**: URL fica legível (`/roster/compare?heroes[]=alyssa&heroes[]=lucretia`) e shareable. Custo: validação regex no controller.
+- **Top 3 upgrades por card (não 10)**: cabe no card sem overflow vertical. Power user pode ir ao Planner pra ver lista completa.
+- **`planForHero` reutiliza `plan()` internamente**: usa o mesmo `buildContext` (que carrega o roster inteiro), evita drift entre as duas APIs. Custo: 1 query extra de `userHeroes` por hero comparado — aceitável pra max 4 heros.
+- **Sem persistência da seleção**: comparação é stateless — slug list vive só na URL. Usuário pode bookmark uma comparação específica.
+- **Sem export PNG**: ficou pra Fase 58 (votada como próxima opção potencial).
+
+**Navegação:**
+- Sidebar: novo item "Comparar heróis" (ícone `Scale`) entre Planner e Cristal.
+- Analytics top 10: botão "Comparar top N" no header da seção (N=min(top10.length, 4)) que pré-popula a URL.
+
+**Tests — `HeroComparisonTest` (9 cenários):**
+- `guest_redireciona_para_login`
+- `renderiza_pagina_vazia_quando_sem_heroes_param`
+- `lista_roster_options_para_picker`
+- `compara_dois_heros_com_payload_completo` — power diff + equipment + upgrades shape
+- `preserva_ordem_dos_slugs_na_query` — `?heroes[]=gamma&heroes[]=alpha&heroes[]=beta` retorna `[gamma, alpha, beta]`
+- `hero_que_nao_pertence_ao_user_e_ignorado` — segurança: slug do roster de outro user vira no-op
+- `max_heroes_e_respeitado_via_validacao` — 5 slugs → 302 redirect (validação fail em GET Inertia)
+- `slugs_duplicados_sao_deduplicados`
+- `power_breakdown_inclui_componentes` — T6 Lv20 × 4 = 400 confirmado
+
+**474 testes verdes** (+9 nesta fase). TypeScript ✅ ESLint ✅.
+
