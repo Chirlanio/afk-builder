@@ -75,10 +75,11 @@ class GuideSeeder extends Seeder
         ],
         [
             'slug' => 'atributos',
-            'title' => 'Atributos e bônus de formação',
+            'title' => 'Atributos (Stats) do Herói',
             'category' => Guide::CATEGORY_MECANICAS,
             'wiki_page' => 'Attributes',
-            'summary' => 'Stats que os heróis possuem (ATK/HP/Defesa/Crit/etc.), como aumentá-los e os bônus que formações ativam (3+2, 4-stack, 5-stack).',
+            'static_content' => 'atributos.md',
+            'summary' => 'Glossário completo dos atributos PT-BR: vida, ataque, defesa, crítico (ADC/RDC), físico (PF/RF), mágico (PM/RM/EM/SM), controle (PER/TC), cura, pressa e dracônico — com fórmulas e abreviações oficiais.',
             'display_order' => 80,
         ],
     ];
