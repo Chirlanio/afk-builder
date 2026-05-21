@@ -48,6 +48,10 @@ class UserHero extends Model
         'helmet_tier', 'helmet_level',
         'chest_tier', 'chest_level',
         'boots_tier', 'boots_level',
+        'weapon_equipment_id', 'weapon_equipment_level',
+        'helmet_equipment_id', 'helmet_equipment_level',
+        'chest_equipment_id', 'chest_equipment_level',
+        'boots_equipment_id', 'boots_equipment_level',
         'artifact_id',
         'artifact_star_level',
         'collection_id',
@@ -68,6 +72,10 @@ class UserHero extends Model
         'boots_level' => 'integer',
         'artifact_star_level' => 'integer',
         'power_rating' => 'integer',
+        'weapon_equipment_level' => 'integer',
+        'helmet_equipment_level' => 'integer',
+        'chest_equipment_level' => 'integer',
+        'boots_equipment_level' => 'integer',
         // Stats reais do roster
         'hp' => 'integer',
         'attack' => 'integer',
@@ -124,5 +132,48 @@ class UserHero extends Model
     public function collection(): BelongsTo
     {
         return $this->belongsTo(Collection::class);
+    }
+
+    public function weaponEquipment(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class, 'weapon_equipment_id');
+    }
+
+    public function helmetEquipment(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class, 'helmet_equipment_id');
+    }
+
+    public function chestEquipment(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class, 'chest_equipment_id');
+    }
+
+    public function bootsEquipment(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class, 'boots_equipment_id');
+    }
+
+    /**
+     * Helper para iteração sobre os 4 slots de equipamento mítico equipado.
+     * Retorna pares [Equipment, level] (skipa slots vazios).
+     *
+     * @return array<int, array{0: Equipment, 1: int}>
+     */
+    public function equippedMythicItems(): array
+    {
+        $pairs = [];
+        foreach (['weapon', 'helmet', 'chest', 'boots'] as $slot) {
+            $relation = $slot.'Equipment';
+            if (! $this->relationLoaded($relation)) {
+                continue;
+            }
+            $equipment = $this->{$relation};
+            if ($equipment instanceof Equipment) {
+                $pairs[] = [$equipment, (int) $this->{$slot.'_equipment_level'}];
+            }
+        }
+
+        return $pairs;
     }
 }

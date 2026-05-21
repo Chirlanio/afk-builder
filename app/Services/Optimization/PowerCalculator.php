@@ -5,6 +5,7 @@ namespace App\Services\Optimization;
 use App\Models\Artifact;
 use App\Models\Beast;
 use App\Models\Collection;
+use App\Models\Equipment;
 use App\Models\Hero;
 use App\Models\HeroStat;
 use App\Models\SignatureItemCost;
@@ -134,6 +135,12 @@ class PowerCalculator
         // Equipamento padrão (4 slots: arma/capacete/peitoral/bota).
         $base += $this->totalEquipmentContribution($userHero);
 
+        // Equipamento Mítico (sets nomeados Gaius/Ancelot/Místico). Soma stats
+        // dos 4 slots, aplica bônus de facção (+30%) quando o hero pertence à
+        // mesma faction do item. Substitui parcialmente a contribuição do tier
+        // genérico — coexistem em runtime.
+        $base += $this->mythicEquipmentContribution($userHero, $hero);
+
         // Equipamento na slot artefato/coleção (mutex no controller).
         if ($userHero->relationLoaded('artifact') && $userHero->artifact) {
             $base += $this->artifactContribution($userHero->artifact, $userHero->artifact_star_level);
@@ -260,6 +267,71 @@ class PowerCalculator
             + ($stats->accuracy ?? 0) * 0.2
             + ($stats->dodge ?? 0) * 0.2
             + ($stats->haste ?? 0) * 0.2;
+    }
+
+    /**
+     * Contribuição dos Equipamentos Míticos equipados nos 4 slots (Gaius/Ancelot/
+     * Místico). Agrega stats com upgrade aplicado, multiplica por 1.30 quando o
+     * hero pertence à mesma faction do item (bônus de facção), e converte os
+     * stats agregados pra power score via REAL_STAT_*_FACTOR (mesma escala do
+     * realStatContribution pra coerência de magnitude).
+     *
+     * Stats `_pct` (crit_rate_pct, physical_resistance_pct, magic_resistance_pct)
+     * contribuem com peso menor — refletem percent caps que se traduzem em power
+     * efetivo só quando o hero está sob ataque/causando dano.
+     *
+     * Set bonuses (T3+) ainda não são contabilizados aqui — TODO 58d quando o
+     * UI de listagem de sets completo for ligado.
+     */
+    public function mythicEquipmentContribution(UserHero $userHero, ?Hero $hero = null): float
+    {
+        $items = $userHero->equippedMythicItems();
+        if (empty($items)) {
+            return 0.0;
+        }
+
+        $heroFactionId = $hero?->faction?->id ?? $hero?->faction_id;
+        $aggregate = [];
+
+        foreach ($items as [$equipment, $level]) {
+            $stats = $equipment->statsAtLevel($level);
+            $factionMatch = $heroFactionId !== null
+                && (int) $equipment->faction_id === (int) $heroFactionId;
+            $stats = $equipment->applyFactionBonus($stats, $factionMatch);
+
+            foreach ($stats as $key => $value) {
+                $aggregate[$key] = ($aggregate[$key] ?? 0.0) + (float) $value;
+            }
+        }
+
+        return $this->convertAggregateStatsToPower($aggregate);
+    }
+
+    /**
+     * Converte stats agregados (HP/ATK/DEF/CRIT/etc) em pontos de power usando
+     * a mesma escala calibrada em realStatContribution. Stats `_pct` são
+     * tratados como pontos diretos com peso modesto (consistent com crit_rate).
+     *
+     * @param  array<string, float|int>  $aggregate
+     */
+    private function convertAggregateStatsToPower(array $aggregate): float
+    {
+        $power = 0.0;
+        foreach ($aggregate as $key => $value) {
+            $power += match ($key) {
+                'hp' => $value * self::REAL_STAT_HP_FACTOR,
+                'attack' => $value * self::REAL_STAT_ATK_FACTOR,
+                'defense' => $value * self::REAL_STAT_DEF_FACTOR,
+                'crit_rate_pct' => $value * self::REAL_STAT_CRIT_FACTOR,
+                'accuracy' => $value * self::REAL_STAT_ACC_FACTOR,
+                'dodge' => $value * self::REAL_STAT_DODGE_FACTOR,
+                'haste' => $value * self::REAL_STAT_HASTE_FACTOR,
+                'physical_resistance_pct', 'magic_resistance_pct' => $value * 0.5,
+                default => 0.0,
+            };
+        }
+
+        return $power;
     }
 
     /**

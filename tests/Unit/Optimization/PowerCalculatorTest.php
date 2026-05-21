@@ -5,6 +5,8 @@ namespace Tests\Unit\Optimization;
 use App\Models\Artifact;
 use App\Models\Beast;
 use App\Models\Collection;
+use App\Models\Equipment;
+use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroStat;
 use App\Models\SignatureItemCost;
@@ -55,6 +57,34 @@ class PowerCalculatorTest extends TestCase
         }
 
         return $userHero;
+    }
+
+    /**
+     * Builda Equipment in-memory (sem DB) com defaults sane pros tests unitários.
+     */
+    private function makeEquipment(array $attrs): Equipment
+    {
+        $defaults = [
+            'slug' => 'test-equipment',
+            'name' => 'Test Equipment',
+            'name_pt' => 'Equipamento de Teste',
+            'set_code' => 'test',
+            'slot' => 'boots',
+            'material' => 'plate',
+            'hero_type' => 'strength',
+            'faction_id' => 1,
+            'quality_tier' => 'mythic',
+            'power_rating' => 1000,
+            'stats' => [],
+            'set_bonuses' => null,
+            'max_upgrade_level' => 5,
+            'upgrade_percent_per_level' => 10,
+            'is_active' => true,
+        ];
+
+        $equipment = new Equipment(array_merge($defaults, $attrs));
+
+        return $equipment;
     }
 
     public function test_formula_basica_sem_furniture(): void
@@ -610,6 +640,134 @@ class PowerCalculatorTest extends TestCase
         $diff = $this->calc->forUserHero($elitePlus) - $this->calc->forUserHero($elite);
         // Esperado ~101 (100 do asc + 1 do stat). Tolerância ampla.
         $this->assertEqualsWithDelta(101.0, $diff, 2.0);
+    }
+
+    public function test_mythic_equipment_contribution_sem_itens_retorna_zero(): void
+    {
+        $uh = $this->makeUserHero(['hp' => 0]);
+        $this->assertSame(0.0, $this->calc->mythicEquipmentContribution($uh));
+    }
+
+    public function test_mythic_equipment_contribution_soma_stats_de_um_item(): void
+    {
+        // Grevas de Gaius L0 — hp=36500, accuracy=60, haste=5, physical_resistance_pct=5
+        // Power esperado: 36500*0.0005 + 60*0.2 + 5*0.2 + 5*0.5
+        //               = 18.25 + 12 + 1 + 2.5 = 33.75
+        $equipment = $this->makeEquipment([
+            'slot' => 'boots',
+            'faction_id' => 1,
+            'stats' => ['hp' => 36500, 'accuracy' => 60, 'haste' => 5, 'physical_resistance_pct' => 5],
+            'max_upgrade_level' => 5,
+            'upgrade_percent_per_level' => 10,
+        ]);
+
+        $uh = $this->makeUserHero(['boots_equipment_id' => 1, 'boots_equipment_level' => 0]);
+        $uh->setRelation('bootsEquipment', $equipment);
+
+        $this->assertEqualsWithDelta(33.75, $this->calc->mythicEquipmentContribution($uh), 0.001);
+    }
+
+    public function test_mythic_equipment_contribution_aplica_faction_bonus(): void
+    {
+        // Grevas de Gaius L0, faction Lightbearer (id=1).
+        // Hero também Lightbearer → bonus 30%: 33.75 * 1.30 = 43.875
+        $equipment = $this->makeEquipment([
+            'slot' => 'boots',
+            'faction_id' => 1,
+            'stats' => ['hp' => 36500, 'accuracy' => 60, 'haste' => 5, 'physical_resistance_pct' => 5],
+        ]);
+
+        $uh = $this->makeUserHero(['boots_equipment_id' => 1, 'boots_equipment_level' => 0]);
+        $uh->setRelation('bootsEquipment', $equipment);
+
+        $faction = new Faction(['code' => 'lightbearer']);
+        $faction->id = 1;
+        $hero = new Hero;
+        $hero->setRelation('faction', $faction);
+
+        $this->assertEqualsWithDelta(43.875, $this->calc->mythicEquipmentContribution($uh, $hero), 0.001);
+    }
+
+    public function test_mythic_equipment_contribution_sem_faction_match_ignora_bonus(): void
+    {
+        // Equipment de Lightbearer, mas hero é Mauler (diff faction) → sem bonus
+        $equipment = $this->makeEquipment([
+            'slot' => 'boots',
+            'faction_id' => 1, // lightbearer
+            'stats' => ['hp' => 36500],
+        ]);
+
+        $uh = $this->makeUserHero(['boots_equipment_id' => 1, 'boots_equipment_level' => 0]);
+        $uh->setRelation('bootsEquipment', $equipment);
+
+        $faction = new Faction(['code' => 'mauler']);
+        $faction->id = 2; // mauler != lightbearer
+        $hero = new Hero;
+        $hero->setRelation('faction', $faction);
+
+        // hp 36500 * 0.0005 = 18.25 (sem bonus)
+        $this->assertEqualsWithDelta(18.25, $this->calc->mythicEquipmentContribution($uh, $hero), 0.001);
+    }
+
+    public function test_mythic_equipment_contribution_escala_com_upgrade_level(): void
+    {
+        // L5 = 1.5x → 36500 * 1.5 * 0.0005 = 27.375
+        $equipment = $this->makeEquipment([
+            'slot' => 'boots',
+            'faction_id' => 1,
+            'stats' => ['hp' => 36500],
+            'max_upgrade_level' => 5,
+            'upgrade_percent_per_level' => 10,
+        ]);
+
+        $uh = $this->makeUserHero(['boots_equipment_id' => 1, 'boots_equipment_level' => 5]);
+        $uh->setRelation('bootsEquipment', $equipment);
+
+        $this->assertEqualsWithDelta(27.375, $this->calc->mythicEquipmentContribution($uh), 0.001);
+    }
+
+    public function test_mythic_equipment_contribution_soma_quatro_slots(): void
+    {
+        $boots = $this->makeEquipment(['slot' => 'boots', 'faction_id' => 1, 'stats' => ['hp' => 10000]]);
+        $helmet = $this->makeEquipment(['slot' => 'helmet', 'faction_id' => 1, 'stats' => ['hp' => 10000]]);
+        $chest = $this->makeEquipment(['slot' => 'chest', 'faction_id' => 1, 'stats' => ['hp' => 10000]]);
+        $weapon = $this->makeEquipment(['slot' => 'weapon', 'faction_id' => 1, 'stats' => ['attack' => 1000]]);
+
+        $uh = $this->makeUserHero([
+            'boots_equipment_id' => 1, 'boots_equipment_level' => 0,
+            'helmet_equipment_id' => 2, 'helmet_equipment_level' => 0,
+            'chest_equipment_id' => 3, 'chest_equipment_level' => 0,
+            'weapon_equipment_id' => 4, 'weapon_equipment_level' => 0,
+        ]);
+        $uh->setRelation('bootsEquipment', $boots);
+        $uh->setRelation('helmetEquipment', $helmet);
+        $uh->setRelation('chestEquipment', $chest);
+        $uh->setRelation('weaponEquipment', $weapon);
+
+        // hp: 30000 * 0.0005 = 15
+        // attack: 1000 * 0.005 = 5
+        // total = 20
+        $this->assertEqualsWithDelta(20.0, $this->calc->mythicEquipmentContribution($uh), 0.001);
+    }
+
+    public function test_for_user_hero_inclui_mythic_equipment_contribution(): void
+    {
+        $equipment = $this->makeEquipment([
+            'slot' => 'boots',
+            'faction_id' => 1,
+            'stats' => ['hp' => 36500, 'haste' => 5],
+        ]);
+
+        $uh = $this->makeUserHero([
+            'ascension_value' => 10, 'level' => 240, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 0,
+            'boots_equipment_id' => 1, 'boots_equipment_level' => 0,
+        ]);
+        $uh->setRelation('bootsEquipment', $equipment);
+
+        // base = 10*100 + 240 = 1240
+        // + mythic: 36500*0.0005 + 5*0.2 = 18.25 + 1 = 19.25
+        $this->assertEqualsWithDelta(1259.25, $this->calc->forUserHero($uh), 0.001);
     }
 
     public function test_for_user_hero_inclui_engraving_milestone_bonus(): void
