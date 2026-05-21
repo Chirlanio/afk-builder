@@ -455,9 +455,16 @@ interface MythicSlotEditProps {
     onChange: (id: number | null, level: number) => void;
 }
 
+/** Abrevia o tier de qualidade pra exibição compacta. */
+function tierShortLabel(quality: string): string {
+    if (quality === 'mythic') return 'M';
+    return quality.replace('mythic_', '').toUpperCase(); // mythic_t1 → T1
+}
+
 function MythicSlotEdit({ slot, available, selectedId, level, onChange }: MythicSlotEditProps) {
     const selected = selectedId ? available.find((e) => e.id === selectedId) ?? null : null;
     const max = selected?.max_upgrade_level ?? 0;
+    const hasOptions = available.length > 0;
 
     return (
         <div className="bg-card flex flex-col gap-1 rounded-md border p-1.5">
@@ -470,31 +477,44 @@ function MythicSlotEdit({ slot, available, selectedId, level, onChange }: Mythic
                     </span>
                 )}
             </div>
-            <Select
-                value={selectedId !== null ? String(selectedId) : 'none'}
-                onValueChange={(v) => {
-                    if (v === 'none') {
-                        onChange(null, 0);
-                    } else {
-                        onChange(Number(v), 0);
-                    }
-                }}
-            >
-                <SelectTrigger className="h-7 text-[10px]">
-                    <SelectValue placeholder="—" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="none">— vazio —</SelectItem>
-                    {available.map((e) => (
-                        <SelectItem key={e.id} value={String(e.id)}>
-                            {e.name_pt}
-                            <span className="text-muted-foreground ml-1">
-                                ({e.quality_tier.replace('mythic_', 'T') === 'mythic' ? 'M' : e.quality_tier.replace('mythic_', 'T').toUpperCase()}, {e.faction_name_pt})
-                            </span>
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            {hasOptions ? (
+                <Select
+                    value={selectedId !== null ? String(selectedId) : 'none'}
+                    onValueChange={(v) => {
+                        if (v === 'none') {
+                            onChange(null, 0);
+                        } else {
+                            onChange(Number(v), 0);
+                        }
+                    }}
+                >
+                    <SelectTrigger className="h-7 text-[10px]">
+                        <SelectValue placeholder="—">
+                            {selected && (
+                                <span className="flex items-center gap-1 truncate">
+                                    <span className="text-amber-300 font-bold">{tierShortLabel(selected.quality_tier)}</span>
+                                    <span className="truncate">{selected.name_pt.replace(/ (T\d|M)$/, '')}</span>
+                                </span>
+                            )}
+                        </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="none">— vazio —</SelectItem>
+                        {available.map((e) => (
+                            <SelectItem key={e.id} value={String(e.id)}>
+                                <span className="flex items-center gap-1.5">
+                                    <span className="rounded bg-amber-500/20 px-1 text-[9px] font-bold text-amber-300">
+                                        {tierShortLabel(e.quality_tier)}
+                                    </span>
+                                    <span>{e.name_pt.replace(/ (T\d|M)$/, '')}</span>
+                                </span>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            ) : (
+                <span className="text-muted-foreground text-[9px] italic">Sem items compatíveis</span>
+            )}
             {selected && max > 0 && (
                 <div className="flex items-center gap-1">
                     <Label className="text-[9px]">Nv:</Label>

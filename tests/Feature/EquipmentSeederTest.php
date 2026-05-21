@@ -22,15 +22,15 @@ class EquipmentSeederTest extends TestCase
     {
         $this->seed(EquipmentSeeder::class);
 
-        // 14 items base × 5 tiers (Mítico, T1, T2, T3, T4) = 70 items
-        // Base: 5 Gaius + 5 Ancelot + 4 Místico
-        $this->assertSame(70, Equipment::count());
-        $this->assertSame(14, Equipment::where('quality_tier', 'mythic')->count());
-        $this->assertSame(14, Equipment::where('quality_tier', 'mythic_t1')->count());
-        $this->assertSame(14, Equipment::where('quality_tier', 'mythic_t4')->count());
+        // 12 templates × 8 factions × 5 tiers = 480 items
+        // Templates: 4 Gaius (strength) + 4 Ancelot (agility) + 4 Místico (intelligence)
+        $this->assertSame(480, Equipment::count());
+        $this->assertSame(96, Equipment::where('quality_tier', 'mythic')->count());
+        $this->assertSame(96, Equipment::where('quality_tier', 'mythic_t1')->count());
+        $this->assertSame(96, Equipment::where('quality_tier', 'mythic_t4')->count());
     }
 
-    public function test_grevas_de_gaius_existe_em_duas_factions(): void
+    public function test_grevas_de_gaius_existe_em_todas_factions(): void
     {
         $this->seed(EquipmentSeeder::class);
 
@@ -39,9 +39,10 @@ class EquipmentSeederTest extends TestCase
             ->where('quality_tier', 'mythic')
             ->get();
 
-        $this->assertCount(2, $grevas);
-        $this->assertSame(7768, $grevas[0]->power_rating);
-        $this->assertSame(7768, $grevas[1]->power_rating);
+        // 8 factions × 1 item base = 8 items
+        $this->assertCount(8, $grevas);
+        // Stats idênticos entre factions
+        $this->assertTrue($grevas->every(fn ($g) => $g->power_rating === 7768));
     }
 
     public function test_stats_json_decodifica_com_sufixos_corretos(): void
@@ -126,18 +127,14 @@ class EquipmentSeederTest extends TestCase
     {
         $this->seed(EquipmentSeeder::class);
 
-        // Cada base slug (gaius-grevas-lightbearer, gaius-couraca-wilder, etc) deve
-        // ter exatamente 5 versões (Mítico, T1, T2, T3, T4) na DB.
-        $baseSlugs = [
-            'gaius-grevas-lightbearer', 'gaius-grevas-celestial',
-            'gaius-couraca-wilder', 'gaius-elmo-graveborn', 'gaius-mangual-wilder',
-            'ancelot-perseveranca-graveborn', 'ancelot-perseveranca-celestial',
-            'ancelot-honra-lightbearer', 'ancelot-refugio-graveborn', 'ancelot-lamina-hypogean',
-            'mystic-botas-celestial', 'mystic-casaco-celestial',
-            'mystic-chapeu-celestial', 'mystic-bastao-hypogean',
+        // Cada combinação (template × faction) deve ter 5 tiers
+        // Sample uns slugs específicos pra validar a estrutura
+        $samples = [
+            'gaius-grevas-lightbearer', 'gaius-grevas-mauler', 'gaius-grevas-dimensional',
+            'mystic-bastao-draconis', 'ancelot-lamina-celestial',
         ];
 
-        foreach ($baseSlugs as $base) {
+        foreach ($samples as $base) {
             $this->assertTrue(Equipment::where('slug', $base)->exists(), "Mítico não existe: $base");
             foreach (['t1', 't2', 't3', 't4'] as $tier) {
                 $this->assertTrue(
@@ -145,6 +142,21 @@ class EquipmentSeederTest extends TestCase
                     "Tier $tier não existe: $base-$tier",
                 );
             }
+        }
+    }
+
+    public function test_cada_template_existe_em_todas_8_factions(): void
+    {
+        $this->seed(EquipmentSeeder::class);
+
+        // 12 templates × 8 factions × 5 tiers = 480
+        $templates = ['gaius-grevas', 'gaius-couraca', 'gaius-elmo', 'gaius-mangual',
+                      'ancelot-perseveranca', 'ancelot-honra', 'ancelot-refugio', 'ancelot-lamina',
+                      'mystic-botas', 'mystic-casaco', 'mystic-chapeu', 'mystic-bastao'];
+
+        foreach ($templates as $template) {
+            $count = Equipment::where('slug', 'LIKE', "{$template}-%")->where('quality_tier', 'mythic')->count();
+            $this->assertSame(8, $count, "Template $template deve ter 8 facções (Mítico)");
         }
     }
 

@@ -3816,3 +3816,36 @@ private const NON_WEAPON_BONUS_WEIGHT = 0.5;
 - `EquipmentControllerTest`: counts atualizados (18→70 em filtros)
 - **505 testes verdes** (+3 nesta sub-fase)
 
+#### 58g — Equipamentos por facção + filtro no roster
+
+Três correções pós-58f:
+
+1. **Equipamentos pra todas as 8 facções** — antes cada item base tinha 1-2 facções específicas (ex: Grevas só em Lightbearer + Celestial). Agora cada um dos 12 templates é gerado pra todas as 8 facções, totalizando **480 items** (12 × 8 × 5 tiers).
+
+2. **Filtro AND por faction_id + hero_type** — `HeroController::details` agora filtra `availableEquipments` por DOIS critérios: a `faction_id` do hero E o `hero_type` apropriado. Hero Lightbearer-strength só vê Gaius-Lightbearer (não Gaius-Mauler ou Místico-Lightbearer).
+
+3. **Visual melhorado do MythicSlotEdit** — quando não há items compatíveis o slot mostra "Sem items compatíveis" (em vez de só "— vazio —"). Trigger compactado mostra o tier (M/T1/T2/T3/T4) em badge + nome truncado. Items no dropdown também usam badge de tier compacto.
+
+**Mudanças no seeder:**
+
+Refatorado pra abordagem template × faction. `itemTemplates()` retorna 12 templates (sem faction); `run()` itera por todas as 8 factions em `ALL_FACTIONS` e gera 1 versão por faction × 5 tiers de cada template. Slug pattern: `{template_slug_prefix}-{faction_code}{-tier?}`.
+
+```php
+private const ALL_FACTIONS = [
+    'lightbearer', 'mauler', 'wilder', 'graveborn',
+    'celestial', 'hypogean', 'dimensional', 'draconis',
+];
+```
+
+**Distribuição final:**
+- 12 templates × 8 factions × 5 tiers = 480 equipamentos
+- 60 items por facção (12 × 5 tiers)
+- 96 items por tier (12 × 8)
+- 160 items por hero_type (4 templates × 8 × 5)
+
+**Tests atualizados:**
+- `EquipmentSeederTest`: count 70→480, novo test `cada_template_existe_em_todas_8_factions`
+- `EquipmentControllerTest`: counts em todos os filtros (faction 6→60, weapon 7→120, intelligence 8→160, T3 14→96)
+- `UserHeroMythicEquipmentTest`: novo test `hero_de_faction_diferente_nao_ve_items_de_outras_factions` confirma o filtro AND
+- **507 testes verdes** (+2 nesta sub-fase)
+

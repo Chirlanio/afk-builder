@@ -201,11 +201,14 @@ class HeroController extends Controller
             ->where('heroes.id', $hero->id)
             ->exists();
 
-        // Equipamentos Míticos disponíveis pra esse hero. Filtra pelo tipo do hero
-        // (strength/agility/intelligence) se cadastrado — heros sem `type` recebem
-        // todos os equipments (o user pode ainda equipar; o filtro é só sugestão).
+        // Equipamentos Míticos disponíveis pra esse hero. Dois filtros AND:
+        //   1. faction_id: hero só vê items da sua própria faction (no jogo cada
+        //      faction tem seu próprio loot table, e o bônus de 30% só vale com match)
+        //   2. hero_type (strength/agility/intelligence): set apropriado pra
+        //      arquétipo do hero — mages vão de Místico, warriors de Gaius, etc.
         $availableEquipments = Equipment::query()
             ->where('is_active', true)
+            ->where('faction_id', $hero->faction_id)
             ->when($hero->type !== null, fn ($q) => $q->where('hero_type', $hero->type))
             ->with('faction:id,code,name_pt')
             ->orderBy('set_code')

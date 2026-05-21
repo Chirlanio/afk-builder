@@ -210,12 +210,40 @@ class UserHeroMythicEquipmentTest extends TestCase
 
         $data = $response->json();
         $this->assertArrayHasKey('availableEquipments', $data);
-        // Hero é strength → só itens de strength devem aparecer
+        // Hero é Lightbearer + strength → só itens da faction Lightbearer E do tipo strength
         $this->assertNotEmpty($data['availableEquipments']);
         $this->assertTrue(collect($data['availableEquipments'])->every(fn ($e) => $e['hero_type'] === 'strength'));
-        // Item da mesma faction deve ter faction_matches=true
-        $grevasLightbearer = collect($data['availableEquipments'])->firstWhere('slug', 'gaius-grevas-lightbearer');
-        $this->assertNotNull($grevasLightbearer);
-        $this->assertTrue($grevasLightbearer['faction_matches']);
+        $this->assertTrue(collect($data['availableEquipments'])->every(fn ($e) => $e['faction_code'] === 'lightbearer'));
+        // Todos devem ter faction_matches=true (filtro garantiu isso)
+        $this->assertTrue(collect($data['availableEquipments'])->every(fn ($e) => $e['faction_matches'] === true));
+        // Sample: gaius-grevas-lightbearer deve estar lá
+        $grevas = collect($data['availableEquipments'])->firstWhere('slug', 'gaius-grevas-lightbearer');
+        $this->assertNotNull($grevas);
+    }
+
+    public function test_hero_de_faction_diferente_nao_ve_items_de_outras_factions(): void
+    {
+        $user = User::factory()->create();
+        // Hero Mauler + strength → só vê Gaius da faction Mauler
+        $hero = Hero::create([
+            'slug' => 'brutus',
+            'name' => 'Brutus',
+            'faction_id' => Faction::where('code', 'mauler')->value('id'),
+            'hero_class_id' => HeroClass::where('code', 'tank')->value('id'),
+            'tier_id' => Tier::where('code', 'ascended')->value('id'),
+            'type' => 'strength',
+            'is_active' => true,
+            'pending_review' => false,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson("/heroes/{$hero->slug}/details")
+            ->assertOk();
+
+        $items = collect($response->json('availableEquipments'));
+        $this->assertNotEmpty($items);
+        $this->assertTrue($items->every(fn ($e) => $e['faction_code'] === 'mauler'));
+        // 4 templates Gaius × 5 tiers = 20 items
+        $this->assertCount(20, $items);
     }
 }
