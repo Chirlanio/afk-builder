@@ -3712,3 +3712,29 @@ public function mythicEquipmentContribution(UserHero $userHero, ?Hero $hero = nu
 - `PowerCalculatorTest` (+7): sem itens, soma single, faction match/no-match, escala upgrade, soma 4 slots, integração forUserHero
 - **504 testes verdes** (+24 desta fase: 9+8+7). TypeScript ✅.
 
+#### 58d — Equip flow no roster modal
+
+**Backend:**
+- `UserHeroController` valida 8 campos novos (4 IDs + 4 níveis) com `Rule::exists('equipments', 'id')` e clamp do level (0-5).
+- `mythicEquipmentSlotFields()` valida que o equipment.slot bate com o nome do campo (descarta silenciosamente se user tenta equipar arma no slot de boots) e clampa level pelo `max_upgrade_level` do equipment carregado.
+- `HeroController::details` retorna `availableEquipments` filtrado por `hero.type` (quando hero tem type definido), com flag `faction_matches` pré-computada pra UI destacar o +30%.
+
+**Frontend:**
+- `roster-edit-modal.tsx`: nova seção colapsável `<details>` "Equipamentos Míticos" com counter "X/4 equipado(s)".
+- Componente `MythicSlotEdit` por slot — Select com `name_pt (T#, faction)` + Input numérico com clamp dinâmico no `max_upgrade_level`.
+- Badge "+30%" amber aparece quando faction do hero == faction do equipment (instant feedback).
+- `<details>` colapsado por default, oculto totalmente quando `availableEquipments` está vazio (hero sem type ou sem items).
+
+**Types:** `AvailableEquipment` + `EquipmentSlot` + `EquipmentQuality` em `types/afk.ts`. `UserHero` ganhou 8 fields novos.
+
+**Tests:** `UserHeroMythicEquipmentTest` (8 cenários):
+- Equipar single + clamping level
+- T3 com max_upgrade_level=0 (rejeita level>0 via clamp silent)
+- Validation rejeita ID inexistente
+- Equipment slot errado é descartado silenciosamente
+- 4 slots simultâneos
+- Update remove equipment quando id=null
+- Payload do `/heroes/{slug}/details` inclui availableEquipments filtrado por hero_type + flag faction_matches
+
+**512 testes verdes** (+8 nesta sub-fase). TypeScript ✅.
+

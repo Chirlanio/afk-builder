@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Artifact;
 use App\Models\Collection;
+use App\Models\Equipment;
 use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroClass;
@@ -127,6 +128,10 @@ class HeroController extends Controller
                 'helmet_tier', 'helmet_level',
                 'chest_tier', 'chest_level',
                 'boots_tier', 'boots_level',
+                'weapon_equipment_id', 'weapon_equipment_level',
+                'helmet_equipment_id', 'helmet_equipment_level',
+                'chest_equipment_id', 'chest_equipment_level',
+                'boots_equipment_id', 'boots_equipment_level',
                 'artifact_id', 'artifact_star_level', 'collection_id', 'notes',
             ]);
 
@@ -200,12 +205,39 @@ class HeroController extends Controller
             ->where('heroes.id', $hero->id)
             ->exists();
 
+        // Equipamentos Míticos disponíveis pra esse hero. Filtra pelo tipo do hero
+        // (strength/agility/intelligence) se cadastrado — heros sem `type` recebem
+        // todos os equipments (o user pode ainda equipar; o filtro é só sugestão).
+        $availableEquipments = Equipment::query()
+            ->where('is_active', true)
+            ->when($hero->type !== null, fn ($q) => $q->where('hero_type', $hero->type))
+            ->with('faction:id,code,name_pt')
+            ->orderBy('set_code')
+            ->orderBy('slot')
+            ->orderBy('quality_tier')
+            ->get(['id', 'slug', 'name', 'name_pt', 'set_code', 'slot', 'hero_type', 'faction_id', 'quality_tier', 'power_rating', 'max_upgrade_level'])
+            ->map(fn (Equipment $e) => [
+                'id' => $e->id,
+                'slug' => $e->slug,
+                'name_pt' => $e->name_pt,
+                'set_code' => $e->set_code,
+                'slot' => $e->slot,
+                'hero_type' => $e->hero_type,
+                'faction_code' => $e->faction?->code,
+                'faction_name_pt' => $e->faction?->name_pt,
+                'quality_tier' => $e->quality_tier,
+                'power_rating' => $e->power_rating,
+                'max_upgrade_level' => $e->max_upgrade_level,
+                'faction_matches' => $hero->faction_id === $e->faction_id,
+            ]);
+
         return response()->json([
             'hero' => $heroPayload,
             'userHero' => $userHeroPayload,
             'synergies' => $synergies,
             'availableArtifacts' => $availableArtifacts,
             'availableCollections' => $availableCollections,
+            'availableEquipments' => $availableEquipments,
             'ratings' => $hero->ratings,
             'engravings' => $hero->engravings,
             'features' => $hero->features,

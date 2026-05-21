@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Artifact;
 use App\Models\Collection;
+use App\Models\Equipment;
 use App\Models\Hero;
 use App\Models\UserHero;
 use Illuminate\Http\JsonResponse;
@@ -44,6 +45,7 @@ class UserHeroController extends Controller
                 'furniture' => $data['furniture'] ?? 0,
                 'engraving' => $data['engraving'] ?? 0,
                 ...$this->equipmentSlotFields($data),
+                ...$this->mythicEquipmentSlotFields($data),
                 ...$equipmentFields,
                 'notes' => $data['notes'] ?? null,
             ]
@@ -76,6 +78,7 @@ class UserHeroController extends Controller
             'furniture' => $data['furniture'] ?? 0,
             'engraving' => $data['engraving'] ?? 0,
             ...$this->equipmentSlotFields($data),
+            ...$this->mythicEquipmentSlotFields($data),
             ...$equipmentFields,
             'notes' => $data['notes'] ?? null,
         ]);
@@ -113,6 +116,8 @@ class UserHeroController extends Controller
     {
         $tierRule = ['nullable', 'string', Rule::in(UserHero::EQUIPMENT_TIERS)];
         $levelRule = ['nullable', 'integer', 'min:1', 'max:'.UserHero::EQUIPMENT_LEVEL_MAX];
+        $equipmentIdRule = ['nullable', 'integer', Rule::exists('equipments', 'id')->where('is_active', true)];
+        $equipmentLevelRule = ['nullable', 'integer', 'min:0', 'max:5'];
 
         return [
             ...$extra,
@@ -129,11 +134,57 @@ class UserHeroController extends Controller
             'chest_level' => $levelRule,
             'boots_tier' => $tierRule,
             'boots_level' => $levelRule,
+            'weapon_equipment_id' => $equipmentIdRule,
+            'weapon_equipment_level' => $equipmentLevelRule,
+            'helmet_equipment_id' => $equipmentIdRule,
+            'helmet_equipment_level' => $equipmentLevelRule,
+            'chest_equipment_id' => $equipmentIdRule,
+            'chest_equipment_level' => $equipmentLevelRule,
+            'boots_equipment_id' => $equipmentIdRule,
+            'boots_equipment_level' => $equipmentLevelRule,
             'artifact_id' => ['nullable', 'integer', Rule::exists('artifacts', 'id')->where('is_active', true)],
             'artifact_star_level' => ['nullable', 'integer', 'min:1', 'max:5'],
             'collection_id' => ['nullable', 'integer', Rule::exists('collections', 'id')->where('is_active', true)],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
+    }
+
+    /**
+     * Normaliza os 4 slots de Equipamentos Míticos. Quando há equipment_id,
+     * valida que o equipment é da slot correta e clampa o level a max_upgrade_level.
+     * Sem id, ambos viram null (slot vazio).
+     *
+     * @return array<string, int|null>
+     */
+    private function mythicEquipmentSlotFields(array $data): array
+    {
+        $out = [];
+        foreach (Equipment::SLOTS as $slot) {
+            $id = $data[$slot.'_equipment_id'] ?? null;
+            $level = $data[$slot.'_equipment_level'] ?? null;
+
+            if ($id === null) {
+                $out[$slot.'_equipment_id'] = null;
+                $out[$slot.'_equipment_level'] = 0;
+
+                continue;
+            }
+
+            $equipment = Equipment::find($id);
+            if (! $equipment || $equipment->slot !== $slot) {
+                // ID inválido pro slot — descarta silenciosamente
+                $out[$slot.'_equipment_id'] = null;
+                $out[$slot.'_equipment_level'] = 0;
+
+                continue;
+            }
+
+            $clampedLevel = max(0, min((int) ($level ?? 0), $equipment->max_upgrade_level));
+            $out[$slot.'_equipment_id'] = $equipment->id;
+            $out[$slot.'_equipment_level'] = $clampedLevel;
+        }
+
+        return $out;
     }
 
     /**

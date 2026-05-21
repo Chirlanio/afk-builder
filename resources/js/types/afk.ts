@@ -307,6 +307,25 @@ export interface HeroAbility {
 
 export type EquipmentTier = 'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6';
 
+export type EquipmentSlot = 'weapon' | 'helmet' | 'chest' | 'boots';
+
+export type EquipmentQuality = 'mythic' | 'mythic_t1' | 'mythic_t2' | 'mythic_t3' | 'mythic_t4';
+
+export interface AvailableEquipment {
+    id: number;
+    slug: string;
+    name_pt: string;
+    set_code: string;
+    slot: EquipmentSlot;
+    hero_type: HeroType;
+    faction_code: FactionCode;
+    faction_name_pt: string;
+    quality_tier: EquipmentQuality;
+    power_rating: number;
+    max_upgrade_level: number;
+    faction_matches: boolean;
+}
+
 export interface UserHero {
     id: number;
     hero_id: number;
@@ -324,6 +343,14 @@ export interface UserHero {
     chest_level: number | null;
     boots_tier: EquipmentTier | null;
     boots_level: number | null;
+    weapon_equipment_id: number | null;
+    weapon_equipment_level: number;
+    helmet_equipment_id: number | null;
+    helmet_equipment_level: number;
+    chest_equipment_id: number | null;
+    chest_equipment_level: number;
+    boots_equipment_id: number | null;
+    boots_equipment_level: number;
     artifact_id: number | null;
     artifact_star_level: number | null;
     artifact?: Artifact | null;

@@ -56,6 +56,7 @@ import { cn } from '@/lib/utils';
 import type { Locale, SharedData } from '@/types';
 import type {
     Artifact,
+    AvailableEquipment,
     ClassCode,
     Collection,
     EquipmentTier,
@@ -105,6 +106,7 @@ interface DetailsPayload {
     synergies: SynergyEntry[];
     availableArtifacts: Artifact[];
     availableCollections: Collection[];
+    availableEquipments: AvailableEquipment[];
     ratings: HeroRating[];
     engravings: HeroEngraving[];
     features: HeroFeature[];
@@ -325,6 +327,7 @@ export function HeroDetailModal({ slug, open, onOpenChange, onNavigate }: HeroDe
                         userHero={data.userHero}
                         availableArtifacts={data.availableArtifacts}
                         availableCollections={data.availableCollections}
+                        availableEquipments={data.availableEquipments}
                         onSaved={onMutation}
                     />
                     <StatsEditModal
