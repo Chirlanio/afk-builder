@@ -479,14 +479,14 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     <MythicSlotView
                         icon={Sword}
                         label="Arma"
-                        equipment={userHero?.weaponEquipment}
+                        equipment={userHero?.weapon_equipment}
                         level={userHero?.weapon_equipment_level}
                         heroFactionId={hero.faction_id}
                     />
                     <MythicSlotView
                         icon={Shield}
                         label="Capacete"
-                        equipment={userHero?.helmetEquipment}
+                        equipment={userHero?.helmet_equipment}
                         level={userHero?.helmet_equipment_level}
                         heroFactionId={hero.faction_id}
                     />
@@ -629,14 +629,14 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     <MythicSlotView
                         icon={Shirt}
                         label="Peitoral"
-                        equipment={userHero?.chestEquipment}
+                        equipment={userHero?.chest_equipment}
                         level={userHero?.chest_equipment_level}
                         heroFactionId={hero.faction_id}
                     />
                     <MythicSlotView
                         icon={Footprints}
                         label="Botas"
-                        equipment={userHero?.bootsEquipment}
+                        equipment={userHero?.boots_equipment}
                         level={userHero?.boots_equipment_level}
                         heroFactionId={hero.faction_id}
                     />

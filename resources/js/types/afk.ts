@@ -351,10 +351,10 @@ export interface UserHero {
     chest_equipment_level: number;
     boots_equipment_id: number | null;
     boots_equipment_level: number;
-    weaponEquipment?: EquippedMythicItem | null;
-    helmetEquipment?: EquippedMythicItem | null;
-    chestEquipment?: EquippedMythicItem | null;
-    bootsEquipment?: EquippedMythicItem | null;
+    weapon_equipment?: EquippedMythicItem | null;
+    helmet_equipment?: EquippedMythicItem | null;
+    chest_equipment?: EquippedMythicItem | null;
+    boots_equipment?: EquippedMythicItem | null;
     artifact_id: number | null;
     artifact_star_level: number | null;
     artifact?: Artifact | null;
