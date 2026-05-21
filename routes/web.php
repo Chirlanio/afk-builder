@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\HeroAdminController;
 use App\Http\Controllers\Admin\HeroStatsAdminController;
 use App\Http\Controllers\Admin\SyncCommandController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\FormationCompareController;
 use App\Http\Controllers\FormationController;
 use App\Http\Controllers\FormationShareController;
@@ -51,6 +52,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('roster/compare', [HeroComparisonController::class, 'index'])->name('roster.compare');
     Route::get('roster/planner', [RosterPlannerController::class, 'index'])->name('roster.planner');
     Route::patch('roster/resources', [UserResourceController::class, 'update'])->name('roster.resources.update');
+
+    Route::get('equipamentos', [EquipmentController::class, 'index'])->name('equipments.index');
 
     Route::get('cristal', [ResonatingCrystalController::class, 'show'])->name('cristal.show');
     Route::patch('cristal', [ResonatingCrystalController::class, 'update'])->name('cristal.update');

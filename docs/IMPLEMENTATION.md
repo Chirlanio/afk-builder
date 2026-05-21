@@ -3647,3 +3647,68 @@ São 10x menores que os do `statContribution(HeroStat)` porque operam em valores
 
 **480 testes verdes** (+6 desta calibração).
 
+---
+
+### ✅ Fase 58 — Equipamentos Míticos (catálogo + integração + UI)
+
+Sistema completo de equipamentos NOMEADOS do AFK Arena (Gaius/Ancelot/Místico), distintos do tier genérico T1-T6 que já existia. Entregue em 3 sub-fases.
+
+#### 58a — Catálogo (`7774a63`)
+
+**Schema novo (`equipments` table):**
+- slug único, set_code (gaius/ancelot/mystic), slot (boots/chest/helmet/weapon), material (plate/leather/padded/heavy_weapon/light_weapon/magic_staff), hero_type (strength/agility/intelligence), faction_id, quality_tier (mythic/mythic_t1/...t4)
+- `power_rating`, `stats` (JSON), `set_bonuses` (JSON nullable pra T3+)
+- `max_upgrade_level` (5 pra Mítico-T2, 0 pra T3-T4), `upgrade_percent_per_level` (10%)
+- Convenção: stats com sufixo `_pct` são percentuais; sem sufixo é flat.
+
+**Model `Equipment`:**
+- `powerAtLevel($n)`: aplica +10%/nível ao power_rating com clamp no max_upgrade_level
+- `statsAtLevel($n)`: escala todos os stats no mesmo multiplier
+- `applyFactionBonus($stats, $match)`: +30% nos valores quando hero pertence à mesma faction
+- Override `$table = 'equipments'` pra evitar pluralização Laravel (incontável)
+
+**Seeder com 18 items reais:**
+- Gaius: Grevas (Lightbearer + Celestial), Couraça (Wilder), Elmo (Graveborn), Mangual (Wilder) = 5
+- Ancelot: Perseverança (Graveborn + Celestial), Honra (Lightbearer), Refúgio (Graveborn), Lâmina (Hypogean) = 5
+- Místico: Botas/Casaco/Chapéu (Celestial) + Bastão × 5 tiers (Hypogean) = 8
+
+#### 58b — Equipar + PowerCalculator (`8accb3b`)
+
+**UserHero:** 8 colunas novas (FK + level por slot) — `weapon_equipment_id/level`, `helmet_equipment_id/level`, etc. Foreign keys com `nullOnDelete`. Relations `weaponEquipment()/helmetEquipment()/chestEquipment()/bootsEquipment()` + helper `equippedMythicItems()` que itera os 4 slots.
+
+**PowerCalculator:**
+```php
+public function mythicEquipmentContribution(UserHero $userHero, ?Hero $hero = null): float
+```
+- Agrega stats dos itens equipados com `statsAtLevel` aplicado
+- Aplica `applyFactionBonus` quando `hero.faction_id == equipment.faction_id`
+- Converte agregação em power via `convertAggregateStatsToPower` (privado), reusando `REAL_STAT_*_FACTOR` pra coerência com `realStatContribution`
+- Stats `_pct` entram com peso modesto (0.3-0.5 por ponto)
+- Integrado no `forUserHero` após equipamento padrão
+
+**Comportamento:** coexiste com tier genérico T1-T6 — slots míticos somam ao power, não substituem.
+
+#### 58c — UI de listagem + sidebar
+
+**Página `/equipamentos`:** read-only com cards filtráveis. Filtros (faction/slot/hero_type/quality_tier/set_code) atualizam URL via `router.get` preservando state. Cards agrupados por set_code com:
+- Quality badge (gradient diferenciado por tier — fuchsia pra T3, fuchsia+amber gradient pra T4)
+- Hero type badge (strength=rose, agility=emerald, intelligence=sky)
+- Stats list com labels PT-BR (`STAT_LABEL` map)
+- Set bonuses em `<details>` colapsável (T3+ only)
+- Footer com faction (com cardGradient theme) + info de upgrades
+
+**Sidebar:** novo item "Equipamentos Míticos" (ícone `Hammer`) entre Cristal e Formações.
+
+**Trade-offs documentados:**
+- **Stats `_pct` vs flat**: convenção de sufixo evita schema separado, simplifica seeders e leitura.
+- **Set bonuses só pra T3+**: dados crus do user mostram bonus só nesses tiers; modelo permite expandir sem migration.
+- **Coexistência tier genérico + mítico**: bonus mítico é ADITIVO, não substituto. User pode equipar Mítico no slot e ainda usar `weapon_tier=T6` paralelo.
+- **Admin CRUD adiado**: dados são estáveis (game items), CRUD pode entrar depois quando precisar de mais items.
+- **Equip flow no roster modal**: ainda não implementado — backend está pronto, faltou só UI. Próxima fase.
+
+**Tests:**
+- `EquipmentSeederTest` (9 cenários): count, faction duplications, JSON shape, T3/T4 sem upgrades, scaling, faction bonus
+- `EquipmentControllerTest` (8 cenários): guest redirect, lista completa, filtros isolados e combinados, payload shape
+- `PowerCalculatorTest` (+7): sem itens, soma single, faction match/no-match, escala upgrade, soma 4 slots, integração forUserHero
+- **504 testes verdes** (+24 desta fase: 9+8+7). TypeScript ✅.
+
