@@ -57,10 +57,10 @@ class HeroController extends Controller
                 'id', 'hero_id', 'level', 'ascension_code', 'ascension_value',
                 'signature_item', 'furniture', 'engraving', 'notes',
                 'artifact_id', 'collection_id',
-                'weapon_tier', 'weapon_level',
-                'helmet_tier', 'helmet_level',
-                'chest_tier', 'chest_level',
-                'boots_tier', 'boots_level',
+                'weapon_equipment_id', 'weapon_equipment_level',
+                'helmet_equipment_id', 'helmet_equipment_level',
+                'chest_equipment_id', 'chest_equipment_level',
+                'boots_equipment_id', 'boots_equipment_level',
             ])
             ->keyBy('hero_id');
 
@@ -124,10 +124,6 @@ class HeroController extends Controller
             ->first([
                 'id', 'hero_id', 'level', 'ascension_code', 'ascension_value',
                 'signature_item', 'furniture', 'engraving',
-                'weapon_tier', 'weapon_level',
-                'helmet_tier', 'helmet_level',
-                'chest_tier', 'chest_level',
-                'boots_tier', 'boots_level',
                 'weapon_equipment_id', 'weapon_equipment_level',
                 'helmet_equipment_id', 'helmet_equipment_level',
                 'chest_equipment_id', 'chest_equipment_level',

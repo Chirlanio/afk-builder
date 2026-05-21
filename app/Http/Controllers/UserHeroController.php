@@ -44,7 +44,6 @@ class UserHeroController extends Controller
                 'signature_item' => $data['signature_item'] ?? 0,
                 'furniture' => $data['furniture'] ?? 0,
                 'engraving' => $data['engraving'] ?? 0,
-                ...$this->equipmentSlotFields($data),
                 ...$this->mythicEquipmentSlotFields($data),
                 ...$equipmentFields,
                 'notes' => $data['notes'] ?? null,
@@ -77,7 +76,6 @@ class UserHeroController extends Controller
             'signature_item' => $data['signature_item'] ?? 0,
             'furniture' => $data['furniture'] ?? 0,
             'engraving' => $data['engraving'] ?? 0,
-            ...$this->equipmentSlotFields($data),
             ...$this->mythicEquipmentSlotFields($data),
             ...$equipmentFields,
             'notes' => $data['notes'] ?? null,
@@ -89,33 +87,8 @@ class UserHeroController extends Controller
         return back();
     }
 
-    /**
-     * Normaliza os 4 slots de equipamento do payload validado.
-     * Tier sem level (ou vice-versa) → ambos viram null pra evitar registros parciais.
-     *
-     * @return array<string, string|int|null>
-     */
-    private function equipmentSlotFields(array $data): array
-    {
-        $out = [];
-        foreach (UserHero::EQUIPMENT_SLOTS as $slot) {
-            $tier = $data[$slot.'_tier'] ?? null;
-            $level = $data[$slot.'_level'] ?? null;
-            if ($tier === null || $level === null) {
-                $out[$slot.'_tier'] = null;
-                $out[$slot.'_level'] = null;
-            } else {
-                $out[$slot.'_tier'] = $tier;
-                $out[$slot.'_level'] = $level;
-            }
-        }
-        return $out;
-    }
-
     private function validationRules(array $extra = []): array
     {
-        $tierRule = ['nullable', 'string', Rule::in(UserHero::EQUIPMENT_TIERS)];
-        $levelRule = ['nullable', 'integer', 'min:1', 'max:'.UserHero::EQUIPMENT_LEVEL_MAX];
         $equipmentIdRule = ['nullable', 'integer', Rule::exists('equipments', 'id')->where('is_active', true)];
         $equipmentLevelRule = ['nullable', 'integer', 'min:0', 'max:5'];
 
@@ -126,14 +99,6 @@ class UserHeroController extends Controller
             'signature_item' => ['nullable', 'integer', 'min:0', 'max:40'],
             'furniture' => ['nullable', 'integer', 'min:0', 'max:9'],
             'engraving' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'weapon_tier' => $tierRule,
-            'weapon_level' => $levelRule,
-            'helmet_tier' => $tierRule,
-            'helmet_level' => $levelRule,
-            'chest_tier' => $tierRule,
-            'chest_level' => $levelRule,
-            'boots_tier' => $tierRule,
-            'boots_level' => $levelRule,
             'weapon_equipment_id' => $equipmentIdRule,
             'weapon_equipment_level' => $equipmentLevelRule,
             'helmet_equipment_id' => $equipmentIdRule,

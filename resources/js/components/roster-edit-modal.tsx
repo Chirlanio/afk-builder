@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { BarChart3, Crown, Footprints, Gem, Hammer, Hotel, Loader2, PenLine, Save, ScrollText, Shield, Shirt, Sparkles, Sword } from 'lucide-react';
+import { BarChart3, Crown, Footprints, Gem, Hammer, Hotel, Loader2, PenLine, Save, ScrollText, Shield, Shirt, Sword } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
 import { MarkdownEditor } from '@/components/markdown-editor';
@@ -10,18 +10,9 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-    ascensionStagesForTier,
-    EQUIPMENT_LEVEL_MAX,
-    EQUIPMENT_TIER_BADGE,
-    EQUIPMENT_TIER_LABEL,
-    EQUIPMENT_TIERS,
-    FACTION_THEME,
-    TIER_THEME,
-    tierFromAscension,
-} from '@/lib/afk';
+import { ascensionStagesForTier, FACTION_THEME, TIER_THEME, tierFromAscension } from '@/lib/afk';
 import { cn } from '@/lib/utils';
-import type { Artifact, AvailableEquipment, Collection, EquipmentSlot, EquipmentTier, FactionCode, Hero, HeroStats, TierCode, UserHero } from '@/types/afk';
+import type { Artifact, AvailableEquipment, Collection, EquipmentSlot, FactionCode, Hero, HeroStats, TierCode, UserHero } from '@/types/afk';
 
 interface Props {
     open: boolean;
@@ -50,22 +41,6 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
     const [artifactId, setArtifactId] = useState<number | null>(userHero?.artifact_id ?? null);
     const [artifactStarLevel, setArtifactStarLevel] = useState<number | null>(userHero?.artifact_star_level ?? null);
     const [collectionId, setCollectionId] = useState<number | null>(userHero?.collection_id ?? null);
-    const [weapon, setWeapon] = useState<{ tier: EquipmentTier | null; level: number | null }>({
-        tier: userHero?.weapon_tier ?? null,
-        level: userHero?.weapon_level ?? null,
-    });
-    const [helmet, setHelmet] = useState<{ tier: EquipmentTier | null; level: number | null }>({
-        tier: userHero?.helmet_tier ?? null,
-        level: userHero?.helmet_level ?? null,
-    });
-    const [chest, setChest] = useState<{ tier: EquipmentTier | null; level: number | null }>({
-        tier: userHero?.chest_tier ?? null,
-        level: userHero?.chest_level ?? null,
-    });
-    const [boots, setBoots] = useState<{ tier: EquipmentTier | null; level: number | null }>({
-        tier: userHero?.boots_tier ?? null,
-        level: userHero?.boots_level ?? null,
-    });
     const [mythicSlots, setMythicSlots] = useState<Record<EquipmentSlot, { id: number | null; level: number }>>({
         weapon: { id: userHero?.weapon_equipment_id ?? null, level: userHero?.weapon_equipment_level ?? 0 },
         helmet: { id: userHero?.helmet_equipment_id ?? null, level: userHero?.helmet_equipment_level ?? 0 },
@@ -88,10 +63,6 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
         setArtifactId(userHero?.artifact_id ?? null);
         setArtifactStarLevel(userHero?.artifact_star_level ?? null);
         setCollectionId(userHero?.collection_id ?? null);
-        setWeapon({ tier: userHero?.weapon_tier ?? null, level: userHero?.weapon_level ?? null });
-        setHelmet({ tier: userHero?.helmet_tier ?? null, level: userHero?.helmet_level ?? null });
-        setChest({ tier: userHero?.chest_tier ?? null, level: userHero?.chest_level ?? null });
-        setBoots({ tier: userHero?.boots_tier ?? null, level: userHero?.boots_level ?? null });
         setMythicSlots({
             weapon: { id: userHero?.weapon_equipment_id ?? null, level: userHero?.weapon_equipment_level ?? 0 },
             helmet: { id: userHero?.helmet_equipment_id ?? null, level: userHero?.helmet_equipment_level ?? 0 },
@@ -115,14 +86,6 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
             signature_item: signatureItem,
             furniture,
             engraving,
-            weapon_tier: weapon.tier,
-            weapon_level: weapon.tier ? (weapon.level ?? 1) : null,
-            helmet_tier: helmet.tier,
-            helmet_level: helmet.tier ? (helmet.level ?? 1) : null,
-            chest_tier: chest.tier,
-            chest_level: chest.tier ? (chest.level ?? 1) : null,
-            boots_tier: boots.tier,
-            boots_level: boots.tier ? (boots.level ?? 1) : null,
             weapon_equipment_id: mythicSlots.weapon.id,
             weapon_equipment_level: mythicSlots.weapon.id ? mythicSlots.weapon.level : 0,
             helmet_equipment_id: mythicSlots.helmet.id,
@@ -182,16 +145,10 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                 </header>
 
                 <form onSubmit={submit} className="flex flex-col gap-4 p-4">
-                    {/* Upper: 3-col (slots equipamentos | portrait | slots equipamentos) */}
+                    {/* Upper: 3-col (assinatura | portrait+nível+ascensão | artefato/coleção) */}
                     <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 md:grid-cols-[140px_minmax(220px,1fr)_140px]">
-                        {/* Esquerda: Arma (em breve) → Capacete (em breve) → Assinatura */}
+                        {/* Esquerda: Assinatura */}
                         <div className="flex flex-col gap-2">
-                            <SlotEdit icon={<Sword className="size-3" />} label="Arma">
-                                <EquipmentInputs tier={weapon.tier} level={weapon.level} onChange={(tier, level) => setWeapon({ tier, level })} />
-                            </SlotEdit>
-                            <SlotEdit icon={<Shield className="size-3" />} label="Capacete">
-                                <EquipmentInputs tier={helmet.tier} level={helmet.level} onChange={(tier, level) => setHelmet({ tier, level })} />
-                            </SlotEdit>
                             <SlotEdit icon={<Crown className="size-3" />} label="Assinatura (0-40)">
                                 <Input
                                     type="number"
@@ -258,14 +215,8 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                             </div>
                         </div>
 
-                        {/* Direita: Peitoral (em breve) → Bota (em breve) → Artefato OU Coleção */}
+                        {/* Direita: Artefato OU Coleção */}
                         <div className="flex flex-col gap-2">
-                            <SlotEdit icon={<Shirt className="size-3" />} label="Peitoral">
-                                <EquipmentInputs tier={chest.tier} level={chest.level} onChange={(tier, level) => setChest({ tier, level })} />
-                            </SlotEdit>
-                            <SlotEdit icon={<Footprints className="size-3" />} label="Bota">
-                                <EquipmentInputs tier={boots.tier} level={boots.level} onChange={(tier, level) => setBoots({ tier, level })} />
-                            </SlotEdit>
                             <SlotEdit icon={<Gem className="size-3" />} label="Artefato / Coleção">
                                 <Select
                                     value={collectionId ? `c:${collectionId}` : artifactId ? `a:${artifactId}` : 'none'}
@@ -398,9 +349,9 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                         </div>
                     </div>
 
-                    {/* Equipamentos Míticos — colapsável, oculto quando lista vazia */}
+                    {/* Equipamentos Míticos — única forma de equipamento (sistema legado T1-T6 removido) */}
                     {availableEquipments.length > 0 && (
-                        <details className="rounded-md border bg-card p-3">
+                        <details open className="rounded-md border bg-card p-3">
                             <summary className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
                                 <Hammer className="size-3.5" />
                                 Equipamentos Míticos
@@ -481,12 +432,6 @@ function SlotEdit({ icon, label, children, disabled, expand }: SlotEditProps) {
     );
 }
 
-interface EquipmentInputsProps {
-    tier: EquipmentTier | null;
-    level: number | null;
-    onChange: (tier: EquipmentTier | null, level: number | null) => void;
-}
-
 const MYTHIC_SLOT_ICON: Record<EquipmentSlot, React.ReactNode> = {
     weapon: <Sword className="size-3" />,
     helmet: <Shield className="size-3" />,
@@ -565,46 +510,6 @@ function MythicSlotEdit({ slot, available, selectedId, level, onChange }: Mythic
             )}
             {selected && max === 0 && (
                 <span className="text-muted-foreground text-[9px]">Sem upgrades</span>
-            )}
-        </div>
-    );
-}
-
-function EquipmentInputs({ tier, level, onChange }: EquipmentInputsProps) {
-    return (
-        <div className="flex flex-col gap-1">
-            <Select
-                value={tier ?? 'none'}
-                onValueChange={(v) => {
-                    if (v === 'none') {
-                        onChange(null, null);
-                    } else {
-                        onChange(v as EquipmentTier, level ?? 1);
-                    }
-                }}
-            >
-                <SelectTrigger className={cn('h-7 text-[11px]', tier && EQUIPMENT_TIER_BADGE[tier])}>
-                    <SelectValue placeholder="—" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="none">— vazio —</SelectItem>
-                    {EQUIPMENT_TIERS.map((t) => (
-                        <SelectItem key={t} value={t}>
-                            {t} · {EQUIPMENT_TIER_LABEL[t]}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-            {tier && (
-                <Input
-                    type="number"
-                    min={1}
-                    max={EQUIPMENT_LEVEL_MAX}
-                    value={level ?? 1}
-                    onChange={(e) => onChange(tier, Math.min(EQUIPMENT_LEVEL_MAX, Math.max(1, Number(e.target.value) || 1)))}
-                    placeholder={`Lv 1-${EQUIPMENT_LEVEL_MAX}`}
-                    className="h-7 text-[11px]"
-                />
             )}
         </div>
     );

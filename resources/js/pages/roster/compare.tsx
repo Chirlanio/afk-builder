@@ -4,12 +4,19 @@ import { useCallback, useMemo, useState } from 'react';
 import { EngravingBadge } from '@/components/engraving-badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import { ascendedStars, CLASS_LABEL, EQUIPMENT_TIER_BADGE, FACTION_THEME, TIER_THEME } from '@/lib/afk';
+import { ascendedStars, CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
-import type { ClassCode, EquipmentTier, FactionCode, TierCode } from '@/types/afk';
+import type { ClassCode, EquipmentQuality, FactionCode, TierCode } from '@/types/afk';
 
 type UpgradeKind = 'signature_item' | 'furniture' | 'engraving' | 'ascension';
+
+interface MythicEquipmentSlot {
+    name_pt: string;
+    quality_tier: EquipmentQuality;
+    level: number;
+    max_upgrade_level: number;
+}
 
 interface UpgradeSuggestion {
     kind: UpgradeKind;
@@ -42,14 +49,10 @@ interface ComparisonHero {
     furniture: number;
     engraving: number;
     equipment: {
-        weapon_tier: EquipmentTier | null;
-        weapon_level: number | null;
-        helmet_tier: EquipmentTier | null;
-        helmet_level: number | null;
-        chest_tier: EquipmentTier | null;
-        chest_level: number | null;
-        boots_tier: EquipmentTier | null;
-        boots_level: number | null;
+        weapon: MythicEquipmentSlot | null;
+        helmet: MythicEquipmentSlot | null;
+        chest: MythicEquipmentSlot | null;
+        boots: MythicEquipmentSlot | null;
     };
     artifact: { name: string; stars: number } | null;
     collection: { name: string } | null;
@@ -424,22 +427,24 @@ function HeroCard({ hero, index, winners }: HeroCardProps) {
                 />
             </dl>
 
-            {/* Equipamento */}
+            {/* Equipamentos Míticos */}
             <section className="rounded-lg border border-amber-400/10 bg-black/20 p-2">
                 <header className="mb-1.5 flex items-center gap-1 text-[10px] uppercase tracking-wider text-amber-100/50">
                     <Target className="size-3" />
-                    Equipamento
+                    Equipamentos Míticos
                 </header>
-                <div className="grid grid-cols-2 gap-1">
+                <div className="grid grid-cols-1 gap-1">
                     {EQUIPMENT_SLOTS.map(({ key, label }) => {
-                        const tier = hero.equipment[`${key}_tier`] as EquipmentTier | null;
-                        const level = hero.equipment[`${key}_level`] as number | null;
+                        const item = hero.equipment[key];
                         return (
-                            <div key={key} className="flex items-center justify-between text-[10px]">
+                            <div key={key} className="flex items-center justify-between gap-2 text-[10px]">
                                 <span className="text-amber-100/40">{label}</span>
-                                {tier && level !== null ? (
-                                    <span className={cn('rounded border px-1 py-0.5 font-mono font-bold', EQUIPMENT_TIER_BADGE[tier])}>
-                                        {tier}·{level}
+                                {item ? (
+                                    <span className="truncate font-mono text-amber-100" title={item.name_pt}>
+                                        {item.name_pt}
+                                        {item.max_upgrade_level > 0 && (
+                                            <span className="ml-1 text-amber-300/70">+{item.level}</span>
+                                        )}
                                     </span>
                                 ) : (
                                     <span className="text-amber-100/30">—</span>

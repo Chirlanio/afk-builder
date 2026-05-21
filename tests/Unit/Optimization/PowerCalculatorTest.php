@@ -370,55 +370,6 @@ class PowerCalculatorTest extends TestCase
         $this->assertEqualsWithDelta(1240.0, $this->calc->forUserHero($uh, $hero, $beast), 0.001);
     }
 
-    public function test_equipment_contribution_zero_quando_tier_ou_level_null(): void
-    {
-        $this->assertSame(0.0, $this->calc->equipmentContribution(null, 10));
-        $this->assertSame(0.0, $this->calc->equipmentContribution('T3', null));
-        $this->assertSame(0.0, $this->calc->equipmentContribution(null, null));
-    }
-
-    public function test_equipment_contribution_formula(): void
-    {
-        // tier_value * 10 + level * 2
-        $this->assertEqualsWithDelta(12.0, $this->calc->equipmentContribution('T1', 1), 0.001);  // 10+2
-        $this->assertEqualsWithDelta(50.0, $this->calc->equipmentContribution('T3', 10), 0.001); // 30+20
-        $this->assertEqualsWithDelta(100.0, $this->calc->equipmentContribution('T6', 20), 0.001); // 60+40
-    }
-
-    public function test_equipment_contribution_clampa_level_acima_de_20(): void
-    {
-        // Level acima do max é clampado a 20
-        $this->assertEqualsWithDelta(100.0, $this->calc->equipmentContribution('T6', 999), 0.001);
-    }
-
-    public function test_total_equipment_soma_quatro_slots(): void
-    {
-        $uh = $this->makeUserHero([
-            'weapon_tier' => 'T6', 'weapon_level' => 20,   // 100
-            'helmet_tier' => 'T3', 'helmet_level' => 10,   // 50
-            'chest_tier' => 'T2', 'chest_level' => 5,      // 30
-            'boots_tier' => null, 'boots_level' => null,   // 0
-        ]);
-
-        $this->assertEqualsWithDelta(180.0, $this->calc->totalEquipmentContribution($uh), 0.001);
-    }
-
-    public function test_for_user_hero_inclui_equipamento(): void
-    {
-        $uh = $this->makeUserHero([
-            'ascension_value' => 10, 'level' => 240, 'signature_item' => 0,
-            'furniture' => 0, 'engraving' => 0,
-            'weapon_tier' => 'T6', 'weapon_level' => 20,   // 100
-            'helmet_tier' => 'T3', 'helmet_level' => 10,   // 50
-            'chest_tier' => null, 'chest_level' => null,
-            'boots_tier' => null, 'boots_level' => null,
-        ]);
-        // base = 10*100 + 240 = 1240
-        // + equipamento: 100 + 50 = 150
-        // total: 1390
-        $this->assertEqualsWithDelta(1390.0, $this->calc->forUserHero($uh), 0.001);
-    }
-
     public function test_for_user_hero_aplica_beast_tier_factor_s_plus(): void
     {
         $uh = $this->makeUserHero([

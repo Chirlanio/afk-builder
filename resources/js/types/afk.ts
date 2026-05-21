@@ -305,8 +305,6 @@ export interface HeroAbility {
     effects?: Record<string, unknown> | null;
 }
 
-export type EquipmentTier = 'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6';
-
 export type EquipmentSlot = 'weapon' | 'helmet' | 'chest' | 'boots';
 
 export type EquipmentQuality = 'mythic' | 'mythic_t1' | 'mythic_t2' | 'mythic_t3' | 'mythic_t4';
@@ -335,14 +333,6 @@ export interface UserHero {
     signature_item: number;
     furniture: number;
     engraving: number;
-    weapon_tier: EquipmentTier | null;
-    weapon_level: number | null;
-    helmet_tier: EquipmentTier | null;
-    helmet_level: number | null;
-    chest_tier: EquipmentTier | null;
-    chest_level: number | null;
-    boots_tier: EquipmentTier | null;
-    boots_level: number | null;
     weapon_equipment_id: number | null;
     weapon_equipment_level: number;
     helmet_equipment_id: number | null;

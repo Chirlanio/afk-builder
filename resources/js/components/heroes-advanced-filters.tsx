@@ -2,7 +2,7 @@ import { ChevronDown, ChevronRight, Sliders } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { EquipmentTier, Tier } from '@/types/afk';
+import type { Tier } from '@/types/afk';
 
 export interface AdvancedFiltersState {
     siMin: number; // 0..40
@@ -12,14 +12,12 @@ export interface AdvancedFiltersState {
     tierIds: Set<number>; // filtro multi por tier do catálogo
     hasArtifact: 'all' | 'yes' | 'no';
     hasCollection: 'all' | 'yes' | 'no';
-    equipTierMin: EquipmentTier | null; // T1..T6, requer slot=null (qualquer slot) ou single slot
 }
 
 const SI_THRESHOLDS = [0, 10, 20, 30, 40];
 const F_THRESHOLDS = [0, 3, 6, 9];
 const ENG_THRESHOLDS = [0, 30, 60, 80];
 const LEVEL_THRESHOLDS = [0, 160, 200, 220, 240];
-const EQUIP_TIERS: EquipmentTier[] = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
 
 interface Props {
     state: AdvancedFiltersState;
@@ -38,7 +36,6 @@ export function defaultAdvancedFilters(): AdvancedFiltersState {
         tierIds: new Set(),
         hasArtifact: 'all',
         hasCollection: 'all',
-        equipTierMin: null,
     };
 }
 
@@ -50,8 +47,7 @@ export function isAdvancedFiltersActive(state: AdvancedFiltersState): boolean {
         state.levelMin > 0 ||
         state.tierIds.size > 0 ||
         state.hasArtifact !== 'all' ||
-        state.hasCollection !== 'all' ||
-        state.equipTierMin !== null
+        state.hasCollection !== 'all'
     );
 }
 
@@ -216,43 +212,6 @@ export function HeroesAdvancedFilters({ state, tiers, onChange, onReset, isActiv
                     />
 
                     <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="min-w-[60px] text-xs font-medium text-muted-foreground">Equip mín:</span>
-                        <div className="inline-flex flex-wrap rounded-md border bg-muted/30 p-0.5">
-                            <button
-                                type="button"
-                                onClick={() => onChange({ ...state, equipTierMin: null })}
-                                className={cn(
-                                    'rounded px-2 py-1 text-[11px] font-medium transition-colors',
-                                    state.equipTierMin === null ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
-                                )}
-                                aria-pressed={state.equipTierMin === null}
-                            >
-                                Qualquer
-                            </button>
-                            {EQUIP_TIERS.map((tier) => {
-                                const active = state.equipTierMin === tier;
-                                return (
-                                    <button
-                                        key={tier}
-                                        type="button"
-                                        onClick={() => onChange({ ...state, equipTierMin: tier })}
-                                        className={cn(
-                                            'rounded px-2 py-1 text-[11px] font-medium transition-colors',
-                                            active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
-                                        )}
-                                        aria-pressed={active}
-                                    >
-                                        {tier}+
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        <span className="text-[10px] text-muted-foreground">
-                            (todas as 4 peças do equipamento)
-                        </span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-1.5">
                         <span className="min-w-[60px] text-xs font-medium text-muted-foreground">Tier:</span>
                         {tiers.map((tier) => {
                             const active = state.tierIds.has(tier.id);
@@ -292,16 +251,3 @@ export function HeroesAdvancedFilters({ state, tiers, onChange, onReset, isActiv
     );
 }
 
-const EQUIP_TIER_RANK: Record<EquipmentTier, number> = {
-    T1: 1,
-    T2: 2,
-    T3: 3,
-    T4: 4,
-    T5: 5,
-    T6: 6,
-};
-
-export function tierCodeMeetsMin(tier: EquipmentTier | null | undefined, min: EquipmentTier): boolean {
-    if (!tier) return false;
-    return EQUIP_TIER_RANK[tier] >= EQUIP_TIER_RANK[min];
-}

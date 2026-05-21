@@ -3738,3 +3738,33 @@ public function mythicEquipmentContribution(UserHero $userHero, ?Hero $hero = nu
 
 **512 testes verdes** (+8 nesta sub-fase). TypeScript ✅.
 
+#### 58e — Remoção do sistema legado de equipamento T1-T6
+
+Sistema antigo de equipamento genérico (T1-T6 + level 1-20 em 4 slots) nunca refletiu mecânica real do jogo — era placeholder que coexistia com os míticos. Removido completamente agora que o sistema mítico está estável.
+
+**Migration:** drop das 8 colunas (`weapon_tier`/`weapon_level`/`helmet_*`/`chest_*`/`boots_*`).
+
+**Backend:**
+- `UserHero`: removidas constants `EQUIPMENT_TIERS`/`EQUIPMENT_TIER_LABELS`/`EQUIPMENT_LEVEL_MAX`/`EQUIPMENT_SLOTS` e fields do `$fillable`/`$casts`.
+- `PowerCalculator`: removidos `totalEquipmentContribution()`, `equipmentContribution()`, `EQUIPMENT_TIER_VALUE`, `EQUIPMENT_SLOTS`. Chamada no `forUserHero` apaga (só `mythicEquipmentContribution` resta).
+- `UserHeroController`: removido `equipmentSlotFields()` e validation rules dos campos antigos.
+- `HeroController::details` + `HeroController::index`: removidos campos do select; `index` agora pega só campos míticos no roster.
+- `HeroComparisonController`: payload `equipment` agora retorna 4 slots com `{ name_pt, quality_tier, level, max_upgrade_level }` em vez de tier/level genérico. `equipment_contribution` vem do `mythicEquipmentContribution`.
+- `Settings/BackupController`: export/import agora usa campos `*_equipment_id`/`*_equipment_level`.
+
+**Frontend:**
+- `types/afk.ts`: removido `EquipmentTier` type e 8 fields do `UserHero`.
+- `lib/afk.ts`: removidos `EQUIPMENT_TIERS`/`EQUIPMENT_TIER_LABEL`/`EQUIPMENT_TIER_BADGE`/`EQUIPMENT_LEVEL_MAX`.
+- `roster-edit-modal`: removidos os 4 `SlotEdit` (Arma/Capacete/Peitoral/Bota) com `EquipmentInputs`. Seção "Equipamentos Míticos" agora abre por default (`<details open>`). Layout 3-col simplificado: esquerda só Assinatura, direita só Artefato/Coleção.
+- `hero-detail-modal`: removidos os 4 `EquipmentSlot` da grid superior. Component `EquipmentSlot` deletado.
+- `pages/heroes/index.tsx`: removido filtro `equipTierMin` e referências em `hasActiveAdvancedFilters`.
+- `heroes-advanced-filters.tsx`: removido `equipTierMin` do state, `EQUIP_TIERS`, `EQUIP_TIER_RANK`, `tierCodeMeetsMin` e UI do filtro.
+- `pages/roster/compare.tsx`: card de equipment agora mostra equipamento mítico por slot (`name_pt` + level).
+
+**Tests:**
+- `PowerCalculatorTest`: removidos 4 tests do sistema antigo (`equipment_contribution_*`, `total_equipment_soma_quatro_slots`, `for_user_hero_inclui_equipamento`).
+- `UserHeroArtifactTest`: removidos 5 tests do sistema antigo (`user_pode_equipar_4_pecas`, `validacao_rejeita_tier_invalido`, `details_retorna_equipamento`, `validacao_rejeita_level_acima_de_20`, `tier_sem_level_e_normalizado`).
+- `HeroIndexTest::test_roster_payload_inclui_campos_de_equipamento`: removido check dos tier/level antigos (mantida estrutura básica).
+- `HeroComparisonTest`: atualizado pra novo shape de `equipment` (null pra slots vazios).
+- **502 testes verdes** (-10 removidos). TypeScript ✅.
+

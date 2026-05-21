@@ -7,21 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserHero extends Model
 {
-    public const EQUIPMENT_TIERS = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
-
-    public const EQUIPMENT_TIER_LABELS = [
-        'T1' => 'Comum',
-        'T2' => 'Raro',
-        'T3' => 'Elite',
-        'T4' => 'Lendário',
-        'T5' => 'Mítico',
-        'T6' => 'Ascendido',
-    ];
-
-    public const EQUIPMENT_LEVEL_MAX = 20;
-
-    public const EQUIPMENT_SLOTS = ['weapon', 'helmet', 'chest', 'boots'];
-
     /** Stats reusam o schema de HeroStat (ver HeroStat::CORE_FIELDS / EXTRA_FIELDS). */
     public const STAT_FIELDS = [
         'hp', 'attack', 'defense',
@@ -44,10 +29,6 @@ class UserHero extends Model
         'signature_item',
         'furniture',
         'engraving',
-        'weapon_tier', 'weapon_level',
-        'helmet_tier', 'helmet_level',
-        'chest_tier', 'chest_level',
-        'boots_tier', 'boots_level',
         'weapon_equipment_id', 'weapon_equipment_level',
         'helmet_equipment_id', 'helmet_equipment_level',
         'chest_equipment_id', 'chest_equipment_level',
@@ -66,10 +47,6 @@ class UserHero extends Model
         'signature_item' => 'integer',
         'furniture' => 'integer',
         'engraving' => 'integer',
-        'weapon_level' => 'integer',
-        'helmet_level' => 'integer',
-        'chest_level' => 'integer',
-        'boots_level' => 'integer',
         'artifact_star_level' => 'integer',
         'power_rating' => 'integer',
         'weapon_equipment_level' => 'integer',

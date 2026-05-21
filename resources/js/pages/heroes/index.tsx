@@ -4,7 +4,6 @@ import {
     HeroesAdvancedFilters,
     defaultAdvancedFilters,
     isAdvancedFiltersActive,
-    tierCodeMeetsMin,
     type AdvancedFiltersState,
 } from '@/components/heroes-advanced-filters';
 import { PageShell } from '@/components/page-shell';
@@ -49,8 +48,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
         advanced.engMin > 0 ||
         advanced.levelMin > 0 ||
         advanced.hasArtifact !== 'all' ||
-        advanced.hasCollection !== 'all' ||
-        advanced.equipTierMin !== null;
+        advanced.hasCollection !== 'all';
 
     const favoriteSet = useMemo(() => new Set(favoriteHeroIds), [favoriteHeroIds]);
 
@@ -164,14 +162,6 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                 if (advanced.hasArtifact === 'no' && uh.artifact_id !== null) continue;
                 if (advanced.hasCollection === 'yes' && uh.collection_id === null) continue;
                 if (advanced.hasCollection === 'no' && uh.collection_id !== null) continue;
-                if (advanced.equipTierMin !== null) {
-                    const allFour =
-                        tierCodeMeetsMin(uh.weapon_tier, advanced.equipTierMin) &&
-                        tierCodeMeetsMin(uh.helmet_tier, advanced.equipTierMin) &&
-                        tierCodeMeetsMin(uh.chest_tier, advanced.equipTierMin) &&
-                        tierCodeMeetsMin(uh.boots_tier, advanced.equipTierMin);
-                    if (!allFour) continue;
-                }
             }
 
             const list = map.get(hero.faction_id) ?? [];

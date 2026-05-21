@@ -64,14 +64,6 @@ class PowerCalculator
         'F' => 0.2,
     ];
 
-    /** Mapa de tier de equipamento → "valor numérico" para PowerCalculator. */
-    private const EQUIPMENT_TIER_VALUE = [
-        'T1' => 1, 'T2' => 2, 'T3' => 3, 'T4' => 4, 'T5' => 5, 'T6' => 6,
-    ];
-
-    /** Slots de equipamento esperados no UserHero. */
-    private const EQUIPMENT_SLOTS = ['weapon', 'helmet', 'chest', 'boots'];
-
     /**
      * Fatores aplicados aos atributos REAIS do UserHero (valores do jogo, ordem de
      * 10^5 em HP em estágios avançados). Calibrados a partir de snapshots empíricos:
@@ -132,13 +124,9 @@ class PowerCalculator
             ? $this->realStatContribution($userHero)
             : $this->statContribution($this->safeStats($hero));
 
-        // Equipamento padrão (4 slots: arma/capacete/peitoral/bota).
-        $base += $this->totalEquipmentContribution($userHero);
-
         // Equipamento Mítico (sets nomeados Gaius/Ancelot/Místico). Soma stats
         // dos 4 slots, aplica bônus de facção (+30%) quando o hero pertence à
-        // mesma faction do item. Substitui parcialmente a contribuição do tier
-        // genérico — coexistem em runtime.
+        // mesma faction do item.
         $base += $this->mythicEquipmentContribution($userHero, $hero);
 
         // Equipamento na slot artefato/coleção (mutex no controller).
@@ -397,39 +385,6 @@ class PowerCalculator
         return $collection->hp_bonus * 0.1
             + $collection->attack_bonus * 1.0
             + $collection->defense_bonus * 0.7;
-    }
-
-    /**
-     * Soma a contribuição dos 4 slots de equipamento do herói cadastrados no roster.
-     */
-    public function totalEquipmentContribution(UserHero $userHero): float
-    {
-        $sum = 0.0;
-        foreach (self::EQUIPMENT_SLOTS as $slot) {
-            $tier = $userHero->{$slot.'_tier'} ?? null;
-            $level = $userHero->{$slot.'_level'} ?? null;
-            $sum += $this->equipmentContribution($tier, $level);
-        }
-
-        return $sum;
-    }
-
-    /**
-     * Contribuição de uma peça de equipamento ao power.
-     * Fórmula: tier_value * 10 + level * 2.
-     * Ex: T6 Lv20 = 60+40 = 100. T1 Lv1 = 12. Quatro peças max ≈ 400.
-     */
-    public function equipmentContribution(?string $tier, ?int $level): float
-    {
-        if ($tier === null || $level === null) {
-            return 0.0;
-        }
-        $tierValue = self::EQUIPMENT_TIER_VALUE[$tier] ?? 0;
-        if ($tierValue === 0) {
-            return 0.0;
-        }
-
-        return $tierValue * 10.0 + max(0, min(20, $level)) * 2.0;
     }
 
     /**

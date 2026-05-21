@@ -65,8 +65,7 @@ class HeroComparisonTest extends TestCase
         $h1 = $this->makeHero('alpha', 'lightbearer', 'tank', 'ascended');
         $h2 = $this->makeHero('beta', 'mauler', 'mage', 'legendary');
         $user->userHeroes()->createMany([
-            ['hero_id' => $h1->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 30, 'furniture' => 3, 'engraving' => 30,
-             'weapon_tier' => 'T5', 'weapon_level' => 20, 'helmet_tier' => 'T5', 'helmet_level' => 20, 'chest_tier' => 'T5', 'chest_level' => 20, 'boots_tier' => 'T5', 'boots_level' => 20],
+            ['hero_id' => $h1->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 30, 'furniture' => 3, 'engraving' => 30],
             ['hero_id' => $h2->id, 'level' => 160, 'ascension_value' => 9, 'ascension_code' => 'mythic_plus', 'signature_item' => 10, 'furniture' => 0, 'engraving' => 0],
         ]);
 
@@ -83,9 +82,9 @@ class HeroComparisonTest extends TestCase
         // Alpha deve ter power maior (mais investido)
         $this->assertGreaterThan($heroes[1]['power']['total'], $heroes[0]['power']['total']);
 
-        // Alpha tem equipamento; beta não
-        $this->assertSame('T5', $heroes[0]['equipment']['weapon_tier']);
-        $this->assertNull($heroes[1]['equipment']['weapon_tier']);
+        // Sem equipamentos míticos equipados → todos os slots null
+        $this->assertNull($heroes[0]['equipment']['weapon']);
+        $this->assertNull($heroes[1]['equipment']['weapon']);
 
         // Ambos têm upgrades sugeridos
         $this->assertNotEmpty($heroes[0]['upgrades']);
@@ -181,17 +180,12 @@ class HeroComparisonTest extends TestCase
             'hero_id' => $h->id,
             'level' => 240, 'ascension_value' => 16, 'ascension_code' => 'ascended_5_stars',
             'signature_item' => 30, 'furniture' => 9, 'engraving' => 80,
-            'weapon_tier' => 'T6', 'weapon_level' => 20,
-            'helmet_tier' => 'T6', 'helmet_level' => 20,
-            'chest_tier' => 'T6', 'chest_level' => 20,
-            'boots_tier' => 'T6', 'boots_level' => 20,
         ]);
 
         $response = $this->actingAs($user)
             ->get('/roster/compare?heroes[]=alpha')
             ->assertOk();
 
-        // Só 1 hero retorna; o frontend mostra mensagem pedindo mais — mas o payload existe
         $heroes = $response->viewData('page')['props']['heroes'];
         $this->assertCount(1, $heroes);
 
@@ -202,8 +196,8 @@ class HeroComparisonTest extends TestCase
         $this->assertArrayHasKey('artifact_contribution', $power);
         $this->assertArrayHasKey('collection_contribution', $power);
 
-        // T6 Lv20 × 4 slots = 400 contribution
-        $this->assertSame(400, $power['equipment_contribution']);
+        // Sem equipamentos míticos equipados → contribuição zero
+        $this->assertSame(0, $power['equipment_contribution']);
     }
 
     private function seedCatalog(): void

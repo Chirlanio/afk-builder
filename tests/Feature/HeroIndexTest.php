@@ -113,14 +113,6 @@ class HeroIndexTest extends TestCase
             'signature_item' => 30,
             'furniture' => 9,
             'engraving' => 80,
-            'weapon_tier' => 'T4',
-            'weapon_level' => 20,
-            'helmet_tier' => 'T3',
-            'helmet_level' => 10,
-            'chest_tier' => 'T4',
-            'chest_level' => 5,
-            'boots_tier' => 'T3',
-            'boots_level' => 15,
             'artifact_id' => $artifact->id,
             'collection_id' => $collection->id,
         ]);
@@ -134,10 +126,6 @@ class HeroIndexTest extends TestCase
         $this->assertSame(9, $entry['furniture']);
         $this->assertSame(80, $entry['engraving']);
         $this->assertSame(220, $entry['level']);
-        $this->assertSame('T4', $entry['weapon_tier']);
-        $this->assertSame('T3', $entry['helmet_tier']);
-        $this->assertSame('T4', $entry['chest_tier']);
-        $this->assertSame('T3', $entry['boots_tier']);
         $this->assertSame($artifact->id, $entry['artifact_id']);
         $this->assertSame($collection->id, $entry['collection_id']);
     }

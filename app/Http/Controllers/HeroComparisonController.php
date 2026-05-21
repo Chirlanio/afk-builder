@@ -38,6 +38,10 @@ class HeroComparisonController extends Controller
                     'hero.stats',
                     'artifact:id,name,attributes',
                     'collection:id,name,hp_bonus,attack_bonus,defense_bonus',
+                    'weaponEquipment:id,name_pt,slot,quality_tier,faction_id,max_upgrade_level',
+                    'helmetEquipment:id,name_pt,slot,quality_tier,faction_id,max_upgrade_level',
+                    'chestEquipment:id,name_pt,slot,quality_tier,faction_id,max_upgrade_level',
+                    'bootsEquipment:id,name_pt,slot,quality_tier,faction_id,max_upgrade_level',
                 ])
                 ->get();
 
@@ -94,7 +98,7 @@ class HeroComparisonController extends Controller
     ): array {
         $totalPower = (int) round($power->forUserHero($uh, $uh->hero));
         $statContrib = (int) round($power->statContribution($uh->hero?->stats));
-        $equipContrib = (int) round($power->totalEquipmentContribution($uh));
+        $equipContrib = (int) round($power->mythicEquipmentContribution($uh, $uh->hero));
         $artifactContrib = (int) round($power->artifactContribution($uh->artifact ?? null, $uh->artifact_star_level));
         $collectionContrib = (int) round($power->collectionContribution($uh->collection ?? null));
 
@@ -133,16 +137,32 @@ class HeroComparisonController extends Controller
             'signature_item' => (int) $uh->signature_item,
             'furniture' => (int) $uh->furniture,
             'engraving' => (int) $uh->engraving,
-            // Equipamento
+            // Equipamentos Míticos equipados (4 slots, null se vazio)
             'equipment' => [
-                'weapon_tier' => $uh->weapon_tier,
-                'weapon_level' => $uh->weapon_level,
-                'helmet_tier' => $uh->helmet_tier,
-                'helmet_level' => $uh->helmet_level,
-                'chest_tier' => $uh->chest_tier,
-                'chest_level' => $uh->chest_level,
-                'boots_tier' => $uh->boots_tier,
-                'boots_level' => $uh->boots_level,
+                'weapon' => $uh->weaponEquipment ? [
+                    'name_pt' => $uh->weaponEquipment->name_pt,
+                    'quality_tier' => $uh->weaponEquipment->quality_tier,
+                    'level' => (int) $uh->weapon_equipment_level,
+                    'max_upgrade_level' => $uh->weaponEquipment->max_upgrade_level,
+                ] : null,
+                'helmet' => $uh->helmetEquipment ? [
+                    'name_pt' => $uh->helmetEquipment->name_pt,
+                    'quality_tier' => $uh->helmetEquipment->quality_tier,
+                    'level' => (int) $uh->helmet_equipment_level,
+                    'max_upgrade_level' => $uh->helmetEquipment->max_upgrade_level,
+                ] : null,
+                'chest' => $uh->chestEquipment ? [
+                    'name_pt' => $uh->chestEquipment->name_pt,
+                    'quality_tier' => $uh->chestEquipment->quality_tier,
+                    'level' => (int) $uh->chest_equipment_level,
+                    'max_upgrade_level' => $uh->chestEquipment->max_upgrade_level,
+                ] : null,
+                'boots' => $uh->bootsEquipment ? [
+                    'name_pt' => $uh->bootsEquipment->name_pt,
+                    'quality_tier' => $uh->bootsEquipment->quality_tier,
+                    'level' => (int) $uh->boots_equipment_level,
+                    'max_upgrade_level' => $uh->bootsEquipment->max_upgrade_level,
+                ] : null,
             ],
             // Artefato / Coleção
             'artifact' => $uh->artifact ? [
