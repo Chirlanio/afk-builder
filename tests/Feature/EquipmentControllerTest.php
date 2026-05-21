@@ -29,7 +29,8 @@ class EquipmentControllerTest extends TestCase
         $response = $this->actingAs($user)->get('/equipment')->assertOk();
         $props = $response->viewData('page')['props'];
 
-        $this->assertCount(18, $props['equipments']);
+        // 14 base items × 5 tiers = 70
+        $this->assertCount(70, $props['equipments']);
         $this->assertNotEmpty($props['factions']);
     }
 
@@ -41,8 +42,8 @@ class EquipmentControllerTest extends TestCase
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
-        // Lâmina + 5 tiers do Bastão = 6 items hypogean
-        $this->assertCount(6, $items);
+        // Lâmina + Bastão = 2 base × 5 tiers = 10 items hypogean
+        $this->assertCount(10, $items);
         $this->assertTrue($items->every(fn ($i) => $i['faction_code'] === 'hypogean'));
     }
 
@@ -54,8 +55,8 @@ class EquipmentControllerTest extends TestCase
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
-        // Mangual (Gaius) + Lâmina (Ancelot) + Bastão × 5 tiers (Místico) = 7
-        $this->assertCount(7, $items);
+        // Mangual + Lâmina + Bastão = 3 base × 5 tiers = 15
+        $this->assertCount(15, $items);
         $this->assertTrue($items->every(fn ($i) => $i['slot'] === 'weapon'));
     }
 
@@ -67,8 +68,8 @@ class EquipmentControllerTest extends TestCase
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
-        // Set Místico inteiro: 3 armaduras + 5 tiers do Bastão = 8
-        $this->assertCount(8, $items);
+        // Set Místico: 4 base × 5 tiers = 20
+        $this->assertCount(20, $items);
         $this->assertTrue($items->every(fn ($i) => $i['hero_type'] === 'intelligence'));
     }
 
@@ -80,8 +81,9 @@ class EquipmentControllerTest extends TestCase
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
-        $this->assertCount(1, $items);
-        $this->assertSame('mystic-bastao-hypogean-t3', $items[0]['slug']);
+        // Todos os 14 base items têm versão T3
+        $this->assertCount(14, $items);
+        $this->assertTrue($items->every(fn ($i) => $i['quality_tier'] === 'mythic_t3'));
     }
 
     public function test_filtros_combinados(): void
@@ -92,22 +94,22 @@ class EquipmentControllerTest extends TestCase
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
-        // 2 grevas Gaius (lightbearer + celestial)
-        $this->assertCount(2, $items);
+        // 2 grevas Gaius (lightbearer + celestial) × 5 tiers = 10
+        $this->assertCount(10, $items);
     }
 
     public function test_payload_inclui_stats_e_faction_info(): void
     {
         $user = User::factory()->create();
         $response = $this->actingAs($user)
-            ->get('/equipment?slug-filter=ignored&slot=weapon&quality_tier=mythic_t4')
+            ->get('/equipment?set_code=mystic&slot=weapon&quality_tier=mythic_t4')
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
         $t4 = $items->first();
 
         $this->assertSame('mystic-bastao-hypogean-t4', $t4['slug']);
-        $this->assertSame(37000, $t4['stats']['attack']);
+        $this->assertSame(37005, $t4['stats']['attack']); // 1500 * 24.67
         $this->assertNotNull($t4['set_bonuses']);
         $this->assertSame(0, $t4['max_upgrade_level']);
     }

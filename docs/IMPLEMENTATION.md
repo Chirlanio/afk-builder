@@ -3768,3 +3768,51 @@ Sistema antigo de equipamento genérico (T1-T6 + level 1-20 em 4 slots) nunca re
 - `HeroComparisonTest`: atualizado pra novo shape de `equipment` (null pra slots vazios).
 - **502 testes verdes** (-10 removidos). TypeScript ✅.
 
+#### 58f — Layout 3-col com 4 tiers em todos os equipamentos
+
+Duas correções pós-58e:
+1. **Layout restaurado** — slots Arma/Capacete/Peitoral/Bota voltaram para as laterais do modal (eram convenientes). Mas agora usam `MythicSlotEdit` em vez do antigo `EquipmentInputs` removido. Camada `<details>` redundante de Equipamentos Míticos foi removida.
+2. **Todos os equipamentos têm 5 tiers** — antes só o Bastão tinha Mítico/T1/T2/T3/T4. Agora os 14 itens base geram cada um 5 versões via expansão programática.
+
+**Escalas de stats** (extraídas do Bastão de Magia, única peça com dados completos no jogo):
+
+| Stat type    | Mítico | T1     | T2     | T3      | T4      |
+|--------------|--------|--------|--------|---------|---------|
+| Flat (HP/ATK/DEF/etc) | 1.00x  | 2.33x  | 5.00x  | 9.00x   | 24.67x  |
+| crit_rate_pct | 1.00x  | 1.00x  | 1.00x  | 1.80x   | 1.80x   |
+| resistance_pct (RF/RM) | 1.00x | 1.08x  | 1.17x  | 2.10x   | 2.10x   |
+| power_rating | 1.00x  | 1.97x  | 3.88x  | 393x    | 535x    |
+
+T3 e T4 ganham `set_bonuses` adicionais. Para arma usa os valores do Bastão T3/T4 verbatim; para slots não-arma (boots/chest/helmet) aplicamos 50% — premissa: arma é a peça mais forte do set.
+
+**Constants no seeder:**
+
+```php
+private const FLAT_MULTIPLIERS = [
+    'mythic' => 1.0, 'mythic_t1' => 2.33, 'mythic_t2' => 5.0,
+    'mythic_t3' => 9.0, 'mythic_t4' => 24.67,
+];
+private const CRIT_MULTIPLIERS = [...];
+private const RESISTANCE_MULTIPLIERS = [...];
+private const POWER_MULTIPLIERS = [...];
+private const NON_WEAPON_BONUS_WEIGHT = 0.5;
+```
+
+`scaleStats()` privado aplica o multiplier apropriado por chave. `buildSetBonuses()` aplica `NON_WEAPON_BONUS_WEIGHT` quando slot ≠ weapon.
+
+**Resultado:**
+- 14 itens base × 5 tiers = **70 equipamentos seeded**
+- 14 por tier (Mítico/T1/T2/T3/T4)
+- T3/T4 sem upgrades (`max_upgrade_level = 0`), mas com set_bonuses
+- T0/T1/T2 com upgrade scaling 10%/nível, max 5 levels
+
+**Frontend:**
+- Modal: layout 3-col com slots em ambas as laterais funcional novamente
+- `MythicSlotEdit` adaptado pro visual compacto (`bg-card`, padding menor)
+- Badge "+30%" aparece quando faction match
+
+**Tests:**
+- `EquipmentSeederTest`: 12 cenários (9 atualizados + 3 novos: `todos_os_equipamentos_tem_5_tiers`, `t3_e_t4_dos_outros_slots_tem_set_bonuses_menores`, `stats_escalam_consistentemente_entre_tiers`)
+- `EquipmentControllerTest`: counts atualizados (18→70 em filtros)
+- **505 testes verdes** (+3 nesta sub-fase)
+

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { BarChart3, Crown, Footprints, Gem, Hammer, Hotel, Loader2, PenLine, Save, ScrollText, Shield, Shirt, Sword } from 'lucide-react';
+import { BarChart3, Crown, Footprints, Gem, Hotel, Loader2, PenLine, Save, ScrollText, Shield, Shirt, Sword } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
 import { MarkdownEditor } from '@/components/markdown-editor';
@@ -145,10 +145,24 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                 </header>
 
                 <form onSubmit={submit} className="flex flex-col gap-4 p-4">
-                    {/* Upper: 3-col (assinatura | portrait+nível+ascensão | artefato/coleção) */}
-                    <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 md:grid-cols-[140px_minmax(220px,1fr)_140px]">
-                        {/* Esquerda: Assinatura */}
+                    {/* Upper: 3-col (Arma+Capacete+Assinatura | portrait+nível+ascensão | Peitoral+Bota+Artefato) */}
+                    <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 md:grid-cols-[170px_minmax(220px,1fr)_170px]">
+                        {/* Esquerda: Arma → Capacete → Assinatura */}
                         <div className="flex flex-col gap-2">
+                            <MythicSlotEdit
+                                slot="weapon"
+                                available={availableEquipments.filter((e) => e.slot === 'weapon')}
+                                selectedId={mythicSlots.weapon.id}
+                                level={mythicSlots.weapon.level}
+                                onChange={(id, level) => setMythicSlots((prev) => ({ ...prev, weapon: { id, level } }))}
+                            />
+                            <MythicSlotEdit
+                                slot="helmet"
+                                available={availableEquipments.filter((e) => e.slot === 'helmet')}
+                                selectedId={mythicSlots.helmet.id}
+                                level={mythicSlots.helmet.level}
+                                onChange={(id, level) => setMythicSlots((prev) => ({ ...prev, helmet: { id, level } }))}
+                            />
                             <SlotEdit icon={<Crown className="size-3" />} label="Assinatura (0-40)">
                                 <Input
                                     type="number"
@@ -215,8 +229,22 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                             </div>
                         </div>
 
-                        {/* Direita: Artefato OU Coleção */}
+                        {/* Direita: Peitoral → Bota → Artefato OU Coleção */}
                         <div className="flex flex-col gap-2">
+                            <MythicSlotEdit
+                                slot="chest"
+                                available={availableEquipments.filter((e) => e.slot === 'chest')}
+                                selectedId={mythicSlots.chest.id}
+                                level={mythicSlots.chest.level}
+                                onChange={(id, level) => setMythicSlots((prev) => ({ ...prev, chest: { id, level } }))}
+                            />
+                            <MythicSlotEdit
+                                slot="boots"
+                                available={availableEquipments.filter((e) => e.slot === 'boots')}
+                                selectedId={mythicSlots.boots.id}
+                                level={mythicSlots.boots.level}
+                                onChange={(id, level) => setMythicSlots((prev) => ({ ...prev, boots: { id, level } }))}
+                            />
                             <SlotEdit icon={<Gem className="size-3" />} label="Artefato / Coleção">
                                 <Select
                                     value={collectionId ? `c:${collectionId}` : artifactId ? `a:${artifactId}` : 'none'}
@@ -349,33 +377,6 @@ export function RosterEditModal({ open, onOpenChange, hero, userHero, availableA
                         </div>
                     </div>
 
-                    {/* Equipamentos Míticos — única forma de equipamento (sistema legado T1-T6 removido) */}
-                    {availableEquipments.length > 0 && (
-                        <details open className="rounded-md border bg-card p-3">
-                            <summary className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
-                                <Hammer className="size-3.5" />
-                                Equipamentos Míticos
-                                <span className="text-muted-foreground ml-auto text-[10px]">
-                                    {Object.values(mythicSlots).filter((s) => s.id !== null).length}/4 equipado(s)
-                                </span>
-                            </summary>
-                            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                                {(['weapon', 'helmet', 'chest', 'boots'] as EquipmentSlot[]).map((slot) => (
-                                    <MythicSlotEdit
-                                        key={slot}
-                                        slot={slot}
-                                        available={availableEquipments.filter((e) => e.slot === slot)}
-                                        selectedId={mythicSlots[slot].id}
-                                        level={mythicSlots[slot].level}
-                                        onChange={(id, level) =>
-                                            setMythicSlots((prev) => ({ ...prev, [slot]: { id, level } }))
-                                        }
-                                    />
-                                ))}
-                            </div>
-                        </details>
-                    )}
-
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
                         {isEditing && userHero && hero && (
                             <Button type="button" variant="outline" size="sm" onClick={() => setStatsModalOpen(true)} disabled={saving}>
@@ -459,10 +460,10 @@ function MythicSlotEdit({ slot, available, selectedId, level, onChange }: Mythic
     const max = selected?.max_upgrade_level ?? 0;
 
     return (
-        <div className="bg-background flex flex-col gap-1 rounded border p-2">
-            <div className="text-muted-foreground flex items-center gap-1 text-[10px] font-medium tracking-wide uppercase">
+        <div className="bg-card flex flex-col gap-1 rounded-md border p-1.5">
+            <div className="text-muted-foreground flex items-center gap-1 text-[9px] font-medium tracking-wide uppercase">
                 {MYTHIC_SLOT_ICON[slot]}
-                <span>{MYTHIC_SLOT_LABEL[slot]}</span>
+                <span className="truncate">{MYTHIC_SLOT_LABEL[slot]}</span>
                 {selected?.faction_matches && (
                     <span className="ml-auto rounded bg-amber-500/20 px-1 py-0.5 text-[8px] font-bold text-amber-300">
                         +30%
