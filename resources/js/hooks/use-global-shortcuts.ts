@@ -22,7 +22,7 @@ export const SHORTCUTS: ShortcutBinding[] = [
     { combo: 'g f', group: 'Navegação', description: 'Ir para Formações', action: '/formations' },
     { combo: 'g c', group: 'Navegação', description: 'Ir para Comps prontos', action: '/formations/recommended' },
     { combo: 'g t', group: 'Navegação', description: 'Ir para Tier Lists', action: '/tier-lists' },
-    { combo: 'g g', group: 'Navegação', description: 'Ir para Guias', action: '/guias' },
+    { combo: 'g g', group: 'Navegação', description: 'Ir para Guias', action: '/guides' },
     { combo: 'g s', group: 'Geral', description: 'Abrir Configurações', action: '/settings/profile' },
 ];
 

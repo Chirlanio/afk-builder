@@ -53,11 +53,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('roster/planner', [RosterPlannerController::class, 'index'])->name('roster.planner');
     Route::patch('roster/resources', [UserResourceController::class, 'update'])->name('roster.resources.update');
 
-    Route::get('equipamentos', [EquipmentController::class, 'index'])->name('equipments.index');
+    Route::get('equipment', [EquipmentController::class, 'index'])->name('equipment.index');
 
-    Route::get('cristal', [ResonatingCrystalController::class, 'show'])->name('cristal.show');
-    Route::patch('cristal', [ResonatingCrystalController::class, 'update'])->name('cristal.update');
-    Route::post('cristal/strengthen', [ResonatingCrystalController::class, 'strengthen'])->name('cristal.strengthen');
+    Route::get('crystal', [ResonatingCrystalController::class, 'show'])->name('crystal.show');
+    Route::patch('crystal', [ResonatingCrystalController::class, 'update'])->name('crystal.update');
+    Route::post('crystal/strengthen', [ResonatingCrystalController::class, 'strengthen'])->name('crystal.strengthen');
     Route::post('heroes/{hero}/favorite', [HeroFavoriteController::class, 'store'])
         ->name('heroes.favorite.store');
     Route::delete('heroes/{hero}/favorite', [HeroFavoriteController::class, 'destroy'])
@@ -73,8 +73,8 @@ Route::middleware(['auth'])->group(function () {
         ->where('slug', '[a-z0-9-]+')
         ->name('heroes.show');
 
-    Route::get('guias', [GuideController::class, 'index'])->name('guides.index');
-    Route::get('guias/{slug}', [GuideController::class, 'show'])
+    Route::get('guides', [GuideController::class, 'index'])->name('guides.index');
+    Route::get('guides/{slug}', [GuideController::class, 'show'])
         ->where('slug', '[a-z0-9-]+')
         ->name('guides.show');
 

@@ -26,7 +26,7 @@ class GuideTest extends TestCase
 
     public function test_guest_redireciona_para_login(): void
     {
-        $this->get('/guias')->assertRedirect('/login');
+        $this->get('/guides')->assertRedirect('/login');
     }
 
     public function test_index_lista_guias_agrupados_por_categoria(): void
@@ -37,7 +37,7 @@ class GuideTest extends TestCase
         $this->makeGuide(['slug' => 'mec-2', 'title' => 'Mec 2', 'category' => Guide::CATEGORY_MECANICAS]);
 
         $this->actingAs($user)
-            ->get('/guias')
+            ->get('/guides')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('guides/index')
@@ -56,7 +56,7 @@ class GuideTest extends TestCase
         $guide = $this->makeGuide(['slug' => 'critico', 'title' => 'Crítico Ressonante']);
 
         $this->actingAs($user)
-            ->get("/guias/{$guide->slug}")
+            ->get("/guides/{$guide->slug}")
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('guides/show')
@@ -72,7 +72,7 @@ class GuideTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->get('/guias/inexistente')
+            ->get('/guides/inexistente')
             ->assertNotFound();
     }
 }

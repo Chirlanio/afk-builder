@@ -52,7 +52,7 @@ interface PageProps {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Catálogo', href: '/heroes' },
-    { title: 'Equipamentos Míticos', href: '/equipamentos' },
+    { title: 'Equipamentos Míticos', href: '/equipment' },
 ];
 
 const SLOT_LABEL: Record<Slot, string> = {
@@ -147,7 +147,7 @@ export default function EquipmentsIndex({ equipments, factions, filters }: PageP
         if (next.hero_type) params.hero_type = next.hero_type;
         if (next.quality_tier) params.quality_tier = next.quality_tier;
         if (next.set_code) params.set_code = next.set_code;
-        router.get('/equipamentos', params, { preserveState: true, preserveScroll: true, replace: true });
+        router.get('/equipment', params, { preserveState: true, preserveScroll: true, replace: true });
     }, []);
 
     const updateFilter = useCallback(

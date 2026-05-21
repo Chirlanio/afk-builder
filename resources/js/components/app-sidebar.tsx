@@ -41,12 +41,12 @@ const baseNavItems: NavItem[] = [
     },
     {
         title: 'Cristal Ressonante',
-        url: '/cristal',
+        url: '/crystal',
         icon: Gem,
     },
     {
         title: 'Equipamentos Míticos',
-        url: '/equipamentos',
+        url: '/equipment',
         icon: Hammer,
     },
     {
@@ -66,7 +66,7 @@ const baseNavItems: NavItem[] = [
     },
     {
         title: 'Guias',
-        url: '/guias',
+        url: '/guides',
         icon: Library,
     },
 ];

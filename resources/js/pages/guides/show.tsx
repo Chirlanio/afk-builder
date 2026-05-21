@@ -35,8 +35,8 @@ export default function GuideShow({ guide, categoryLabel }: PageProps) {
     const content = localized(guide, 'content', locale);
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Guias', href: '/guias' },
-        { title, href: `/guias/${guide.slug}` },
+        { title: 'Guias', href: '/guides' },
+        { title, href: `/guides/${guide.slug}` },
     ];
 
     return (
@@ -50,7 +50,7 @@ export default function GuideShow({ guide, categoryLabel }: PageProps) {
                 width="narrow"
                 actions={
                     <Button asChild variant="outline" size="sm">
-                        <Link href="/guias">
+                        <Link href="/guides">
                             <ArrowLeft className="size-4" />
                             Voltar
                         </Link>

@@ -73,7 +73,7 @@ class ResonatingCrystalController extends Controller
             ];
         }
 
-        return Inertia::render('cristal/index', [
+        return Inertia::render('crystal/index', [
             'crystal' => [
                 'level' => $crystal->level,
                 'strengthen_progress' => $crystal->strengthen_progress,

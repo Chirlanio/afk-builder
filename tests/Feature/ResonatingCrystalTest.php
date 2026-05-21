@@ -22,7 +22,7 @@ class ResonatingCrystalTest extends TestCase
 
     public function test_guest_redireciona(): void
     {
-        $this->get('/cristal')->assertRedirect('/login');
+        $this->get('/crystal')->assertRedirect('/login');
     }
 
     public function test_show_inicializa_crystal_e_resources(): void
@@ -30,7 +30,7 @@ class ResonatingCrystalTest extends TestCase
         $this->seedCatalog();
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->get('/cristal')->assertOk();
+        $response = $this->actingAs($user)->get('/crystal')->assertOk();
         $props = $response->viewData('page')['props'];
 
         $this->assertSame(240, $props['crystal']['level']);
@@ -59,7 +59,7 @@ class ResonatingCrystalTest extends TestCase
             ]);
         }
 
-        $response = $this->actingAs($user)->get('/cristal')->assertOk();
+        $response = $this->actingAs($user)->get('/crystal')->assertOk();
         $props = $response->viewData('page')['props'];
 
         $pentagram = collect($props['pentagram']);
@@ -87,7 +87,7 @@ class ResonatingCrystalTest extends TestCase
             ]);
         }
 
-        $response = $this->actingAs($user)->get('/cristal')->assertOk();
+        $response = $this->actingAs($user)->get('/crystal')->assertOk();
         $props = $response->viewData('page')['props'];
 
         $this->assertTrue($props['crystal']['is_upgraded']);
@@ -128,7 +128,7 @@ class ResonatingCrystalTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->patchJson('/cristal', ['level' => 260, 'strengthen_progress' => 7, 'slots_unlocked' => 8])
+            ->patchJson('/crystal', ['level' => 260, 'strengthen_progress' => 7, 'slots_unlocked' => 8])
             ->assertOk()
             ->assertJsonPath('crystal.level', 260)
             ->assertJsonPath('crystal.strengthen_progress', 7)
@@ -144,7 +144,7 @@ class ResonatingCrystalTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->patchJson('/cristal', ['level' => 200])
+            ->patchJson('/crystal', ['level' => 200])
             ->assertStatus(422);
     }
 
@@ -163,7 +163,7 @@ class ResonatingCrystalTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->postJson('/cristal/strengthen')
+            ->postJson('/crystal/strengthen')
             ->assertStatus(422)
             ->assertJsonPath('error', 'insufficient_resources');
     }
@@ -190,7 +190,7 @@ class ResonatingCrystalTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)
-            ->postJson('/cristal/strengthen')
+            ->postJson('/crystal/strengthen')
             ->assertOk();
 
         $this->assertSame(1, $response->json('crystal.strengthen_progress'));
@@ -218,7 +218,7 @@ class ResonatingCrystalTest extends TestCase
 
         // 10 fortalecimentos consecutivos
         for ($i = 0; $i < 10; $i++) {
-            $this->actingAs($user)->postJson('/cristal/strengthen')->assertOk();
+            $this->actingAs($user)->postJson('/crystal/strengthen')->assertOk();
         }
 
         $crystal = $user->resonatingCrystal()->first();

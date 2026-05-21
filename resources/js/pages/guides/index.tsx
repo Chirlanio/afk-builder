@@ -27,7 +27,7 @@ interface PageProps {
     categories: CategoryGroup[];
 }
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Guias', href: '/guias' }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Guias', href: '/guides' }];
 
 const CATEGORY_ICON: Record<string, typeof Cog> = {
     mecanicas: Cog,
@@ -74,7 +74,7 @@ export default function GuidesIndex({ categories }: PageProps) {
                                     return (
                                     <Link
                                         key={guide.id}
-                                        href={`/guias/${guide.slug}`}
+                                        href={`/guides/${guide.slug}`}
                                         className={cn(
                                             'group flex flex-col gap-1.5 rounded-xl border bg-card p-3 transition-colors',
                                             'hover:border-primary/40 hover:bg-card/80',

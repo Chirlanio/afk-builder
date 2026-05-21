@@ -101,7 +101,7 @@ class SearchController extends Controller
                 'id' => $g->id,
                 'label' => $g->title_pt ?? $g->title,
                 'sublabel' => null,
-                'url' => "/guias/{$g->slug}",
+                'url' => "/guides/{$g->slug}",
                 'image_url' => null,
             ]);
 

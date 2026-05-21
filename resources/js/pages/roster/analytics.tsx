@@ -185,7 +185,7 @@ export default function RosterAnalytics({ rosterSize, summary, byFaction, byClas
                                 Pronto pra upgrade
                             </span>
                         )}
-                        <Link href="/cristal" className="ml-auto text-[10px] text-amber-200/70 hover:text-amber-200 underline">
+                        <Link href="/crystal" className="ml-auto text-[10px] text-amber-200/70 hover:text-amber-200 underline">
                             Detalhes →
                         </Link>
                     </header>

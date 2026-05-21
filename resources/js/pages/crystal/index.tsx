@@ -60,7 +60,7 @@ interface PageProps {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Cristal Ressonante', href: '/cristal' },
+    { title: 'Cristal Ressonante', href: '/crystal' },
 ];
 
 function formatNumber(n: number): string {
@@ -94,7 +94,7 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
     const handleSync = async () => {
         setSyncing(true);
         try {
-            await axios.patch('/cristal', syncForm);
+            await axios.patch('/crystal', syncForm);
             router.reload({ only: ['crystal', 'strengthenCost'] });
             setSyncDialogOpen(false);
         } catch (err) {
@@ -108,7 +108,7 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
         setStrengthening(true);
         setStrengthenError(null);
         try {
-            await axios.post('/cristal/strengthen');
+            await axios.post('/crystal/strengthen');
             router.reload({ only: ['crystal', 'resources', 'strengthenCost', 'nextLevelCost'] });
         } catch (err: unknown) {
             const e = err as { response?: { data?: { error?: string } } };
@@ -145,7 +145,7 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                             <h1 className="text-lg font-semibold text-amber-100">Cristal Ressonante</h1>
                             <p className="mt-1 text-xs text-amber-100/60">
                                 Acompanhe o nível do cristal, seu pentagrama (top 5 do roster) e o custo de fortalecer. Ver{' '}
-                                <Link href="/guias/cristal-ressonante" className="underline hover:text-amber-200">
+                                <Link href="/guides/cristal-ressonante" className="underline hover:text-amber-200">
                                     guia
                                 </Link>{' '}
                                 pra detalhes.

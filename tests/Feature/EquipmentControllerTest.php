@@ -20,13 +20,13 @@ class EquipmentControllerTest extends TestCase
 
     public function test_guest_redireciona_para_login(): void
     {
-        $this->get('/equipamentos')->assertRedirect('/login');
+        $this->get('/equipment')->assertRedirect('/login');
     }
 
     public function test_index_lista_todos_equipamentos_seeded(): void
     {
         $user = User::factory()->create();
-        $response = $this->actingAs($user)->get('/equipamentos')->assertOk();
+        $response = $this->actingAs($user)->get('/equipment')->assertOk();
         $props = $response->viewData('page')['props'];
 
         $this->assertCount(18, $props['equipments']);
@@ -37,7 +37,7 @@ class EquipmentControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $response = $this->actingAs($user)
-            ->get('/equipamentos?faction=hypogean')
+            ->get('/equipment?faction=hypogean')
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
@@ -50,7 +50,7 @@ class EquipmentControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $response = $this->actingAs($user)
-            ->get('/equipamentos?slot=weapon')
+            ->get('/equipment?slot=weapon')
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
@@ -63,7 +63,7 @@ class EquipmentControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $response = $this->actingAs($user)
-            ->get('/equipamentos?hero_type=intelligence')
+            ->get('/equipment?hero_type=intelligence')
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
@@ -76,7 +76,7 @@ class EquipmentControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $response = $this->actingAs($user)
-            ->get('/equipamentos?quality_tier=mythic_t3')
+            ->get('/equipment?quality_tier=mythic_t3')
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
@@ -88,7 +88,7 @@ class EquipmentControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $response = $this->actingAs($user)
-            ->get('/equipamentos?set_code=gaius&slot=boots')
+            ->get('/equipment?set_code=gaius&slot=boots')
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
@@ -100,7 +100,7 @@ class EquipmentControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $response = $this->actingAs($user)
-            ->get('/equipamentos?slug-filter=ignored&slot=weapon&quality_tier=mythic_t4')
+            ->get('/equipment?slug-filter=ignored&slot=weapon&quality_tier=mythic_t4')
             ->assertOk();
 
         $items = collect($response->viewData('page')['props']['equipments']);
