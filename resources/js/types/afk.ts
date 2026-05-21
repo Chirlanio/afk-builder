@@ -324,6 +324,16 @@ export interface AvailableEquipment {
     faction_matches: boolean;
 }
 
+/** Equipamento mítico atualmente equipado num slot do UserHero (read-only payload). */
+export interface EquippedMythicItem {
+    id: number;
+    name_pt: string;
+    slot: EquipmentSlot;
+    quality_tier: EquipmentQuality;
+    faction_id: number;
+    max_upgrade_level: number;
+}
+
 export interface UserHero {
     id: number;
     hero_id: number;
@@ -341,6 +351,10 @@ export interface UserHero {
     chest_equipment_level: number;
     boots_equipment_id: number | null;
     boots_equipment_level: number;
+    weaponEquipment?: EquippedMythicItem | null;
+    helmetEquipment?: EquippedMythicItem | null;
+    chestEquipment?: EquippedMythicItem | null;
+    bootsEquipment?: EquippedMythicItem | null;
     artifact_id: number | null;
     artifact_star_level: number | null;
     artifact?: Artifact | null;

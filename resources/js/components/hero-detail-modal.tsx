@@ -58,6 +58,7 @@ import type {
     AvailableEquipment,
     ClassCode,
     Collection,
+    EquippedMythicItem,
     Faction,
     FactionCode,
     Hero,
@@ -473,8 +474,22 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
 
             {/* Upper: 3-col paperdoll com slots quadrados */}
             <section className="mx-auto grid w-full max-w-3xl grid-cols-[88px_minmax(0,1fr)_88px] gap-2 p-4 sm:grid-cols-[112px_minmax(0,1fr)_112px] sm:gap-3">
-                {/* Esquerda: Assinatura (SI) */}
+                {/* Esquerda: Arma → Capacete → Assinatura (SI) */}
                 <div className="grid grid-cols-1 gap-1.5">
+                    <MythicSlotView
+                        icon={Sword}
+                        label="Arma"
+                        equipment={userHero?.weaponEquipment}
+                        level={userHero?.weapon_equipment_level}
+                        heroFactionId={hero.faction_id}
+                    />
+                    <MythicSlotView
+                        icon={Shield}
+                        label="Capacete"
+                        equipment={userHero?.helmetEquipment}
+                        level={userHero?.helmet_equipment_level}
+                        heroFactionId={hero.faction_id}
+                    />
                     <HeroSlotCard
                         icon={Crown}
                         label={
@@ -609,8 +624,22 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     )}
                 </div>
 
-                {/* Direita: Artefato OU Coleção */}
+                {/* Direita: Peitoral → Bota → Artefato OU Coleção */}
                 <div className="grid grid-cols-1 gap-1.5">
+                    <MythicSlotView
+                        icon={Shirt}
+                        label="Peitoral"
+                        equipment={userHero?.chestEquipment}
+                        level={userHero?.chest_equipment_level}
+                        heroFactionId={hero.faction_id}
+                    />
+                    <MythicSlotView
+                        icon={Footprints}
+                        label="Botas"
+                        equipment={userHero?.bootsEquipment}
+                        level={userHero?.boots_equipment_level}
+                        heroFactionId={hero.faction_id}
+                    />
                     {userHero?.artifact ? (
                         <HeroSlotCard
                             icon={Gem}
@@ -938,6 +967,78 @@ function Chip({ icon: Icon, label, value, extra, accent }: ChipProps) {
             {value !== null && <span className="font-semibold tabular-nums">{value}</span>}
             {extra && <span className="flex items-center gap-1">{extra}</span>}
         </div>
+    );
+}
+
+interface MythicSlotViewProps {
+    icon: typeof Sword;
+    label: string;
+    equipment: EquippedMythicItem | null | undefined;
+    level: number | null | undefined;
+    heroFactionId: number;
+}
+
+const QUALITY_BADGE_CLASS: Record<string, string> = {
+    mythic: 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40',
+    mythic_t1: 'bg-orange-500/20 text-orange-700 dark:text-orange-300 border-orange-500/40',
+    mythic_t2: 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40',
+    mythic_t3: 'bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-500/40',
+    mythic_t4: 'bg-gradient-to-br from-fuchsia-500/30 to-amber-500/20 text-fuchsia-700 dark:text-fuchsia-200 border-fuchsia-400/60',
+};
+
+function tierShortLabel(quality: string): string {
+    if (quality === 'mythic') return 'M';
+    return quality.replace('mythic_', '').toUpperCase();
+}
+
+/**
+ * Slot read-only de Equipamento Mítico para o modal de visualização do hero.
+ * Mostra o item equipado com badge de tier + nome compacto + nível.
+ */
+function MythicSlotView({ icon, label, equipment, level, heroFactionId }: MythicSlotViewProps) {
+    if (!equipment) {
+        return <HeroSlotCard icon={icon} label={label} empty />;
+    }
+
+    const factionMatches = equipment.faction_id === heroFactionId;
+    const tierLabel = tierShortLabel(equipment.quality_tier);
+    const cleanName = equipment.name_pt.replace(/ (T\d|M)$/, '');
+    const currentLevel = level ?? 0;
+
+    return (
+        <HeroSlotCard
+            icon={icon}
+            label={`${label}: ${cleanName} ${tierLabel}`}
+            empty={false}
+            accentClass={cn(
+                QUALITY_BADGE_CLASS[equipment.quality_tier] ?? '',
+                factionMatches && 'shadow-[inset_0_0_8px_rgba(251,191,36,0.4)]',
+            )}
+            valueText={
+                <span className="flex items-center justify-center gap-0.5">
+                    <span className={cn('rounded px-1 text-[9px] font-bold', QUALITY_BADGE_CLASS[equipment.quality_tier] ?? '')}>
+                        {tierLabel}
+                    </span>
+                </span>
+            }
+            detail={
+                <div className="flex flex-col items-center gap-0.5 text-[9px]">
+                    <span className="text-muted-foreground truncate max-w-full" title={cleanName}>
+                        {cleanName}
+                    </span>
+                    {equipment.max_upgrade_level > 0 && (
+                        <span className="text-amber-500">
+                            +{currentLevel}/{equipment.max_upgrade_level}
+                        </span>
+                    )}
+                    {factionMatches && (
+                        <span className="rounded bg-amber-500/20 px-1 text-[8px] font-bold text-amber-600 dark:text-amber-400">
+                            +30%
+                        </span>
+                    )}
+                </div>
+            }
+        />
     );
 }
 

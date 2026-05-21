@@ -119,6 +119,10 @@ class HeroController extends Controller
             ->with([
                 'artifact:id,slug,name,kind,hero_class_id,description,portrait_url,max_stars',
                 'collection:id,slug,name,description,hp_bonus,attack_bonus,defense_bonus,portrait_url',
+                'weaponEquipment:id,name_pt,slot,quality_tier,faction_id,max_upgrade_level',
+                'helmetEquipment:id,name_pt,slot,quality_tier,faction_id,max_upgrade_level',
+                'chestEquipment:id,name_pt,slot,quality_tier,faction_id,max_upgrade_level',
+                'bootsEquipment:id,name_pt,slot,quality_tier,faction_id,max_upgrade_level',
             ])
             ->where('hero_id', $hero->id)
             ->first([
