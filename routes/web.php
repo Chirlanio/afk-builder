@@ -20,6 +20,7 @@ use App\Http\Controllers\HeroFavoriteController;
 use App\Http\Controllers\HeroUsageController;
 use App\Http\Controllers\RecommendedFormationController;
 use App\Http\Controllers\RosterAnalyticsController;
+use App\Http\Controllers\RosterImportController;
 use App\Http\Controllers\ResonatingCrystalController;
 use App\Http\Controllers\RosterPlannerController;
 use App\Http\Controllers\UserResourceController;
@@ -51,6 +52,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('roster/analytics', [RosterAnalyticsController::class, 'index'])->name('roster.analytics');
     Route::get('roster/compare', [HeroComparisonController::class, 'index'])->name('roster.compare');
     Route::get('roster/planner', [RosterPlannerController::class, 'index'])->name('roster.planner');
+    Route::get('roster/import', [RosterImportController::class, 'index'])->name('roster.import');
+    Route::post('roster/import', [RosterImportController::class, 'store'])->name('roster.import.store');
     Route::patch('roster/resources', [UserResourceController::class, 'update'])->name('roster.resources.update');
 
     Route::get('equipment', [EquipmentController::class, 'index'])->name('equipment.index');

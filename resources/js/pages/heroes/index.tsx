@@ -17,7 +17,7 @@ import type { BreadcrumbItem } from '@/types';
 import type { ClassCode, Faction, FactionCode, Hero, HeroClass, HeroFeatureTag, RosterByHeroId, Tier, TierCode } from '@/types/afk';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { CheckSquare, Heart, HeartOff, Loader2, MinusCircle, PlusCircle, Search, Users, X } from 'lucide-react';
+import { CheckSquare, Heart, HeartOff, Loader2, MinusCircle, PlusCircle, Search, Users, X, Upload } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 interface PageProps {
@@ -220,6 +220,12 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                 title="Catálogo de Heróis"
                 icon={Users}
                 description={`${heroes.length} heróis no catálogo · ${ownedCount} no seu roster · ${totalShown} exibidos`}
+                actions={
+                    <Button variant="outline" size="sm" onClick={() => router.get(route('roster.import'))}>
+                        <Upload className="mr-2 size-4" />
+                        Importar OCR
+                    </Button>
+                }
             >
                 <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-0 z-10 flex flex-col gap-3 rounded-xl border p-3 backdrop-blur">
                     <div className="flex flex-wrap items-center gap-2">
