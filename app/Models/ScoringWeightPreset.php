@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToGameAccount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ScoringWeightPreset extends Model
 {
+    use BelongsToGameAccount;
+
     public const WEIGHT_KEYS = [
         'power_weight',
         'synergy_weight',

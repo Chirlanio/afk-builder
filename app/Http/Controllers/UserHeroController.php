@@ -7,6 +7,7 @@ use App\Models\Collection;
 use App\Models\Equipment;
 use App\Models\Hero;
 use App\Models\UserHero;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class UserHeroController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     private const ASCENSION_CODES = [
         'common', 'common_plus', 'rare', 'rare_plus',
         'elite', 'elite_plus', 'legendary', 'legendary_plus',
@@ -35,7 +38,7 @@ class UserHeroController extends Controller
             $data['level'] = $hero->tier->max_level;
         }
 
-        $userHero = $request->user()->userHeroes()->updateOrCreate(
+        $userHero = $this->active->get()->userHeroes()->updateOrCreate(
             ['hero_id' => $data['hero_id']],
             [
                 'level' => $data['level'],
@@ -58,7 +61,7 @@ class UserHeroController extends Controller
 
     public function update(Request $request, UserHero $userHero): Response
     {
-        abort_unless($userHero->user_id === $request->user()->id, 403);
+        abort_unless($userHero->game_account_id === $this->active->get()->id, 403);
 
         $data = $request->validate($this->validationRules());
 
@@ -205,7 +208,7 @@ class UserHeroController extends Controller
 
     public function destroy(Request $request, UserHero $userHero): Response
     {
-        abort_unless($userHero->user_id === $request->user()->id, 403);
+        abort_unless($userHero->game_account_id === $this->active->get()->id, 403);
 
         $userHero->delete();
 
@@ -221,7 +224,7 @@ class UserHeroController extends Controller
      */
     public function updateStats(Request $request, UserHero $userHero): \Illuminate\Http\JsonResponse
     {
-        abort_unless($userHero->user_id === $request->user()->id, 403);
+        abort_unless($userHero->game_account_id === $this->active->get()->id, 403);
 
         $integerFields = ['hp', 'attack', 'defense'];
         $rules = [];

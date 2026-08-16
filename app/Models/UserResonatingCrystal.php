@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToGameAccount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserResonatingCrystal extends Model
 {
+    use BelongsToGameAccount;
+
     /** Nível mínimo (estado pós-upgrade do pentagrama). */
     public const MIN_LEVEL = 240;
 
