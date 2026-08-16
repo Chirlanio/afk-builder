@@ -29,6 +29,11 @@ class UserTierList extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function gameAccount(): BelongsTo
+    {
+        return $this->belongsTo(GameAccount::class);
+    }
+
     public function rows(): HasMany
     {
         return $this->hasMany(UserTierListRow::class)->orderBy('position');

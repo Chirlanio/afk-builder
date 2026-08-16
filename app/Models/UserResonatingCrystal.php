@@ -46,6 +46,11 @@ class UserResonatingCrystal extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function gameAccount(): BelongsTo
+    {
+        return $this->belongsTo(GameAccount::class);
+    }
+
     /**
      * Calcula o teto real de nível do cristal: 240 + (5 × heroes Ascended do roster),
      * limitado a MAX_LEVEL. Heroes Dimensionais NÃO contam (regra do jogo).

@@ -16,6 +16,16 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    public function gameAccounts(): HasMany
+    {
+        return $this->hasMany(GameAccount::class);
+    }
+
+    public function defaultGameAccount(): HasOne
+    {
+        return $this->hasOne(GameAccount::class)->where('is_default', true);
+    }
+
     public function userHeroes(): HasMany
     {
         return $this->hasMany(UserHero::class);
