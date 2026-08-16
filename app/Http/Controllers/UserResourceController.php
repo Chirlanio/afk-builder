@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\UserResource;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class UserResourceController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     /**
-     * Atualiza (ou cria via updateOrCreate) os recursos do user logado.
+     * Atualiza (ou cria via updateOrCreate) os recursos da conta ativa.
      * Aceita qualquer subset de UserResource::FIELDS. Campos ausentes preservam
      * o valor atual.
      */
@@ -26,9 +29,9 @@ class UserResourceController extends Controller
             fn ($value) => $value !== null,
         );
 
-        $user = $request->user();
+        $account = $this->active->get();
         $resources = UserResource::updateOrCreate(
-            ['user_id' => $user->id],
+            ['game_account_id' => $account->id],
             $payload,
         );
 

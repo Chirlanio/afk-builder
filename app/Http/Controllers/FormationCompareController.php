@@ -12,6 +12,7 @@ use App\Models\HeroRating;
 use App\Models\HeroSynergy;
 use App\Models\Tier;
 use App\Models\UserHero;
+use App\Services\ActiveGameAccount;
 use App\Services\Optimization\ChallengeTypeMode;
 use App\Services\Optimization\RosterStageInferrer;
 use App\Services\Optimization\ScoringContext;
@@ -25,14 +26,16 @@ use Inertia\Response;
 
 class FormationCompareController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function show(
         Request $request,
         Formation $a,
         Formation $b,
         TeamScorer $scorer,
     ): Response {
-        $userId = $request->user()->id;
-        abort_unless($a->user_id === $userId && $b->user_id === $userId, 403);
+        $account = $this->active->get();
+        abort_unless($a->game_account_id === $account->id && $b->game_account_id === $account->id, 403);
 
         $a->load(['challengeType', 'teams.teamHeroes', 'teams.beast:id,slug,name,buffs_strength,buffs_intelligence,buffs_agility,buffs_team,portrait_url,tier']);
         $b->load(['challengeType', 'teams.teamHeroes', 'teams.beast:id,slug,name,buffs_strength,buffs_intelligence,buffs_agility,buffs_team,portrait_url,tier']);
@@ -48,7 +51,7 @@ class FormationCompareController extends Controller
             ->get()
             ->keyBy('id');
 
-        $userHeroesById = UserHero::where('user_id', $userId)
+        $userHeroesById = UserHero::where('game_account_id', $account->id)
             ->whereIn('hero_id', $allHeroIds)
             ->with([
                 'artifact:id,attributes',

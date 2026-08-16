@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Pivots\FavoriteHeroPivot;
 use Database\Factories\GameAccountFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -74,5 +76,12 @@ class GameAccount extends Model
     public function resonatingCrystal(): HasOne
     {
         return $this->hasOne(UserResonatingCrystal::class);
+    }
+
+    public function favoriteHeroes(): BelongsToMany
+    {
+        return $this->belongsToMany(Hero::class, 'user_hero_favorites')
+            ->using(FavoriteHeroPivot::class)
+            ->withTimestamps();
     }
 }

@@ -3,23 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Models\Hero;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class HeroFavoriteController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     /**
-     * Marca o herói como favorito do user. Idempotente — se já é favorito, no-op.
+     * Marca o herói como favorito da conta ativa. Idempotente — se já é favorito, no-op.
      */
     public function store(Request $request, Hero $hero): JsonResponse
     {
-        $user = $request->user();
+        $account = $this->active->get();
 
-        $user->favoriteHeroes()->syncWithoutDetaching([$hero->id]);
+        $account->favoriteHeroes()->syncWithoutDetaching([$hero->id]);
 
         return response()->json([
             'is_favorited' => true,
-            'favorites_count' => $user->favoriteHeroes()->count(),
+            'favorites_count' => $account->favoriteHeroes()->count(),
         ]);
     }
 
@@ -28,13 +31,13 @@ class HeroFavoriteController extends Controller
      */
     public function destroy(Request $request, Hero $hero): JsonResponse
     {
-        $user = $request->user();
+        $account = $this->active->get();
 
-        $user->favoriteHeroes()->detach($hero->id);
+        $account->favoriteHeroes()->detach($hero->id);
 
         return response()->json([
             'is_favorited' => false,
-            'favorites_count' => $user->favoriteHeroes()->count(),
+            'favorites_count' => $account->favoriteHeroes()->count(),
         ]);
     }
 }

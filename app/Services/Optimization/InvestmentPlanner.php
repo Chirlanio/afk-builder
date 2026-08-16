@@ -3,8 +3,8 @@
 namespace App\Services\Optimization;
 
 use App\Models\Formation;
+use App\Models\GameAccount;
 use App\Models\SignatureItemCost;
-use App\Models\User;
 use App\Models\UserHero;
 use App\Models\UserResource;
 
@@ -73,9 +73,9 @@ class InvestmentPlanner
      *
      * @return array<int, array<string, mixed>>
      */
-    public function plan(User $user, ?Formation $formation = null, int $topN = 10, ?UserResource $resources = null): array
+    public function plan(GameAccount $account, ?Formation $formation = null, int $topN = 10, ?UserResource $resources = null): array
     {
-        $userHeroes = $user->userHeroes()
+        $userHeroes = $account->userHeroes()
             ->with([
                 'hero:id,slug,name,portrait_url,faction_id,hero_class_id,tier_id',
                 'hero.faction:id,code,name_pt',
@@ -126,9 +126,9 @@ class InvestmentPlanner
      *
      * @return array<int, array<string, mixed>>
      */
-    public function planForHero(User $user, UserHero $userHero, ?Formation $formation = null, ?UserResource $resources = null): array
+    public function planForHero(GameAccount $account, UserHero $userHero, ?Formation $formation = null, ?UserResource $resources = null): array
     {
-        $userHeroes = $user->userHeroes()
+        $userHeroes = $account->userHeroes()
             ->with([
                 'hero:id,slug,name,portrait_url,faction_id,hero_class_id,tier_id',
                 'hero.faction:id,code,name_pt',

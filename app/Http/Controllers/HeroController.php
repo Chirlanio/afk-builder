@@ -11,6 +11,7 @@ use App\Models\HeroClass;
 use App\Models\HeroSynergy;
 use App\Models\SignatureItemCost;
 use App\Models\Tier;
+use App\Services\ActiveGameAccount;
 use App\Services\Optimization\PowerCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,8 +22,12 @@ use Inertia\Response;
 
 class HeroController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function index(Request $request): Response
     {
+        $account = $this->active->get();
+
         $heroes = Hero::query()
             ->where('is_active', true)
             ->where('pending_review', false)
@@ -51,7 +56,7 @@ class HeroController extends Controller
         // Fase 49: payload do roster inclui campos de equipamento pra alimentar os filtros avançados
         // (artifact/collection presença + equipment tiers/levels). Cost-benefit aceitável: ~11 cols
         // extras × N heroes do user — leve, indexado, e evita N+1 quando user explora o catálogo.
-        $roster = $request->user()
+        $roster = $account
             ->userHeroes()
             ->get([
                 'id', 'hero_id', 'level', 'ascension_code', 'ascension_value',
@@ -64,8 +69,8 @@ class HeroController extends Controller
             ])
             ->keyBy('hero_id');
 
-        // Fase 37: favoritos do user
-        $favoriteHeroIds = $request->user()
+        // Fase 37: favoritos da conta ativa
+        $favoriteHeroIds = $account
             ->favoriteHeroes()
             ->pluck('heroes.id')
             ->all();
@@ -114,7 +119,7 @@ class HeroController extends Controller
             'is_awakened' => Str::slug($hero->name) !== $hero->slug,
         ]);
 
-        $userHero = $request->user()
+        $userHero = $this->active->get()
             ->userHeroes()
             ->with([
                 'artifact:id,slug,name,kind,hero_class_id,description,portrait_url,max_stars',
@@ -200,7 +205,7 @@ class HeroController extends Controller
             $hero->faction?->code,
         );
 
-        $isFavorited = $request->user()
+        $isFavorited = $this->active->get()
             ->favoriteHeroes()
             ->where('heroes.id', $hero->id)
             ->exists();

@@ -59,9 +59,9 @@ class UserResonatingCrystal extends Model
      * Calcula o teto real de nível do cristal: 240 + (5 × heroes Ascended do roster),
      * limitado a MAX_LEVEL. Heroes Dimensionais NÃO contam (regra do jogo).
      */
-    public static function levelCapForUser(User $user): int
+    public static function levelCapForAccount(GameAccount $account): int
     {
-        $ascendedNonDimensional = $user->userHeroes()
+        $ascendedNonDimensional = $account->userHeroes()
             ->whereHas('hero.tier', fn ($q) => $q->where('code', 'ascended'))
             ->whereHas('hero.faction', fn ($q) => $q->where('code', '!=', 'dimensional'))
             ->count();

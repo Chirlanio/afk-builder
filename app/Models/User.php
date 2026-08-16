@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Pivots\FavoriteHeroPivot;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -53,7 +54,9 @@ class User extends Authenticatable
 
     public function favoriteHeroes(): BelongsToMany
     {
-        return $this->belongsToMany(Hero::class, 'user_hero_favorites')->withTimestamps();
+        return $this->belongsToMany(Hero::class, 'user_hero_favorites')
+            ->using(FavoriteHeroPivot::class)
+            ->withTimestamps();
     }
 
     public function rosterPowerSnapshots(): HasMany
