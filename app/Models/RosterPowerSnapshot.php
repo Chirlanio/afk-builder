@@ -34,6 +34,11 @@ class RosterPowerSnapshot extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function gameAccount(): BelongsTo
+    {
+        return $this->belongsTo(GameAccount::class);
+    }
+
     public function topHero(): BelongsTo
     {
         return $this->belongsTo(Hero::class, 'top_hero_id');

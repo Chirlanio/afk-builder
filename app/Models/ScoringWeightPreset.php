@@ -34,6 +34,11 @@ class ScoringWeightPreset extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function gameAccount(): BelongsTo
+    {
+        return $this->belongsTo(GameAccount::class);
+    }
+
     public function challengeType(): BelongsTo
     {
         return $this->belongsTo(ChallengeType::class);

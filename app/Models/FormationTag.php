@@ -32,6 +32,11 @@ class FormationTag extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function gameAccount(): BelongsTo
+    {
+        return $this->belongsTo(GameAccount::class);
+    }
+
     public function formations(): BelongsToMany
     {
         return $this->belongsToMany(
