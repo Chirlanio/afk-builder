@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\GameAccount;
 use App\Models\User;
+use App\Observers\GameAccountObserver;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Event;
@@ -19,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::define('manage-heroes', fn (User $user) => (bool) $user->is_admin);
+
+        GameAccount::observe(GameAccountObserver::class);
 
         // Quando o worker do queue inicia, reconcilia CommandRuns órfãos
         // (status=running mas sem job correspondente em `jobs` — sinal de que

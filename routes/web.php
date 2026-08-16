@@ -12,6 +12,7 @@ use App\Http\Controllers\FormationController;
 use App\Http\Controllers\FormationShareController;
 use App\Http\Controllers\FormationTagController;
 use App\Http\Controllers\FormationVersionController;
+use App\Http\Controllers\GameAccountSwitchController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HeroBulkActionController;
 use App\Http\Controllers\HeroComparisonController;
@@ -44,6 +45,9 @@ Route::get('/tier/{token}', [UserTierListController::class, 'publicShow'])
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::post('game-accounts/{gameAccount}/switch', GameAccountSwitchController::class)
+        ->name('game-accounts.switch');
 
     Route::get('search', [SearchController::class, 'index'])->name('search');
 

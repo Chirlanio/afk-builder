@@ -3,12 +3,15 @@
 namespace App\Http\Middleware;
 
 use App\Models\Hero;
+use App\Services\ActiveGameAccount;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+    public function __construct(private readonly ActiveGameAccount $activeGameAccount) {}
+
     /**
      * The root template that's loaded on the first page visit.
      *
@@ -48,6 +51,17 @@ class HandleInertiaRequests extends Middleware
             ? fn () => Hero::where('pending_review', true)->count()
             : null;
 
+        $gameAccount = ($user && $user->gameAccounts()->exists())
+            ? fn () => [
+                'active' => $this->activeGameAccount->get()->only(['id', 'name', 'server', 'avatar_hero_id']),
+                'accounts' => $user->gameAccounts()
+                    ->select(['id', 'name', 'server', 'avatar_hero_id', 'is_default'])
+                    ->orderByDesc('is_default')
+                    ->orderBy('id')
+                    ->get(),
+            ]
+            : null;
+
         return array_merge(parent::share($request), [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -58,6 +72,7 @@ class HandleInertiaRequests extends Middleware
             'admin' => [
                 'pending_heroes_count' => $pendingHeroesCount,
             ],
+            'gameAccount' => $gameAccount,
         ]);
     }
 }
