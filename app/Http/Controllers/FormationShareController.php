@@ -7,6 +7,7 @@ use App\Models\Formation;
 use App\Models\Hero;
 use App\Models\HeroClass;
 use App\Models\Tier;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -15,9 +16,11 @@ use Inertia\Response;
 
 class FormationShareController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function share(Request $request, Formation $formation): JsonResponse
     {
-        abort_unless($formation->user_id === $request->user()->id, 403);
+        abort_unless($formation->game_account_id === $this->active->get()->id, 403);
 
         if ($formation->share_token === null) {
             $formation->update(['share_token' => Str::random(32)]);
@@ -31,7 +34,7 @@ class FormationShareController extends Controller
 
     public function revoke(Request $request, Formation $formation): JsonResponse
     {
-        abort_unless($formation->user_id === $request->user()->id, 403);
+        abort_unless($formation->game_account_id === $this->active->get()->id, 403);
 
         $formation->update(['share_token' => null]);
 

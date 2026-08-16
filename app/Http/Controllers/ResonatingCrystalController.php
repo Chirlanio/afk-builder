@@ -6,6 +6,7 @@ use App\Models\ResonatingCrystalCost;
 use App\Models\UserHero;
 use App\Models\UserResonatingCrystal;
 use App\Models\UserResource;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,16 +15,18 @@ use Inertia\Response;
 
 class ResonatingCrystalController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function show(Request $request): Response
     {
-        $user = $request->user();
+        $account = $this->active->get();
 
-        $crystal = $this->getOrCreateCrystal($user->id);
-        $resources = $this->getOrCreateResources($user->id);
+        $crystal = $this->getOrCreateCrystal($account->id);
+        $resources = $this->getOrCreateResources($account->id);
 
         // Top 5 do roster por nível (decresce). Esses são os heroes que definem o pentagrama
         // pré-upgrade (5º maior é quem dita o nível compartilhado).
-        $top5 = $user->userHeroes()
+        $top5 = $account->userHeroes()
             ->with([
                 'hero:id,slug,name,portrait_url,faction_id,hero_class_id,tier_id',
                 'hero.faction:id,code,name_pt',
@@ -52,7 +55,7 @@ class ResonatingCrystalController extends Controller
         $isUpgraded = $top5->count() >= 5 && $fifthHighestLevel >= UserResonatingCrystal::MIN_LEVEL;
         $effectiveLevel = $isUpgraded ? $crystal->level : $fifthHighestLevel;
 
-        $levelCap = UserResonatingCrystal::levelCapForUser($user);
+        $levelCap = UserResonatingCrystal::levelCapForAccount($account);
         $canUpgrade = $isUpgraded && $crystal->level < $levelCap;
 
         // Custo do próximo "fortalecimento" (incremento de progress). Custo total do nível atual + 1,
@@ -108,7 +111,7 @@ class ResonatingCrystalController extends Controller
             'slots_unlocked' => ['nullable', 'integer', 'min:'.UserResonatingCrystal::INITIAL_SLOTS, 'max:60'],
         ]);
 
-        $crystal = $this->getOrCreateCrystal($request->user()->id);
+        $crystal = $this->getOrCreateCrystal($this->active->get()->id);
         $payload = array_filter($data, fn ($v) => $v !== null);
         $crystal->update($payload);
 
@@ -121,11 +124,11 @@ class ResonatingCrystalController extends Controller
      */
     public function strengthen(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $crystal = $this->getOrCreateCrystal($user->id);
-        $resources = $this->getOrCreateResources($user->id);
+        $account = $this->active->get();
+        $crystal = $this->getOrCreateCrystal($account->id);
+        $resources = $this->getOrCreateResources($account->id);
 
-        $levelCap = UserResonatingCrystal::levelCapForUser($user);
+        $levelCap = UserResonatingCrystal::levelCapForAccount($account);
         if ($crystal->level >= $levelCap) {
             return response()->json(['error' => 'level_cap_reached', 'cap' => $levelCap], 422);
         }
@@ -169,13 +172,13 @@ class ResonatingCrystalController extends Controller
         ]);
     }
 
-    private function getOrCreateCrystal(int $userId): UserResonatingCrystal
+    private function getOrCreateCrystal(int $accountId): UserResonatingCrystal
     {
-        return UserResonatingCrystal::firstOrCreate(['user_id' => $userId]);
+        return UserResonatingCrystal::firstOrCreate(['game_account_id' => $accountId]);
     }
 
-    private function getOrCreateResources(int $userId): UserResource
+    private function getOrCreateResources(int $accountId): UserResource
     {
-        return UserResource::firstOrCreate(['user_id' => $userId]);
+        return UserResource::firstOrCreate(['game_account_id' => $accountId]);
     }
 }

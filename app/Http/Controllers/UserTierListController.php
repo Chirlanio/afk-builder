@@ -8,6 +8,7 @@ use App\Models\HeroClass;
 use App\Models\UserTierList;
 use App\Models\UserTierListItem;
 use App\Models\UserTierListRow;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,8 @@ use Inertia\Response;
 
 class UserTierListController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     private const DEFAULT_TIERS = [
         ['label' => 'S+', 'color' => 'rose'],
         ['label' => 'S',  'color' => 'orange'],
@@ -29,7 +32,7 @@ class UserTierListController extends Controller
 
     public function index(Request $request): Response
     {
-        $lists = $request->user()
+        $lists = $this->active->get()
             ->tierLists()
             ->withCount('rows')
             ->orderByDesc('updated_at')
@@ -52,8 +55,10 @@ class UserTierListController extends Controller
             'description' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        $list = DB::transaction(function () use ($request, $data) {
-            $list = $request->user()->tierLists()->create([
+        $account = $this->active->get();
+
+        $list = DB::transaction(function () use ($account, $data) {
+            $list = $account->tierLists()->create([
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
             ]);
@@ -74,7 +79,7 @@ class UserTierListController extends Controller
 
     public function edit(Request $request, UserTierList $tierList): Response
     {
-        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($tierList->game_account_id === $this->active->get()->id, 403);
 
         $tierList->load(['rows.items.hero:id,slug,name,faction_id,hero_class_id,portrait_url']);
 
@@ -94,7 +99,7 @@ class UserTierListController extends Controller
 
     public function update(Request $request, UserTierList $tierList): JsonResponse
     {
-        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($tierList->game_account_id === $this->active->get()->id, 403);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
@@ -108,7 +113,7 @@ class UserTierListController extends Controller
 
     public function destroy(Request $request, UserTierList $tierList): RedirectResponse
     {
-        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($tierList->game_account_id === $this->active->get()->id, 403);
 
         $tierList->delete();
 
@@ -117,7 +122,7 @@ class UserTierListController extends Controller
 
     public function addRow(Request $request, UserTierList $tierList): JsonResponse
     {
-        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($tierList->game_account_id === $this->active->get()->id, 403);
 
         $data = $request->validate([
             'label' => ['required', 'string', 'max:16'],
@@ -136,7 +141,7 @@ class UserTierListController extends Controller
 
     public function updateRow(Request $request, UserTierList $tierList, UserTierListRow $row): JsonResponse
     {
-        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($tierList->game_account_id === $this->active->get()->id, 403);
         abort_unless($row->user_tier_list_id === $tierList->id, 404);
 
         $data = $request->validate([
@@ -151,7 +156,7 @@ class UserTierListController extends Controller
 
     public function deleteRow(Request $request, UserTierList $tierList, UserTierListRow $row): JsonResponse
     {
-        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($tierList->game_account_id === $this->active->get()->id, 403);
         abort_unless($row->user_tier_list_id === $tierList->id, 404);
 
         $row->delete();
@@ -165,7 +170,7 @@ class UserTierListController extends Controller
      */
     public function reorderItems(Request $request, UserTierList $tierList, UserTierListRow $row): JsonResponse
     {
-        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($tierList->game_account_id === $this->active->get()->id, 403);
         abort_unless($row->user_tier_list_id === $tierList->id, 404);
 
         $data = $request->validate([
@@ -192,7 +197,7 @@ class UserTierListController extends Controller
      */
     public function placeHero(Request $request, UserTierList $tierList): JsonResponse
     {
-        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($tierList->game_account_id === $this->active->get()->id, 403);
 
         $data = $request->validate([
             'hero_id' => ['required', 'integer', Rule::exists('heroes', 'id')],
@@ -233,7 +238,7 @@ class UserTierListController extends Controller
 
     public function share(Request $request, UserTierList $tierList): JsonResponse
     {
-        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($tierList->game_account_id === $this->active->get()->id, 403);
 
         if ($tierList->share_token === null) {
             $tierList->generateShareToken();
@@ -248,7 +253,7 @@ class UserTierListController extends Controller
 
     public function unshare(Request $request, UserTierList $tierList): JsonResponse
     {
-        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($tierList->game_account_id === $this->active->get()->id, 403);
 
         $tierList->revokeShareToken();
 
@@ -292,7 +297,7 @@ class UserTierListController extends Controller
     public function setTemplate(Request $request, UserTierList $tierList): JsonResponse
     {
         abort_unless($request->user()->is_admin, 403);
-        abort_unless($tierList->user_id === $request->user()->id, 403);
+        abort_unless($tierList->game_account_id === $this->active->get()->id, 403);
 
         $data = $request->validate([
             'is_template' => ['required', 'boolean'],
@@ -311,10 +316,12 @@ class UserTierListController extends Controller
     {
         abort_unless($tierList->is_template, 404);
 
-        $copy = DB::transaction(function () use ($request, $tierList) {
+        $account = $this->active->get();
+
+        $copy = DB::transaction(function () use ($account, $tierList) {
             $tierList->load('rows.items');
 
-            $copy = $request->user()->tierLists()->create([
+            $copy = $account->tierLists()->create([
                 'name' => $tierList->name.' (cópia)',
                 'description' => $tierList->description,
                 'is_template' => false,

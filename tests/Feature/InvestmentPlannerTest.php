@@ -28,7 +28,7 @@ class InvestmentPlannerTest extends TestCase
         $user = User::factory()->create();
 
         $planner = app(InvestmentPlanner::class);
-        $suggestions = $planner->plan($user);
+        $suggestions = $planner->plan($user->defaultGameAccount);
 
         $this->assertSame([], $suggestions);
     }
@@ -46,7 +46,7 @@ class InvestmentPlannerTest extends TestCase
         ]);
 
         $planner = app(InvestmentPlanner::class);
-        $suggestions = $planner->plan($user);
+        $suggestions = $planner->plan($user->defaultGameAccount);
 
         $this->assertNotEmpty($suggestions);
         // Pelo menos 1 sugestão de SI 10→30 deve aparecer
@@ -71,7 +71,7 @@ class InvestmentPlannerTest extends TestCase
         ]);
 
         $planner = app(InvestmentPlanner::class);
-        $suggestions = $planner->plan($user);
+        $suggestions = $planner->plan($user->defaultGameAccount);
 
         $siSugs = collect($suggestions)->where('kind', 'signature_item');
         $this->assertCount(0, $siSugs);
@@ -91,7 +91,7 @@ class InvestmentPlannerTest extends TestCase
         ]);
 
         $planner = app(InvestmentPlanner::class);
-        $suggestions = $planner->plan($user);
+        $suggestions = $planner->plan($user->defaultGameAccount);
 
         $siSug = collect($suggestions)->firstWhere('kind', 'signature_item');
         $this->assertNotNull($siSug);
@@ -131,7 +131,7 @@ class InvestmentPlannerTest extends TestCase
         $planner = app(InvestmentPlanner::class);
 
         // Sem formation: ambos têm score parecido
-        $rosterScope = collect($planner->plan($user))->keyBy('hero_id');
+        $rosterScope = collect($planner->plan($user->defaultGameAccount))->keyBy('hero_id');
         $this->assertEqualsWithDelta(
             $rosterScope[$h1->id]['score'],
             $rosterScope[$h2->id]['score'],
@@ -139,7 +139,7 @@ class InvestmentPlannerTest extends TestCase
         );
 
         // Com formation: h1 ganha multiplier
-        $formationScope = collect($planner->plan($user, $formation))->keyBy('hero_id');
+        $formationScope = collect($planner->plan($user->defaultGameAccount, $formation))->keyBy('hero_id');
         $this->assertGreaterThan(
             $formationScope[$h2->id]['score'],
             $formationScope[$h1->id]['score'],
@@ -169,7 +169,7 @@ class InvestmentPlannerTest extends TestCase
             'signature_item' => 10, 'furniture' => 0, 'engraving' => 0,
         ]);
 
-        $suggestions = app(InvestmentPlanner::class)->plan($user);
+        $suggestions = app(InvestmentPlanner::class)->plan($user->defaultGameAccount);
 
         $this->assertNotEmpty($suggestions);
         $this->assertContains('awakened', $suggestions[0]['reasons']);
@@ -273,7 +273,7 @@ class InvestmentPlannerTest extends TestCase
             'engraving_scrolls' => 0,
         ]);
 
-        $suggestions = app(InvestmentPlanner::class)->plan($user, null, 10, $resources);
+        $suggestions = app(InvestmentPlanner::class)->plan($user->defaultGameAccount, null, 10, $resources);
 
         $siSug = collect($suggestions)->firstWhere('kind', 'signature_item');
         $this->assertNotNull($siSug);
@@ -302,7 +302,7 @@ class InvestmentPlannerTest extends TestCase
             'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
         ]);
 
-        $suggestions = app(InvestmentPlanner::class)->plan($user); // sem $resources
+        $suggestions = app(InvestmentPlanner::class)->plan($user->defaultGameAccount); // sem $resources
 
         $this->assertNotEmpty($suggestions);
         $this->assertNull($suggestions[0]['affordable']);
@@ -326,7 +326,7 @@ class InvestmentPlannerTest extends TestCase
             $heroes[$i] = $h;
         }
 
-        $suggestions = app(InvestmentPlanner::class)->plan($user, null, 20);
+        $suggestions = app(InvestmentPlanner::class)->plan($user->defaultGameAccount, null, 20);
         $byHero = collect($suggestions)->keyBy('hero_id');
 
         // h0..h4 estão no pentagrama; h5 não
@@ -359,7 +359,7 @@ class InvestmentPlannerTest extends TestCase
         // Recursos zerados — mas ascension não bloqueia
         $resources = UserResource::create(['user_id' => $user->id]);
 
-        $suggestions = app(InvestmentPlanner::class)->plan($user, null, 10, $resources);
+        $suggestions = app(InvestmentPlanner::class)->plan($user->defaultGameAccount, null, 10, $resources);
 
         $ascSug = collect($suggestions)->firstWhere('kind', 'ascension');
         $this->assertNotNull($ascSug);

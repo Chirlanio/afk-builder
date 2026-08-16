@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Formation;
 use App\Models\UserResource;
+use App\Services\ActiveGameAccount;
 use App\Services\Optimization\InvestmentPlanner;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,9 +12,11 @@ use Inertia\Response;
 
 class RosterPlannerController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function index(Request $request, InvestmentPlanner $planner): Response
     {
-        $user = $request->user();
+        $account = $this->active->get();
 
         $data = $request->validate([
             'formation_id' => ['nullable', 'integer', 'exists:formations,id'],
@@ -23,7 +26,7 @@ class RosterPlannerController extends Controller
         $formation = null;
         if (! empty($data['formation_id'])) {
             $candidate = Formation::find($data['formation_id']);
-            if ($candidate && $candidate->user_id === $user->id) {
+            if ($candidate && $candidate->game_account_id === $account->id) {
                 $formation = $candidate;
             }
         }
@@ -31,15 +34,15 @@ class RosterPlannerController extends Controller
         $topN = $data['top'] ?? 12;
 
         // Carrega recursos (cria registro vazio se ainda não existir, simplifica frontend)
-        $resources = $user->resources;
+        $resources = $account->resources;
         if ($resources === null) {
-            $resources = UserResource::create(['user_id' => $user->id]);
+            $resources = $account->resources()->create([]);
         }
 
-        $suggestions = $planner->plan($user, $formation, $topN, $resources);
+        $suggestions = $planner->plan($account, $formation, $topN, $resources);
 
-        // Lista de formations do user (pra dropdown de filtro)
-        $userFormations = $user->formations()
+        // Lista de formations da conta ativa (pra dropdown de filtro)
+        $accountFormations = $account->formations()
             ->orderByDesc('updated_at')
             ->get(['id', 'name', 'teams_count'])
             ->map(fn ($f) => [
@@ -50,9 +53,9 @@ class RosterPlannerController extends Controller
 
         return Inertia::render('roster/planner', [
             'suggestions' => $suggestions,
-            'formations' => $userFormations,
+            'formations' => $accountFormations,
             'selectedFormationId' => $formation?->id,
-            'rosterSize' => $user->userHeroes()->count(),
+            'rosterSize' => $account->userHeroes()->count(),
             'topN' => $topN,
             'resources' => $resources->only(UserResource::FIELDS),
         ]);

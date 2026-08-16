@@ -3,15 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\ScoringWeightPreset;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ScoringWeightPresetController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function index(Request $request): JsonResponse
     {
-        $presets = $request->user()
+        $presets = $this->active->get()
             ->scoringWeightPresets()
             ->orderBy('name')
             ->get(['id', 'name', 'challenge_type_id', 'weights']);
@@ -23,8 +26,9 @@ class ScoringWeightPresetController extends Controller
     {
         $data = $this->validatedPayload($request);
 
-        // Unicidade por user_id já está garantida no schema; vamos retornar 422 amigável se violar.
-        $exists = $request->user()
+        $account = $this->active->get();
+
+        $exists = $account
             ->scoringWeightPresets()
             ->where('name', $data['name'])
             ->exists();
@@ -36,7 +40,7 @@ class ScoringWeightPresetController extends Controller
             ], 422);
         }
 
-        $preset = $request->user()->scoringWeightPresets()->create($data);
+        $preset = $account->scoringWeightPresets()->create($data);
 
         return response()->json([
             'preset' => $preset->only(['id', 'name', 'challenge_type_id', 'weights']),
@@ -45,7 +49,7 @@ class ScoringWeightPresetController extends Controller
 
     public function update(Request $request, ScoringWeightPreset $preset): JsonResponse
     {
-        abort_unless($preset->user_id === $request->user()->id, 403);
+        abort_unless($preset->game_account_id === $this->active->get()->id, 403);
 
         $data = $this->validatedPayload($request, $preset->id);
 
@@ -58,7 +62,7 @@ class ScoringWeightPresetController extends Controller
 
     public function destroy(Request $request, ScoringWeightPreset $preset): JsonResponse
     {
-        abort_unless($preset->user_id === $request->user()->id, 403);
+        abort_unless($preset->game_account_id === $this->active->get()->id, 403);
 
         $preset->delete();
 
@@ -82,7 +86,7 @@ class ScoringWeightPresetController extends Controller
                 'min:1',
                 'max:60',
                 Rule::unique('scoring_weight_presets', 'name')
-                    ->where('user_id', $request->user()->id)
+                    ->where('game_account_id', $this->active->get()->id)
                     ->ignore($ignoreId),
             ],
             'challenge_type_id' => ['nullable', 'integer', 'exists:challenge_types,id'],

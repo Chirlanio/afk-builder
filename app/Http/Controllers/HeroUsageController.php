@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FormationTeamHero;
 use App\Models\Hero;
 use App\Models\UserHero;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -19,16 +20,18 @@ class HeroUsageController extends Controller
 
     public const NEVER_USED_LIMIT = 50;
 
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function index(Request $request): Response
     {
-        $user = $request->user();
-        $userId = $user->id;
+        $account = $this->active->get();
+        $accountId = $account->id;
 
-        // Heroes em formações do user — base para todas as queries de uso.
+        // Heroes em formações da conta ativa — base para todas as queries de uso.
         $usedHeroCounts = FormationTeamHero::query()
             ->join('formation_teams', 'formation_team_heroes.formation_team_id', '=', 'formation_teams.id')
             ->join('formations', 'formation_teams.formation_id', '=', 'formations.id')
-            ->where('formations.user_id', $userId)
+            ->where('formations.game_account_id', $accountId)
             ->groupBy('formation_team_heroes.hero_id')
             ->select(
                 'formation_team_heroes.hero_id',
@@ -57,9 +60,9 @@ class HeroUsageController extends Controller
             ->sortByDesc('team_count')
             ->values();
 
-        // Roster do user
+        // Roster da conta ativa
         $rosterUserHeroes = UserHero::query()
-            ->where('user_id', $userId)
+            ->where('game_account_id', $accountId)
             ->get(['hero_id', 'level', 'signature_item', 'furniture', 'engraving']);
         $rosterByHeroId = $rosterUserHeroes->keyBy('hero_id');
         $rosterHeroIds = $rosterUserHeroes->pluck('hero_id')->all();
@@ -95,8 +98,8 @@ class HeroUsageController extends Controller
             ->sortByDesc(fn ($row) => $row['signature_item'] * 10 + $row['furniture'] * 50 + $row['engraving'])
             ->values();
 
-        // Uso por challenge type — top 5 heroes por cada challenge type que o user usou
-        $usageByChallengeType = $this->computeUsageByChallengeType($userId);
+        // Uso por challenge type — top 5 heroes por cada challenge type que a conta usou
+        $usageByChallengeType = $this->computeUsageByChallengeType($accountId);
 
         return Inertia::render('heroes/usage', [
             'stats' => [
@@ -118,13 +121,13 @@ class HeroUsageController extends Controller
      *
      * @return array<int, array{code: string, name_pt: string, heroes: array<int, array<string, mixed>>}>
      */
-    private function computeUsageByChallengeType(int $userId): array
+    private function computeUsageByChallengeType(int $accountId): array
     {
         $rows = FormationTeamHero::query()
             ->join('formation_teams', 'formation_team_heroes.formation_team_id', '=', 'formation_teams.id')
             ->join('formations', 'formation_teams.formation_id', '=', 'formations.id')
             ->join('challenge_types', 'formations.challenge_type_id', '=', 'challenge_types.id')
-            ->where('formations.user_id', $userId)
+            ->where('formations.game_account_id', $accountId)
             ->groupBy(
                 'formation_team_heroes.hero_id',
                 'challenge_types.code',

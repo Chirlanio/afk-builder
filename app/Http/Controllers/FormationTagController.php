@@ -3,15 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\FormationTag;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class FormationTagController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function index(Request $request): JsonResponse
     {
-        $tags = $request->user()
+        $tags = $this->active->get()
             ->formationTags()
             ->orderBy('name')
             ->get(['id', 'name', 'color']);
@@ -23,14 +26,14 @@ class FormationTagController extends Controller
     {
         $data = $this->validatedPayload($request);
 
-        $tag = $request->user()->formationTags()->create($data);
+        $tag = $this->active->get()->formationTags()->create($data);
 
         return response()->json(['tag' => $tag->only(['id', 'name', 'color'])], 201);
     }
 
     public function update(Request $request, FormationTag $tag): JsonResponse
     {
-        abort_unless($tag->user_id === $request->user()->id, 403);
+        abort_unless($tag->game_account_id === $this->active->get()->id, 403);
 
         $data = $this->validatedPayload($request, $tag->id);
 
@@ -41,7 +44,7 @@ class FormationTagController extends Controller
 
     public function destroy(Request $request, FormationTag $tag): JsonResponse
     {
-        abort_unless($tag->user_id === $request->user()->id, 403);
+        abort_unless($tag->game_account_id === $this->active->get()->id, 403);
 
         $tag->delete();
 
@@ -60,7 +63,7 @@ class FormationTagController extends Controller
                 'min:1',
                 'max:30',
                 Rule::unique('formation_tags', 'name')
-                    ->where('user_id', $request->user()->id)
+                    ->where('game_account_id', $this->active->get()->id)
                     ->ignore($ignoreId),
             ],
             'color' => ['nullable', 'string', Rule::in(FormationTag::COLORS)],

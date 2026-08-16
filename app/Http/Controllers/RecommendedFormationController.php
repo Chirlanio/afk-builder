@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ChallengeType;
 use App\Models\Hero;
 use App\Models\RecommendedFormation;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,8 @@ use Inertia\Response;
 
 class RecommendedFormationController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     /**
      * Mapeamento de mode (RecommendedFormation) → code de ChallengeType usado
      * ao duplicar para a Formation do usuário. Sem match exato: cai em campaign.
@@ -76,8 +79,10 @@ class RecommendedFormationController extends Controller
             ->where('is_active', true)
             ->pluck('id', 'slug');
 
-        $formation = DB::transaction(function () use ($request, $recommended, $challengeType, $heroSlugs, $heroIds) {
-            $formation = $request->user()->formations()->create([
+        $account = $this->active->get();
+
+        $formation = DB::transaction(function () use ($account, $recommended, $challengeType, $heroSlugs, $heroIds) {
+            $formation = $account->formations()->create([
                 'challenge_type_id' => $challengeType->id,
                 'name' => $recommended->name.' (cópia)',
                 'mode' => 'target',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\UserHero;
 use App\Models\UserResource;
+use App\Services\ActiveGameAccount;
 use App\Services\Optimization\InvestmentPlanner;
 use App\Services\Optimization\PowerCalculator;
 use Illuminate\Http\Request;
@@ -15,9 +16,11 @@ class HeroComparisonController extends Controller
     public const MIN_HEROES = 2;
     public const MAX_HEROES = 4;
 
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function index(Request $request, PowerCalculator $power, InvestmentPlanner $planner): Response
     {
-        $user = $request->user();
+        $account = $this->active->get();
 
         $data = $request->validate([
             'heroes' => ['nullable', 'array', 'max:'.self::MAX_HEROES],
@@ -28,7 +31,7 @@ class HeroComparisonController extends Controller
 
         $userHeroes = empty($slugs)
             ? collect()
-            : $user->userHeroes()
+            : $account->userHeroes()
                 ->whereHas('hero', fn ($q) => $q->whereIn('slug', $slugs))
                 ->with([
                     'hero:id,slug,name,portrait_url,faction_id,hero_class_id,tier_id,type',
@@ -46,7 +49,7 @@ class HeroComparisonController extends Controller
                 ->get();
 
         // Carrega recursos pra alimentar planForHero (sem criar registro inútil)
-        $resources = $user->resources;
+        $resources = $account->resources;
 
         // Mantém a ordem que veio na query string (pra preservar a escolha do user)
         $byUserHero = $userHeroes->keyBy(fn (UserHero $uh) => $uh->hero?->slug);
@@ -57,11 +60,11 @@ class HeroComparisonController extends Controller
             if ($uh === null) {
                 continue;
             }
-            $heroes[] = $this->buildHeroPayload($user, $uh, $power, $planner, $resources);
+            $heroes[] = $this->buildHeroPayload($account, $uh, $power, $planner, $resources);
         }
 
         // Lista pro autocomplete: todo o roster, pra adicionar mais cards
-        $rosterOptions = $user->userHeroes()
+        $rosterOptions = $account->userHeroes()
             ->with('hero:id,slug,name,faction_id,hero_class_id,tier_id')
             ->with('hero.faction:id,code')
             ->with('hero.heroClass:id,code')
@@ -90,7 +93,7 @@ class HeroComparisonController extends Controller
      * @return array<string, mixed>
      */
     private function buildHeroPayload(
-        \App\Models\User $user,
+        \App\Models\GameAccount $account,
         UserHero $uh,
         PowerCalculator $power,
         InvestmentPlanner $planner,
@@ -103,7 +106,7 @@ class HeroComparisonController extends Controller
         $collectionContrib = (int) round($power->collectionContribution($uh->collection ?? null));
 
         // Próximas 3 sugestões pelo planner do hero específico
-        $upgrades = collect($planner->planForHero($user, $uh, null, $resources))
+        $upgrades = collect($planner->planForHero($account, $uh, null, $resources))
             ->take(3)
             ->map(fn ($s) => [
                 'kind' => $s['kind'],

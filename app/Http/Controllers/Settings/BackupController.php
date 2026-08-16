@@ -7,11 +7,12 @@ use App\Models\Beast;
 use App\Models\ChallengeType;
 use App\Models\Formation;
 use App\Models\FormationTag;
+use App\Models\GameAccount;
 use App\Models\Hero;
 use App\Models\ScoringWeightPreset;
-use App\Models\User;
 use App\Models\UserHero;
 use App\Models\UserTierList;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,17 +29,19 @@ class BackupController extends Controller
      */
     public const SCHEMA_VERSION = 1;
 
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function show(Request $request): Response
     {
-        $user = $request->user();
+        $account = $this->active->get();
 
         $summary = [
-            'roster_count' => $user->userHeroes()->count(),
-            'formations_count' => $user->formations()->count(),
-            'tier_lists_count' => $user->tierLists()->count(),
-            'formation_tags_count' => $user->formationTags()->count(),
-            'favorites_count' => $user->favoriteHeroes()->count(),
-            'scoring_weight_presets_count' => $user->scoringWeightPresets()->count(),
+            'roster_count' => $account->userHeroes()->count(),
+            'formations_count' => $account->formations()->count(),
+            'tier_lists_count' => $account->tierLists()->count(),
+            'formation_tags_count' => $account->formationTags()->count(),
+            'favorites_count' => $account->favoriteHeroes()->count(),
+            'scoring_weight_presets_count' => $account->scoringWeightPresets()->count(),
         ];
 
         return Inertia::render('settings/backup', [
@@ -48,15 +51,15 @@ class BackupController extends Controller
     }
 
     /**
-     * Gera o JSON com todos os dados do user. Stream pra não consumir muita memória
+     * Gera o JSON com todos os dados da conta ativa. Stream pra não consumir muita memória
      * em backups grandes (rosters com centenas de heroes + dezenas de formações).
      */
     public function download(Request $request): StreamedResponse
     {
-        $user = $request->user();
-        $payload = $this->buildPayload($user);
+        $account = $this->active->get();
+        $payload = $this->buildPayload($account);
 
-        $filename = sprintf('afk-builder-backup-%s-%s.json', $user->id, now()->format('Y-m-d-His'));
+        $filename = sprintf('afk-builder-backup-%s-%s.json', $account->id, now()->format('Y-m-d-His'));
 
         return response()->streamDownload(function () use ($payload) {
             echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -68,8 +71,10 @@ class BackupController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function buildPayload(User $user): array
+    private function buildPayload(GameAccount $account): array
     {
+        $user = $account->user;
+
         return [
             'schema_version' => self::SCHEMA_VERSION,
             'exported_at' => now()->toIso8601String(),
@@ -79,21 +84,26 @@ class BackupController extends Controller
                 'email' => $user->email,
                 'locale' => $user->locale,
             ],
-            'roster' => $this->buildRoster($user),
-            'formations' => $this->buildFormations($user),
-            'tier_lists' => $this->buildTierLists($user),
-            'formation_tags' => $this->buildFormationTags($user),
-            'favorite_hero_slugs' => $this->buildFavoriteSlugs($user),
-            'scoring_weight_presets' => $this->buildScoringWeightPresets($user),
+            'game_account' => [
+                'id' => $account->id,
+                'name' => $account->name,
+                'server' => $account->server,
+            ],
+            'roster' => $this->buildRoster($account),
+            'formations' => $this->buildFormations($account),
+            'tier_lists' => $this->buildTierLists($account),
+            'formation_tags' => $this->buildFormationTags($account),
+            'favorite_hero_slugs' => $this->buildFavoriteSlugs($account),
+            'scoring_weight_presets' => $this->buildScoringWeightPresets($account),
         ];
     }
 
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function buildRoster(User $user): array
+    private function buildRoster(GameAccount $account): array
     {
-        return $user->userHeroes()
+        return $account->userHeroes()
             ->with('hero:id,slug')
             ->get()
             ->map(fn ($uh) => [
@@ -133,9 +143,9 @@ class BackupController extends Controller
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function buildFormations(User $user): array
+    private function buildFormations(GameAccount $account): array
     {
-        return $user->formations()
+        return $account->formations()
             ->with([
                 'challengeType:id,code',
                 'teams.beast:id,slug',
@@ -170,9 +180,9 @@ class BackupController extends Controller
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function buildTierLists(User $user): array
+    private function buildTierLists(GameAccount $account): array
     {
-        return $user->tierLists()
+        return $account->tierLists()
             ->with(['rows.items.hero:id,slug'])
             ->get()
             ->map(fn ($tl) => [
@@ -195,9 +205,9 @@ class BackupController extends Controller
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function buildFormationTags(User $user): array
+    private function buildFormationTags(GameAccount $account): array
     {
-        return $user->formationTags()
+        return $account->formationTags()
             ->orderBy('name')
             ->get(['name', 'color', 'challenge_type_id'])
             ->map(fn ($t) => [
@@ -212,9 +222,9 @@ class BackupController extends Controller
     /**
      * @return array<int, string>
      */
-    private function buildFavoriteSlugs(User $user): array
+    private function buildFavoriteSlugs(GameAccount $account): array
     {
-        return $user->favoriteHeroes()
+        return $account->favoriteHeroes()
             ->pluck('heroes.slug')
             ->all();
     }
@@ -222,9 +232,9 @@ class BackupController extends Controller
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function buildScoringWeightPresets(User $user): array
+    private function buildScoringWeightPresets(GameAccount $account): array
     {
-        return $user->scoringWeightPresets()
+        return $account->scoringWeightPresets()
             ->orderBy('name')
             ->get(['name', 'challenge_type_id', 'weights'])
             ->map(fn ($p) => [
@@ -277,21 +287,21 @@ class BackupController extends Controller
             ]);
         }
 
-        $user = $request->user();
+        $account = $this->active->get();
         $strategy = $request->input('strategy');
 
-        $summary = DB::transaction(function () use ($user, $data, $strategy) {
+        $summary = DB::transaction(function () use ($account, $data, $strategy) {
             if ($strategy === 'replace') {
-                $this->wipeUserData($user);
+                $this->wipeAccountData($account);
             }
 
             return [
-                'roster' => $this->importRoster($user, $data['roster'] ?? [], $strategy),
-                'formation_tags' => $this->importFormationTags($user, $data['formation_tags'] ?? [], $strategy),
-                'formations' => $this->importFormations($user, $data['formations'] ?? [], $strategy),
-                'tier_lists' => $this->importTierLists($user, $data['tier_lists'] ?? [], $strategy),
-                'favorites' => $this->importFavorites($user, $data['favorite_hero_slugs'] ?? [], $strategy),
-                'scoring_weight_presets' => $this->importScoringWeightPresets($user, $data['scoring_weight_presets'] ?? [], $strategy),
+                'roster' => $this->importRoster($account, $data['roster'] ?? [], $strategy),
+                'formation_tags' => $this->importFormationTags($account, $data['formation_tags'] ?? [], $strategy),
+                'formations' => $this->importFormations($account, $data['formations'] ?? [], $strategy),
+                'tier_lists' => $this->importTierLists($account, $data['tier_lists'] ?? [], $strategy),
+                'favorites' => $this->importFavorites($account, $data['favorite_hero_slugs'] ?? [], $strategy),
+                'scoring_weight_presets' => $this->importScoringWeightPresets($account, $data['scoring_weight_presets'] ?? [], $strategy),
             ];
         });
 
@@ -314,29 +324,29 @@ class BackupController extends Controller
         return back()->with('status', $msg);
     }
 
-    private function wipeUserData(User $user): void
+    private function wipeAccountData(GameAccount $account): void
     {
         // Cascades on delete cuidam de teams/team_heroes (formations), rows/items (tier_lists),
         // assignments (tags), e pivots (favorite_heroes).
-        $user->userHeroes()->delete();
-        $user->formations()->delete();
-        $user->tierLists()->delete();
-        $user->formationTags()->delete();
-        $user->favoriteHeroes()->detach();
-        $user->scoringWeightPresets()->delete();
+        $account->userHeroes()->delete();
+        $account->formations()->delete();
+        $account->tierLists()->delete();
+        $account->formationTags()->delete();
+        $account->favoriteHeroes()->detach();
+        $account->scoringWeightPresets()->delete();
     }
 
     /**
      * @param  array<int, array<string, mixed>>  $rows
      * @return array{imported: int, skipped: int}
      */
-    private function importRoster(User $user, array $rows, string $strategy): array
+    private function importRoster(GameAccount $account, array $rows, string $strategy): array
     {
         $imported = 0;
         $skipped = 0;
         $heroIdsBySlug = Hero::whereIn('slug', array_column($rows, 'hero_slug'))->pluck('id', 'slug');
         $existing = $strategy === 'merge'
-            ? $user->userHeroes()->pluck('hero_id')->all()
+            ? $account->userHeroes()->pluck('hero_id')->all()
             : [];
 
         foreach ($rows as $row) {
@@ -351,8 +361,7 @@ class BackupController extends Controller
 
                 continue;
             }
-            UserHero::create([
-                'user_id' => $user->id,
+            $account->userHeroes()->create([
                 'hero_id' => $heroId,
                 'level' => $row['level'] ?? 1,
                 'ascension_code' => $row['ascension_code'] ?? null,
@@ -391,12 +400,12 @@ class BackupController extends Controller
      * @param  array<int, array<string, mixed>>  $rows
      * @return array{imported: int, skipped: int}
      */
-    private function importFormationTags(User $user, array $rows, string $strategy): array
+    private function importFormationTags(GameAccount $account, array $rows, string $strategy): array
     {
         $imported = 0;
         $skipped = 0;
         $existingNames = $strategy === 'merge'
-            ? $user->formationTags()->pluck('name')->all()
+            ? $account->formationTags()->pluck('name')->all()
             : [];
 
         foreach ($rows as $row) {
@@ -411,8 +420,7 @@ class BackupController extends Controller
 
                 continue;
             }
-            FormationTag::create([
-                'user_id' => $user->id,
+            $account->formationTags()->create([
                 'name' => $name,
                 'color' => in_array($row['color'] ?? '', FormationTag::COLORS, true)
                     ? $row['color']
@@ -429,7 +437,7 @@ class BackupController extends Controller
      * @param  array<int, array<string, mixed>>  $rows
      * @return array{imported: int, skipped: int}
      */
-    private function importFormations(User $user, array $rows, string $strategy): array
+    private function importFormations(GameAccount $account, array $rows, string $strategy): array
     {
         $imported = 0;
         $skipped = 0;
@@ -443,7 +451,7 @@ class BackupController extends Controller
         $heroIdsBySlug = Hero::whereIn('slug', $allHeroSlugs)->pluck('id', 'slug');
         $challengeIdsByCode = ChallengeType::pluck('id', 'code');
         $beastIdsBySlug = Beast::pluck('id', 'slug');
-        $tagsByName = $user->formationTags()->pluck('id', 'name');
+        $tagsByName = $account->formationTags()->pluck('id', 'name');
 
         foreach ($rows as $row) {
             $challengeId = $challengeIdsByCode[$row['challenge_type_code'] ?? ''] ?? null;
@@ -452,8 +460,7 @@ class BackupController extends Controller
 
                 continue;
             }
-            $formation = Formation::create([
-                'user_id' => $user->id,
+            $formation = $account->formations()->create([
                 'challenge_type_id' => $challengeId,
                 'name' => $row['name'] ?? 'Importada',
                 'mode' => $row['mode'] ?? 'target',
@@ -507,7 +514,7 @@ class BackupController extends Controller
      * @param  array<int, array<string, mixed>>  $rows
      * @return array{imported: int, skipped: int}
      */
-    private function importTierLists(User $user, array $rows, string $strategy): array
+    private function importTierLists(GameAccount $account, array $rows, string $strategy): array
     {
         $imported = 0;
         $skipped = 0;
@@ -527,8 +534,7 @@ class BackupController extends Controller
 
                 continue;
             }
-            $tierList = UserTierList::create([
-                'user_id' => $user->id,
+            $tierList = $account->tierLists()->create([
                 'name' => $name,
                 'description' => $row['description'] ?? null,
             ]);
@@ -560,15 +566,15 @@ class BackupController extends Controller
      * @param  array<int, string>  $slugs
      * @return array{imported: int, skipped: int}
      */
-    private function importFavorites(User $user, array $slugs, string $strategy): array
+    private function importFavorites(GameAccount $account, array $slugs, string $strategy): array
     {
         $heroIds = Hero::whereIn('slug', $slugs)->pluck('id')->all();
         $skipped = count($slugs) - count($heroIds);
 
         if ($strategy === 'replace') {
-            $user->favoriteHeroes()->sync($heroIds);
+            $account->favoriteHeroes()->sync($heroIds);
         } else {
-            $user->favoriteHeroes()->syncWithoutDetaching($heroIds);
+            $account->favoriteHeroes()->syncWithoutDetaching($heroIds);
         }
 
         return ['imported' => count($heroIds), 'skipped' => $skipped];
@@ -578,12 +584,12 @@ class BackupController extends Controller
      * @param  array<int, array<string, mixed>>  $rows
      * @return array{imported: int, skipped: int}
      */
-    private function importScoringWeightPresets(User $user, array $rows, string $strategy): array
+    private function importScoringWeightPresets(GameAccount $account, array $rows, string $strategy): array
     {
         $imported = 0;
         $skipped = 0;
         $existingNames = $strategy === 'merge'
-            ? $user->scoringWeightPresets()->pluck('name')->all()
+            ? $account->scoringWeightPresets()->pluck('name')->all()
             : [];
 
         foreach ($rows as $row) {
@@ -605,8 +611,7 @@ class BackupController extends Controller
                 ->map(fn ($v) => max(0.0, min(3.0, (float) $v)))
                 ->all();
 
-            ScoringWeightPreset::create([
-                'user_id' => $user->id,
+            $account->scoringWeightPresets()->create([
                 'name' => $name,
                 'challenge_type_id' => $row['challenge_type_id'] ?? null,
                 'weights' => $cleanWeights,

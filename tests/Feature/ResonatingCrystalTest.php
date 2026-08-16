@@ -117,7 +117,7 @@ class ResonatingCrystalTest extends TestCase
             ]);
         }
 
-        $cap = UserResonatingCrystal::levelCapForUser($user);
+        $cap = UserResonatingCrystal::levelCapForAccount($user->defaultGameAccount);
         // 240 + 3*5 = 255 (3 non-dim ascendidos)
         $this->assertSame(255, $cap);
     }

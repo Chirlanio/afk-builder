@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Hero;
-use App\Models\UserHero;
+use App\Services\ActiveGameAccount;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class RosterImportController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function index()
     {
         $heroes = Hero::select('id', 'name', 'thumbnail_url', 'faction_id')
@@ -29,16 +31,12 @@ class RosterImportController extends Controller
             'heroes.*.ascension' => 'nullable|string',
         ]);
 
+        $account = $this->active->get();
+
         foreach ($request->heroes as $heroData) {
-            UserHero::updateOrCreate(
-                [
-                    'user_id' => auth()->id(),
-                    'hero_id' => $heroData['hero_id'],
-                ],
-                [
-                    'level' => $heroData['level'] ?? 1,
-                    // Note: We might want to map ascension_code here too
-                ]
+            $account->userHeroes()->updateOrCreate(
+                ['hero_id' => $heroData['hero_id']],
+                ['level' => $heroData['level'] ?? 1],
             );
         }
 

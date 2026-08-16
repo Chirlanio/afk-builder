@@ -15,6 +15,7 @@ use App\Models\HeroRating;
 use App\Models\HeroSynergy;
 use App\Models\Tier;
 use App\Models\UserHero;
+use App\Services\ActiveGameAccount;
 use App\Services\Formations\FormationVersioning;
 use App\Services\Optimization\ChallengeTypeMode;
 use App\Services\Optimization\MultiTeamPartitioner;
@@ -35,17 +36,21 @@ use Inertia\Response;
 
 class FormationController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     public function index(Request $request): Response
     {
+        $account = $this->active->get();
+
         // Fase 48: pré-calcula has_beast por formation via subquery agregada — evita N+1
         // sem carregar a relação teams na listagem.
-        $formationIdsWithBeast = $request->user()
+        $formationIdsWithBeast = $account
             ->formations()
             ->whereHas('teams', fn ($q) => $q->whereNotNull('beast_id'))
             ->pluck('id')
             ->all();
 
-        $formations = $request->user()
+        $formations = $account
             ->formations()
             ->with([
                 'challengeType:id,code,name_pt,min_teams,max_teams,is_pvp',
@@ -86,7 +91,7 @@ class FormationController extends Controller
             ]);
 
         // Fase 35: lista de tags do user pra filtro na index
-        $availableTags = $request->user()
+        $availableTags = $account
             ->formationTags()
             ->orderBy('name')
             ->get(['id', 'name', 'color']);
@@ -122,8 +127,10 @@ class FormationController extends Controller
         $teamsCount = $data['teams_count'] ?? $challengeType->max_teams;
         $teamsCount = max($challengeType->min_teams, min($challengeType->max_teams, $teamsCount));
 
-        $formation = DB::transaction(function () use ($request, $data, $teamsCount) {
-            $formation = $request->user()->formations()->create([
+        $account = $this->active->get();
+
+        $formation = DB::transaction(function () use ($account, $data, $teamsCount) {
+            $formation = $account->formations()->create([
                 'challenge_type_id' => $data['challenge_type_id'],
                 'name' => $data['name'],
                 'mode' => $data['mode'],
@@ -142,7 +149,8 @@ class FormationController extends Controller
 
     public function edit(Request $request, Formation $formation, TeamScorer $scorer): Response
     {
-        abort_unless($formation->user_id === $request->user()->id, 403);
+        $account = $this->active->get();
+        abort_unless($formation->game_account_id === $account->id, 403);
 
         $formation->load([
             'challengeType:id,code,scoring_profile,name_pt,description,min_teams,max_teams,is_pvp,teams_must_be_unique',
@@ -151,7 +159,7 @@ class FormationController extends Controller
             'tags:id,name,color',
         ]);
 
-        $heroPool = $this->buildHeroPool($formation, $request->user()->id);
+        $heroPool = $this->buildHeroPool($formation, $account->id);
 
         $beasts = Beast::query()
             ->where('is_active', true)
@@ -163,7 +171,7 @@ class FormationController extends Controller
 
         // Fase 26.4 + 27: breakdown completo de score por team. Aplica overrides
         // salvos no DB pra que o detalhamento reflita os pesos custom do user.
-        $scoresByTeamPosition = $this->computeScoresByPosition($formation, $request->user()->id, $scorer);
+        $scoresByTeamPosition = $this->computeScoresByPosition($formation, $account->id, $scorer);
 
         // Fase 26.5: pesos default do challenge_type para o slider tuner do frontend
         $scoringProfileDefaults = $this->extractScoringWeights($formation->challengeType->scoring_profile ?? []);
@@ -171,13 +179,13 @@ class FormationController extends Controller
         $scoringProfileOverrides = $formation->scoring_weights_override;
 
         // Fase 35: todas as tags do user (pra Popover de seleção no editor)
-        $availableTags = $request->user()
+        $availableTags = $account
             ->formationTags()
             ->orderBy('name')
             ->get(['id', 'name', 'color']);
 
         // Fase 30: presets do user — globais (challenge_type_id null) + os do challenge type da formation
-        $weightPresets = $request->user()
+        $weightPresets = $account
             ->scoringWeightPresets()
             ->where(function ($query) use ($formation) {
                 $query->whereNull('challenge_type_id')
@@ -235,12 +243,12 @@ class FormationController extends Controller
      *
      * @return array<int, array<string, mixed>|null>
      */
-    private function computeScoresByPosition(Formation $formation, int $userId, TeamScorer $scorer): array
+    private function computeScoresByPosition(Formation $formation, int $accountId, TeamScorer $scorer): array
     {
         $scores = [];
 
-        $heroPoolById = $this->loadHeroPool($formation, $userId);
-        $userHeroesById = $this->loadUserHeroes($userId);
+        $heroPoolById = $this->loadHeroPool($formation, $accountId);
+        $userHeroesById = $this->loadUserHeroes($accountId);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
         // Fase 27: aplica overrides persistidos quando presentes — breakdown reflete pesos custom.
@@ -306,7 +314,8 @@ class FormationController extends Controller
         Formation $formation,
         FormationVersioning $versioning,
     ): RedirectResponse {
-        abort_unless($formation->user_id === $request->user()->id, 403);
+        $account = $this->active->get();
+        abort_unless($formation->game_account_id === $account->id, 403);
 
         $challengeType = $formation->challengeType;
 
@@ -316,7 +325,7 @@ class FormationController extends Controller
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => [
                 'integer',
-                Rule::exists('formation_tags', 'id')->where('user_id', $request->user()->id),
+                Rule::exists('formation_tags', 'id')->where('game_account_id', $account->id),
             ],
             'teams' => ['required', 'array', 'min:'.$formation->teams_count, 'max:'.$formation->teams_count],
             'teams.*.position' => ['required', 'integer', 'min:1', 'max:'.$formation->teams_count],
@@ -344,7 +353,7 @@ class FormationController extends Controller
         }
 
         if ($formation->mode === 'real') {
-            $userHeroIds = $request->user()->userHeroes()->pluck('hero_id')->all();
+            $userHeroIds = $account->userHeroes()->pluck('hero_id')->all();
             foreach ($data['teams'] as $team) {
                 foreach ($team['heroes'] as $h) {
                     if (! in_array($h['hero_id'], $userHeroIds, true)) {
@@ -404,7 +413,8 @@ class FormationController extends Controller
         int $position,
         SingleTeamOptimizer $optimizer,
     ): JsonResponse {
-        abort_unless($formation->user_id === $request->user()->id, 403);
+        $account = $this->active->get();
+        abort_unless($formation->game_account_id === $account->id, 403);
 
         $formation->load([
             'challengeType:id,code,scoring_profile,teams_must_be_unique',
@@ -451,8 +461,8 @@ class FormationController extends Controller
             }
         }
 
-        $heroPoolById = $this->loadHeroPool($formation, $request->user()->id);
-        $userHeroesById = $this->loadUserHeroes($request->user()->id);
+        $heroPoolById = $this->loadHeroPool($formation, $account->id);
+        $userHeroesById = $this->loadUserHeroes($account->id);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
         // Prioridade: body weight_overrides > formation.scoring_weights_override > defaults.
@@ -505,7 +515,8 @@ class FormationController extends Controller
         Formation $formation,
         MultiTeamPartitioner $partitioner,
     ): JsonResponse {
-        abort_unless($formation->user_id === $request->user()->id, 403);
+        $account = $this->active->get();
+        abort_unless($formation->game_account_id === $account->id, 403);
 
         $formation->load([
             'challengeType:id,code,scoring_profile,teams_must_be_unique',
@@ -537,8 +548,8 @@ class FormationController extends Controller
             $lockedByTeam[$pos] = $ids;
         }
 
-        $heroPoolById = $this->loadHeroPool($formation, $request->user()->id);
-        $userHeroesById = $this->loadUserHeroes($request->user()->id);
+        $heroPoolById = $this->loadHeroPool($formation, $account->id);
+        $userHeroesById = $this->loadUserHeroes($account->id);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
         // Prioridade: body weight_overrides > formation.scoring_weights_override > defaults.
@@ -606,7 +617,7 @@ class FormationController extends Controller
      */
     public function updateScoringWeights(Request $request, Formation $formation): JsonResponse
     {
-        abort_unless($formation->user_id === $request->user()->id, 403);
+        abort_unless($formation->game_account_id === $this->active->get()->id, 403);
 
         $data = $request->validate([
             'weights' => ['nullable', 'array'],
@@ -625,7 +636,7 @@ class FormationController extends Controller
 
     public function destroy(Request $request, Formation $formation): RedirectResponse
     {
-        abort_unless($formation->user_id === $request->user()->id, 403);
+        abort_unless($formation->game_account_id === $this->active->get()->id, 403);
 
         $formation->delete();
 
@@ -642,7 +653,7 @@ class FormationController extends Controller
         Formation $formation,
         FormationVersioning $versioning,
     ): RedirectResponse {
-        abort_unless($formation->user_id === $request->user()->id, 403);
+        abort_unless($formation->game_account_id === $this->active->get()->id, 403);
 
         $challengeType = $formation->challengeType;
 
@@ -693,7 +704,7 @@ class FormationController extends Controller
      */
     public function bestBeast(Request $request, Formation $formation, FormationTeam $team): JsonResponse
     {
-        abort_unless($formation->user_id === $request->user()->id, 403);
+        abort_unless($formation->game_account_id === $this->active->get()->id, 403);
         abort_unless($team->formation_id === $formation->id, 404);
 
         $heroIds = $team->teamHeroes()->pluck('hero_id')->all();
@@ -781,7 +792,7 @@ class FormationController extends Controller
     /**
      * @return array<int, Hero>
      */
-    private function loadHeroPool(Formation $formation, int $userId): array
+    private function loadHeroPool(Formation $formation, int $accountId): array
     {
         $query = Hero::query()
             ->with(['faction:id,code', 'heroClass:id,code', 'tier:id,code', 'stats'])
@@ -789,7 +800,7 @@ class FormationController extends Controller
             ->where('pending_review', false);
 
         if ($formation->mode === 'real') {
-            $rosterIds = UserHero::where('user_id', $userId)->pluck('hero_id')->all();
+            $rosterIds = UserHero::where('game_account_id', $accountId)->pluck('hero_id')->all();
             $query->whereIn('id', $rosterIds);
         }
 
@@ -799,9 +810,9 @@ class FormationController extends Controller
     /**
      * @return array<int, UserHero>
      */
-    private function loadUserHeroes(int $userId): array
+    private function loadUserHeroes(int $accountId): array
     {
-        return UserHero::where('user_id', $userId)
+        return UserHero::where('game_account_id', $accountId)
             ->with([
                 'artifact:id,attributes',
                 'collection:id,hp_bonus,attack_bonus,defense_bonus',
@@ -869,9 +880,9 @@ class FormationController extends Controller
     /**
      * @return array{heroes: array<int, array<string, mixed>>, roster: array<int, int>, engravings: array<int, int>}
      */
-    private function buildHeroPool(Formation $formation, int $userId): array
+    private function buildHeroPool(Formation $formation, int $accountId): array
     {
-        $rosterRows = UserHero::where('user_id', $userId)
+        $rosterRows = UserHero::where('game_account_id', $accountId)
             ->get(['id', 'hero_id', 'engraving']);
 
         $rosterByHeroId = [];

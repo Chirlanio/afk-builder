@@ -7,6 +7,7 @@ use App\Models\HeroClass;
 use App\Models\Tier;
 use App\Models\UserHero;
 use App\Models\UserResonatingCrystal;
+use App\Services\ActiveGameAccount;
 use App\Services\Optimization\PowerCalculator;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,6 +15,8 @@ use Inertia\Response;
 
 class RosterAnalyticsController extends Controller
 {
+    public function __construct(private readonly ActiveGameAccount $active) {}
+
     /**
      * Quantos heroes "fortemente investidos" (Ascended ou superior) são esperados
      * por facção pra considerar uma facção "saudável". Abaixo disso → gap.
@@ -27,9 +30,9 @@ class RosterAnalyticsController extends Controller
 
     public function index(Request $request, PowerCalculator $power): Response
     {
-        $user = $request->user();
+        $account = $this->active->get();
 
-        $userHeroes = $user->userHeroes()
+        $userHeroes = $account->userHeroes()
             ->with([
                 'hero:id,slug,name,portrait_url,faction_id,hero_class_id,tier_id',
                 'hero.faction:id,code,name_pt,display_order',
@@ -55,7 +58,7 @@ class RosterAnalyticsController extends Controller
         $byTier = $this->groupByTier($userHeroes, $powerByHeroId);
         $top10 = $this->top10Heroes($userHeroes, $powerByHeroId);
         $gaps = $this->detectGaps($userHeroes, $byFaction, $byClass);
-        $pentagram = $this->pentagramSummary($userHeroes, $user);
+        $pentagram = $this->pentagramSummary($userHeroes, $account);
 
         return Inertia::render('roster/analytics', [
             'rosterSize' => $rosterSize,
@@ -76,7 +79,7 @@ class RosterAnalyticsController extends Controller
      * @param  iterable<UserHero>  $userHeroes
      * @return array<string, mixed>
      */
-    private function pentagramSummary(iterable $userHeroes, \App\Models\User $user): array
+    private function pentagramSummary(iterable $userHeroes, \App\Models\GameAccount $account): array
     {
         $sorted = collect($userHeroes)
             ->sortByDesc('level')
@@ -100,7 +103,7 @@ class RosterAnalyticsController extends Controller
             'shared_level' => $fifthLevel,
             'is_full' => $sorted->count() >= 5,
             'is_at_240' => $fifthLevel !== null && $fifthLevel >= UserResonatingCrystal::MIN_LEVEL,
-            'level_cap' => UserResonatingCrystal::levelCapForUser($user),
+            'level_cap' => UserResonatingCrystal::levelCapForAccount($account),
         ];
     }
 
