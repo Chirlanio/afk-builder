@@ -20,6 +20,7 @@ class ScoringWeightPreset extends Model
 
     protected $fillable = [
         'user_id',
+        'game_account_id',
         'name',
         'challenge_type_id',
         'weights',

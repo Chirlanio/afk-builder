@@ -11,6 +11,7 @@ class Formation extends Model
 {
     protected $fillable = [
         'user_id',
+        'game_account_id',
         'challenge_type_id',
         'name',
         'mode',

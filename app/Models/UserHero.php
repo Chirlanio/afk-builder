@@ -22,6 +22,7 @@ class UserHero extends Model
 
     protected $fillable = [
         'user_id',
+        'game_account_id',
         'hero_id',
         'level',
         'ascension_code',

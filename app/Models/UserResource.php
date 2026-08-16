@@ -21,6 +21,7 @@ class UserResource extends Model
 
     protected $fillable = [
         'user_id',
+        'game_account_id',
         'primordial_emblems',
         'amplifying_emblems',
         'faction_emblems',
