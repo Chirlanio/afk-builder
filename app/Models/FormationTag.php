@@ -23,6 +23,7 @@ class FormationTag extends Model
 
     protected $fillable = [
         'user_id',
+        'game_account_id',
         'name',
         'color',
     ];

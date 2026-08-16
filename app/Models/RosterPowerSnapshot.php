@@ -11,6 +11,7 @@ class RosterPowerSnapshot extends Model
 
     protected $fillable = [
         'user_id',
+        'game_account_id',
         'snapshot_date',
         'total_power',
         'hero_count',

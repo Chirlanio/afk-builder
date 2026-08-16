@@ -24,6 +24,7 @@ class UserResonatingCrystal extends Model
 
     protected $fillable = [
         'user_id',
+        'game_account_id',
         'level',
         'strengthen_progress',
         'slots_unlocked',
