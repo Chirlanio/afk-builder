@@ -25,6 +25,14 @@ export interface NavItem {
     badgeTone?: 'amber' | 'rose';
 }
 
+export interface GameAccountShared {
+    id: number;
+    name: string;
+    server: string | null;
+    avatar_hero_id: number | null;
+    is_default?: boolean;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
@@ -32,6 +40,10 @@ export interface SharedData {
     admin?: {
         pending_heroes_count: number | null;
     };
+    gameAccount?: {
+        active: GameAccountShared;
+        accounts: GameAccountShared[];
+    } | null;
     [key: string]: unknown;
 }
 

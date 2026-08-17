@@ -19,6 +19,11 @@ const sidebarNavItems: NavItem[] = [
         icon: null,
     },
     {
+        title: 'Contas',
+        url: '/settings/accounts',
+        icon: null,
+    },
+    {
         title: 'Backup',
         url: '/settings/backup',
         icon: null,

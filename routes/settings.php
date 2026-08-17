@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\BackupController;
+use App\Http\Controllers\Settings\GameAccountController;
 use App\Http\Controllers\Settings\LocaleController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -18,6 +19,11 @@ Route::middleware('auth')->group(function () {
     Route::put('settings/password', [PasswordController::class, 'update'])->name('password.update');
 
     Route::patch('settings/locale', [LocaleController::class, 'update'])->name('locale.update');
+
+    Route::get('settings/accounts', [GameAccountController::class, 'index'])->name('accounts.index');
+    Route::post('settings/accounts', [GameAccountController::class, 'store'])->name('accounts.store');
+    Route::patch('settings/accounts/{account}', [GameAccountController::class, 'update'])->name('accounts.update');
+    Route::delete('settings/accounts/{account}', [GameAccountController::class, 'destroy'])->name('accounts.destroy');
 
     Route::get('settings/backup', [BackupController::class, 'show'])->name('backup.show');
     Route::get('settings/backup/download', [BackupController::class, 'download'])->name('backup.download');
