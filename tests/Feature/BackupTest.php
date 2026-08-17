@@ -73,7 +73,8 @@ class BackupTest extends TestCase
         $response = $this->actingAs($user)->get('/settings/backup')->assertOk();
         $props = $response->viewData('page')['props'];
 
-        $this->assertSame(1, $props['summary']['roster_count']);
+        $this->assertCount(1, $props['accounts']);
+        $this->assertSame(1, $props['accounts'][0]['roster_count']);
         $this->assertSame(BackupController::SCHEMA_VERSION, $props['schema_version']);
     }
 
@@ -93,12 +94,15 @@ class BackupTest extends TestCase
         $this->assertArrayHasKey('exported_at', $data);
         $this->assertSame($user->id, $data['user']['id']);
         $this->assertSame('pt', $data['user']['locale']);
-        $this->assertArrayHasKey('roster', $data);
-        $this->assertArrayHasKey('formations', $data);
-        $this->assertArrayHasKey('tier_lists', $data);
-        $this->assertArrayHasKey('formation_tags', $data);
-        $this->assertArrayHasKey('favorite_hero_slugs', $data);
-        $this->assertArrayHasKey('scoring_weight_presets', $data);
+        $this->assertArrayHasKey('accounts', $data);
+        $this->assertCount(1, $data['accounts']);
+        $account = $data['accounts'][0];
+        $this->assertArrayHasKey('roster', $account);
+        $this->assertArrayHasKey('formations', $account);
+        $this->assertArrayHasKey('tier_lists', $account);
+        $this->assertArrayHasKey('formation_tags', $account);
+        $this->assertArrayHasKey('favorite_hero_slugs', $account);
+        $this->assertArrayHasKey('scoring_weight_presets', $account);
     }
 
     public function test_download_inclui_roster_completo(): void
@@ -122,11 +126,11 @@ class BackupTest extends TestCase
             true,
         );
 
-        $this->assertCount(1, $data['roster']);
-        $this->assertSame('thoran', $data['roster'][0]['hero_slug']);
-        $this->assertSame(40, $data['roster'][0]['signature_item']);
-        $this->assertSame(9, $data['roster'][0]['furniture']);
-        $this->assertSame('# meu favorito', $data['roster'][0]['notes']);
+        $this->assertCount(1, $data['accounts'][0]['roster']);
+        $this->assertSame('thoran', $data['accounts'][0]['roster'][0]['hero_slug']);
+        $this->assertSame(40, $data['accounts'][0]['roster'][0]['signature_item']);
+        $this->assertSame(9, $data['accounts'][0]['roster'][0]['furniture']);
+        $this->assertSame('# meu favorito', $data['accounts'][0]['roster'][0]['notes']);
     }
 
     public function test_download_inclui_formacao_com_teams_e_tags(): void
@@ -156,8 +160,8 @@ class BackupTest extends TestCase
             true,
         );
 
-        $this->assertCount(1, $data['formations']);
-        $f = $data['formations'][0];
+        $this->assertCount(1, $data['accounts'][0]['formations']);
+        $f = $data['accounts'][0]['formations'][0];
         $this->assertSame('Counter Wilders', $f['name']);
         $this->assertSame('campaign', $f['challenge_type_code']);
         $this->assertSame('plano: tank front', $f['notes']);
@@ -180,8 +184,8 @@ class BackupTest extends TestCase
             true,
         );
 
-        $this->assertCount(1, $data['tier_lists']);
-        $tl = $data['tier_lists'][0];
+        $this->assertCount(1, $data['accounts'][0]['tier_lists']);
+        $tl = $data['accounts'][0]['tier_lists'][0];
         $this->assertSame('PvP Top', $tl['name']);
         $this->assertSame('S', $tl['rows'][0]['label']);
         $this->assertSame('lucius', $tl['rows'][0]['items'][0]['hero_slug']);
@@ -198,7 +202,7 @@ class BackupTest extends TestCase
             true,
         );
 
-        $this->assertSame(['skreg'], $data['favorite_hero_slugs']);
+        $this->assertSame(['skreg'], $data['accounts'][0]['favorite_hero_slugs']);
     }
 
     public function test_download_inclui_presets_de_peso(): void
@@ -216,9 +220,9 @@ class BackupTest extends TestCase
             true,
         );
 
-        $this->assertCount(1, $data['scoring_weight_presets']);
-        $this->assertSame('PvP agressivo', $data['scoring_weight_presets'][0]['name']);
-        $this->assertSame(2.0, (float) $data['scoring_weight_presets'][0]['weights']['power_weight']);
+        $this->assertCount(1, $data['accounts'][0]['scoring_weight_presets']);
+        $this->assertSame('PvP agressivo', $data['accounts'][0]['scoring_weight_presets'][0]['name']);
+        $this->assertSame(2.0, (float) $data['accounts'][0]['scoring_weight_presets'][0]['weights']['power_weight']);
     }
 
     public function test_dados_sao_isolados_por_user(): void
@@ -242,7 +246,7 @@ class BackupTest extends TestCase
             true,
         );
 
-        $this->assertCount(0, $data['roster']);
+        $this->assertCount(0, $data['accounts'][0]['roster']);
     }
 
     public function test_filename_inclui_user_id_e_timestamp(): void

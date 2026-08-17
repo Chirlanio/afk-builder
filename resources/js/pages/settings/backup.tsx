@@ -10,7 +10,10 @@ import SettingsLayout from '@/layouts/settings/layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 
-interface Summary {
+interface AccountSummary {
+    id: number;
+    name: string;
+    is_default: boolean;
     roster_count: number;
     formations_count: number;
     tier_lists_count: number;
@@ -25,18 +28,15 @@ interface FlashProps {
 }
 
 interface PageProps {
-    summary: Summary;
+    accounts: AccountSummary[];
     schema_version: number;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Backup',
-        href: '/settings/backup',
-    },
+    { title: 'Backup', href: '/settings/backup' },
 ];
 
-export default function BackupPage({ summary, schema_version }: PageProps) {
+export default function BackupPage({ accounts, schema_version }: PageProps) {
     const flash = (usePage().props.flash ?? {}) as FlashProps;
     const errors = (usePage().props.errors ?? {}) as Record<string, string>;
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +48,18 @@ export default function BackupPage({ summary, schema_version }: PageProps) {
         file: null,
         strategy: 'merge',
     });
+
+    const totals = accounts.reduce(
+        (acc, a) => ({
+            roster: acc.roster + a.roster_count,
+            formations: acc.formations + a.formations_count,
+            tier_lists: acc.tier_lists + a.tier_lists_count,
+            formation_tags: acc.formation_tags + a.formation_tags_count,
+            favorites: acc.favorites + a.favorites_count,
+            scoring_weight_presets: acc.scoring_weight_presets + a.scoring_weight_presets_count,
+        }),
+        { roster: 0, formations: 0, tier_lists: 0, formation_tags: 0, favorites: 0, scoring_weight_presets: 0 },
+    );
 
     const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0] ?? null;
@@ -65,8 +77,7 @@ export default function BackupPage({ summary, schema_version }: PageProps) {
                 reset();
                 setFilename(null);
                 if (fileInputRef.current) fileInputRef.current.value = '';
-                // Reload props pra refrescar summary
-                router.reload({ only: ['summary'] });
+                router.reload({ only: ['accounts'] });
             },
         });
     };
@@ -79,33 +90,46 @@ export default function BackupPage({ summary, schema_version }: PageProps) {
                 <div className="space-y-6">
                     <HeadingSmall
                         title="Backup dos seus dados"
-                        description="Baixe um arquivo JSON com todo o conteúdo da sua conta. Útil para portabilidade ou backup pessoal."
+                        description="Baixe um arquivo JSON com o conteúdo de TODAS as suas contas do jogo. Ideal para portabilidade ou backup pessoal."
                     />
 
                     <div className="rounded-lg border bg-card p-4">
                         <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
                             <Database className="size-4 text-muted-foreground" />
-                            O que está incluído
+                            O que está incluído · {accounts.length} conta{accounts.length !== 1 ? 's' : ''}
                         </div>
 
-                        <div className="grid gap-2 sm:grid-cols-2">
-                            <SummaryRow icon={Users} label="Heróis no roster" count={summary.roster_count} />
-                            <SummaryRow icon={Swords} label="Formações" count={summary.formations_count} />
-                            <SummaryRow icon={ListChecks} label="Tier lists" count={summary.tier_lists_count} />
-                            <SummaryRow icon={Tag} label="Tags de formação" count={summary.formation_tags_count} />
-                            <SummaryRow icon={Star} label="Heróis favoritos" count={summary.favorites_count} />
-                            <SummaryRow icon={Weight} label="Presets de pesos" count={summary.scoring_weight_presets_count} />
+                        <div className="space-y-3">
+                            {accounts.map((account) => (
+                                <div key={account.id} className="rounded-md border bg-muted/20 p-3">
+                                    <div className="mb-2 flex items-center gap-2">
+                                        <span className="font-medium">{account.name}</span>
+                                        {account.is_default && (
+                                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                                <Star className="size-2.5" /> Padrão
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        <SummaryRow icon={Users} label="Heróis no roster" count={account.roster_count} />
+                                        <SummaryRow icon={Swords} label="Formações" count={account.formations_count} />
+                                        <SummaryRow icon={ListChecks} label="Tier lists" count={account.tier_lists_count} />
+                                        <SummaryRow icon={Tag} label="Tags" count={account.formation_tags_count} />
+                                        <SummaryRow icon={Star} label="Favoritos" count={account.favorites_count} />
+                                        <SummaryRow icon={Weight} label="Presets" count={account.scoring_weight_presets_count} />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
 
                         <p className="mt-3 text-[11px] text-muted-foreground">
-                            Inclui também stats personalizadas, equipamento, anotações por hero e por formação, beasts, artifacts/coleções.
+                            Inclui stats personalizadas, equipamento, anotações por hero e por formação, beasts, artifacts/coleções.
                         </p>
                     </div>
 
                     <div className="rounded-lg border bg-card p-4">
                         <p className="mb-3 text-xs text-muted-foreground">
-                            O arquivo segue o schema versão <span className="font-mono font-semibold">{schema_version}</span>.
-                            Use IDs externos onde possível (slugs de heróis, código de challenge type) para que o arquivo continue válido se você importar em outra instância.
+                            Schema versão <span className="font-mono font-semibold">v{schema_version}</span> (multi-conta). Arquivos v1 antigos ainda são aceitos no import (retro-compat).
                         </p>
                         <Button asChild>
                             <a href={route('backup.download')} download>
@@ -115,16 +139,9 @@ export default function BackupPage({ summary, schema_version }: PageProps) {
                         </Button>
                     </div>
 
-                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-300">
-                        <p className="font-semibold">Heads up</p>
-                        <p className="mt-1">
-                            Este export <strong>não inclui</strong> senha, e-mail de notificação ou qualquer informação sensível. Cole o arquivo onde quiser — é só seus dados de jogo.
-                        </p>
-                    </div>
-
                     <HeadingSmall
                         title="Importar backup"
-                        description="Restaure dados de um arquivo JSON gerado anteriormente. Escolha a estratégia antes de continuar."
+                        description="Restaure dados de um arquivo JSON. Contas do arquivo entram como novas contas; nomes duplicados ganham sufixo (importada)."
                     />
 
                     {flash.status && (
@@ -149,14 +166,14 @@ export default function BackupPage({ summary, schema_version }: PageProps) {
                                     active={data.strategy === 'merge'}
                                     onClick={() => setData('strategy', 'merge')}
                                     title="Merge"
-                                    description="Preserva o que já existe. Adiciona o novo. Conflitos (nome de tag/preset duplicado, hero já no roster) ficam de fora."
+                                    description="Mantém suas contas atuais. Contas do backup entram como novas (com sufixo se nome colidir)."
                                     tone="emerald"
                                 />
                                 <StrategyOption
                                     active={data.strategy === 'replace'}
                                     onClick={() => setData('strategy', 'replace')}
                                     title="Replace"
-                                    description="Apaga TUDO antes de importar. Use só se quiser substituir totalmente seus dados."
+                                    description="Apaga TODAS as contas existentes e recria do zero com o backup. Ação destrutiva."
                                     tone="rose"
                                 />
                             </div>
@@ -183,7 +200,7 @@ export default function BackupPage({ summary, schema_version }: PageProps) {
                             <div className="flex items-start gap-2 rounded-md border border-rose-500/40 bg-rose-500/5 p-2.5 text-[11px] text-rose-700 dark:text-rose-300">
                                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
                                 <p>
-                                    <strong>Modo replace</strong>: todos os {summary.roster_count} heroes do roster, {summary.formations_count} formações, {summary.tier_lists_count} tier lists, {summary.formation_tags_count} tags, {summary.favorites_count} favoritos e {summary.scoring_weight_presets_count} presets serão <strong>apagados</strong> antes do import.
+                                    <strong>Modo replace</strong>: TODAS as {accounts.length} conta{accounts.length !== 1 ? 's' : ''} atuais, com seus {totals.roster} heroes, {totals.formations} formações, {totals.tier_lists} tier lists, {totals.formation_tags} tags e {totals.favorites} favoritos, serão <strong>apagadas</strong> antes do import.
                                 </p>
                             </div>
                         )}
