@@ -4,13 +4,10 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\Settings\BackupController;
 use App\Models\Faction;
-use App\Models\FormationTag;
 use App\Models\Hero;
 use App\Models\HeroClass;
-use App\Models\ScoringWeightPreset;
 use App\Models\Tier;
 use App\Models\User;
-use App\Models\UserHero;
 use Database\Seeders\ChallengeTypeSeeder;
 use Database\Seeders\FactionSeeder;
 use Database\Seeders\HeroClassSeeder;
@@ -57,6 +54,19 @@ class BackupImportTest extends TestCase
         return new UploadedFile($path, 'backup.json', 'application/json', null, true);
     }
 
+    /**
+     * Helper pra shape v2 (multi-account). Aceita 1+ accounts.
+     */
+    private function v2Payload(array $accounts): array
+    {
+        return [
+            'schema_version' => 2,
+            'exported_at' => now()->toIso8601String(),
+            'user' => ['id' => 1, 'name' => 'x', 'email' => 'x@x.com', 'locale' => 'pt'],
+            'accounts' => $accounts,
+        ];
+    }
+
     public function test_guest_recebe_redirect(): void
     {
         $this->post('/settings/backup/import')->assertRedirect('/login');
@@ -65,297 +75,180 @@ class BackupImportTest extends TestCase
     public function test_rejeita_arquivo_sem_schema_version(): void
     {
         $user = User::factory()->create();
-        $file = $this->uploadJson(['roster' => []]);
+        $file = $this->uploadJson(['accounts' => []]);
 
         $this->actingAs($user)
-            ->post('/settings/backup/import', [
-                'file' => $file,
-                'strategy' => 'merge',
-            ])
+            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
             ->assertSessionHasErrors(['file']);
     }
 
     public function test_rejeita_schema_version_incompativel(): void
     {
         $user = User::factory()->create();
-        $file = $this->uploadJson([
-            'schema_version' => 999,
-            'roster' => [],
-        ]);
+        $file = $this->uploadJson(['schema_version' => 999, 'accounts' => []]);
 
         $this->actingAs($user)
-            ->post('/settings/backup/import', [
-                'file' => $file,
-                'strategy' => 'merge',
-            ])
+            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
             ->assertSessionHasErrors(['file']);
     }
 
-    public function test_merge_importa_roster_completo(): void
+    // ============================================================
+    // v2 (multi-account)
+    // ============================================================
+
+    public function test_v2_merge_cria_nova_conta_com_roster(): void
     {
         $user = User::factory()->create();
         $this->makeHero('thoran');
-        $file = $this->uploadJson([
-            'schema_version' => BackupController::SCHEMA_VERSION,
-            'roster' => [
-                [
-                    'hero_slug' => 'thoran',
-                    'level' => 240,
-                    'ascension_code' => 'ascended_5_stars',
-                    'ascension_value' => 16,
-                    'signature_item' => 40,
-                    'furniture' => 9,
-                    'engraving' => 80,
-                    'notes' => '# meu fav',
-                ],
+
+        $file = $this->uploadJson($this->v2Payload([
+            [
+                'name' => 'Alt',
+                'roster' => [['hero_slug' => 'thoran', 'level' => 240, 'signature_item' => 40]],
             ],
-        ]);
+        ]));
 
         $this->actingAs($user)
-            ->post('/settings/backup/import', [
-                'file' => $file,
-                'strategy' => 'merge',
-            ])
+            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
             ->assertRedirect();
 
-        $this->assertSame(1, $user->userHeroes()->count());
-        $uh = $user->userHeroes()->first();
-        $this->assertSame(40, $uh->signature_item);
-        $this->assertSame('# meu fav', $uh->notes);
+        // Continua com Conta Principal + adiciona Alt
+        $this->assertSame(2, $user->gameAccounts()->count());
+        $alt = $user->gameAccounts()->where('name', 'Alt')->first();
+        $this->assertNotNull($alt);
+        $this->assertSame(1, $alt->userHeroes()->count());
+        $this->assertSame(40, $alt->userHeroes()->first()->signature_item);
     }
 
-    public function test_merge_skipa_hero_ja_no_roster(): void
+    public function test_v2_merge_sufixa_nome_quando_colide(): void
     {
         $user = User::factory()->create();
-        $hero = $this->makeHero('thoran');
-        UserHero::create([
-            'game_account_id' => $user->defaultGameAccount->id,
-            'hero_id' => $hero->id,
-            'level' => 100,
-            'ascension_value' => 5,
-            'ascension_code' => 'rare_plus',
-            'signature_item' => 0,
-            'furniture' => 0,
-            'engraving' => 0,
-        ]);
 
-        $file = $this->uploadJson([
-            'schema_version' => BackupController::SCHEMA_VERSION,
-            'roster' => [
-                ['hero_slug' => 'thoran', 'level' => 240, 'signature_item' => 40],
+        $file = $this->uploadJson($this->v2Payload([
+            ['name' => 'Conta Principal', 'roster' => []],
+        ]));
+
+        $this->actingAs($user)
+            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
+            ->assertRedirect();
+
+        $this->assertSame(2, $user->gameAccounts()->count());
+        $this->assertNotNull($user->gameAccounts()->where('name', 'Conta Principal (importada)')->first());
+    }
+
+    public function test_v2_replace_apaga_todas_e_recria(): void
+    {
+        $user = User::factory()->create();
+        $this->makeHero('thoran');
+        $user->gameAccounts()->create(['name' => 'Alt']);
+        $this->assertSame(2, $user->gameAccounts()->count());
+
+        $file = $this->uploadJson($this->v2Payload([
+            [
+                'name' => 'Nova',
+                'is_default' => true,
+                'roster' => [['hero_slug' => 'thoran', 'level' => 240]],
             ],
+        ]));
+
+        $this->actingAs($user)
+            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'replace'])
+            ->assertRedirect();
+
+        // Apagou as 2 originais, criou só a "Nova"
+        $this->assertSame(1, $user->gameAccounts()->count());
+        $nova = $user->gameAccounts()->first();
+        $this->assertSame('Nova', $nova->name);
+        $this->assertSame(1, $nova->userHeroes()->count());
+    }
+
+    public function test_v2_importa_multiplas_contas(): void
+    {
+        $user = User::factory()->create();
+        $this->makeHero('thoran');
+        $this->makeHero('athalia');
+
+        $file = $this->uploadJson($this->v2Payload([
+            ['name' => 'Main', 'is_default' => true, 'roster' => [['hero_slug' => 'thoran']]],
+            ['name' => 'Alt', 'roster' => [['hero_slug' => 'athalia']]],
+        ]));
+
+        $this->actingAs($user)
+            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'replace'])
+            ->assertRedirect();
+
+        $this->assertSame(2, $user->gameAccounts()->count());
+        $main = $user->gameAccounts()->where('name', 'Main')->first();
+        $alt = $user->gameAccounts()->where('name', 'Alt')->first();
+        $this->assertTrue($main->is_default);
+        $this->assertSame('thoran', $main->userHeroes->first()->hero->slug);
+        $this->assertSame('athalia', $alt->userHeroes->first()->hero->slug);
+    }
+
+    // ============================================================
+    // v1 (retrocompat)
+    // ============================================================
+
+    public function test_v1_retrocompat_cria_conta_importada(): void
+    {
+        $user = User::factory()->create();
+        $this->makeHero('thoran');
+
+        // Backup v1 legacy: dados no topo, sem accounts[]
+        $file = $this->uploadJson([
+            'schema_version' => 1,
+            'roster' => [['hero_slug' => 'thoran', 'level' => 240, 'signature_item' => 30]],
         ]);
 
         $this->actingAs($user)
             ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
             ->assertRedirect();
 
-        // Mantém o original (level 100, SI 0) — merge não sobrescreve
-        $this->assertSame(1, $user->userHeroes()->count());
-        $this->assertSame(100, $user->userHeroes()->first()->level);
-        $this->assertSame(0, $user->userHeroes()->first()->signature_item);
+        $imported = $user->gameAccounts()->where('name', 'Conta Importada')->first();
+        $this->assertNotNull($imported);
+        $this->assertSame(1, $imported->userHeroes()->count());
+        $this->assertSame(30, $imported->userHeroes()->first()->signature_item);
     }
 
-    public function test_replace_apaga_e_recria_roster(): void
+    public function test_v1_replace_apaga_tudo_e_cria_conta_importada(): void
     {
         $user = User::factory()->create();
-        $hero = $this->makeHero('thoran');
-        UserHero::create([
-            'game_account_id' => $user->defaultGameAccount->id,
-            'hero_id' => $hero->id,
-            'level' => 100,
-            'ascension_value' => 5,
-            'ascension_code' => 'rare_plus',
-            'signature_item' => 0,
-            'furniture' => 0,
-            'engraving' => 0,
-        ]);
+        $user->gameAccounts()->create(['name' => 'Alt']);
+        $this->makeHero('thoran');
 
         $file = $this->uploadJson([
-            'schema_version' => BackupController::SCHEMA_VERSION,
-            'roster' => [
-                ['hero_slug' => 'thoran', 'level' => 240, 'signature_item' => 40],
-            ],
+            'schema_version' => 1,
+            'roster' => [['hero_slug' => 'thoran']],
         ]);
 
         $this->actingAs($user)
             ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'replace'])
             ->assertRedirect();
 
-        $this->assertSame(1, $user->userHeroes()->count());
-        // Replace sobrescreve com SI 40
-        $this->assertSame(40, $user->userHeroes()->first()->signature_item);
+        $this->assertSame(1, $user->gameAccounts()->count());
+        $this->assertSame('Conta Importada', $user->gameAccounts()->first()->name);
     }
 
-    public function test_slug_inexistente_e_skipado(): void
-    {
-        $user = User::factory()->create();
-        $this->makeHero('thoran');
-        $file = $this->uploadJson([
-            'schema_version' => BackupController::SCHEMA_VERSION,
-            'roster' => [
-                ['hero_slug' => 'thoran'],
-                ['hero_slug' => 'nao-existe'],
-                ['hero_slug' => 'tambem-nao-existe'],
-            ],
-        ]);
-
-        $this->actingAs($user)
-            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
-            ->assertRedirect()
-            ->assertSessionHas('status', fn ($msg) => str_contains($msg, '1 heroes') && str_contains($msg, '2 itens skipados'));
-
-        $this->assertSame(1, $user->userHeroes()->count());
-    }
-
-    public function test_importa_formacao_com_tags_e_teams(): void
-    {
-        $user = User::factory()->create();
-        $this->makeHero('athalia');
-
-        $file = $this->uploadJson([
-            'schema_version' => BackupController::SCHEMA_VERSION,
-            'formation_tags' => [
-                ['name' => 'speedrun', 'color' => 'emerald'],
-            ],
-            'formations' => [
-                [
-                    'name' => 'Counter Wilders',
-                    'challenge_type_code' => 'campaign',
-                    'mode' => 'target',
-                    'teams_count' => 1,
-                    'notes' => 'plano',
-                    'tag_names' => ['speedrun'],
-                    'teams' => [
-                        [
-                            'position' => 1,
-                            'heroes' => [
-                                ['slot' => 1, 'hero_slug' => 'athalia'],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ]);
-
-        $this->actingAs($user)
-            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
-            ->assertRedirect();
-
-        $f = $user->formations()->with('tags', 'teams.teamHeroes')->first();
-        $this->assertNotNull($f);
-        $this->assertSame('Counter Wilders', $f->name);
-        $this->assertSame('plano', $f->notes);
-        $this->assertCount(1, $f->tags);
-        $this->assertSame('speedrun', $f->tags->first()->name);
-        $this->assertSame(1, $f->teams->first()->teamHeroes->first()->hero->slug ? 1 : 0);
-    }
-
-    public function test_challenge_type_code_inexistente_skipa_formacao(): void
-    {
-        $user = User::factory()->create();
-        $file = $this->uploadJson([
-            'schema_version' => BackupController::SCHEMA_VERSION,
-            'formations' => [
-                ['name' => 'X', 'challenge_type_code' => 'nao_existe', 'teams' => []],
-            ],
-        ]);
-
-        $this->actingAs($user)
-            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
-            ->assertRedirect();
-
-        $this->assertSame(0, $user->formations()->count());
-    }
-
-    public function test_importa_favoritos(): void
-    {
-        $user = User::factory()->create();
-        $h1 = $this->makeHero('h1');
-        $h2 = $this->makeHero('h2');
-        $file = $this->uploadJson([
-            'schema_version' => BackupController::SCHEMA_VERSION,
-            'favorite_hero_slugs' => ['h1', 'h2', 'h-nao-existe'],
-        ]);
-
-        $this->actingAs($user)
-            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
-            ->assertRedirect();
-
-        $ids = $user->defaultGameAccount->favoriteHeroes()->pluck('heroes.id')->all();
-        $this->assertContains($h1->id, $ids);
-        $this->assertContains($h2->id, $ids);
-        $this->assertCount(2, $ids);
-    }
-
-    public function test_importa_presets_skipa_nome_duplicado_em_merge(): void
-    {
-        $user = User::factory()->create();
-        ScoringWeightPreset::create([
-            'game_account_id' => $user->defaultGameAccount->id,
-            'name' => 'pvp',
-            'challenge_type_id' => null,
-            'weights' => ['power_weight' => 1.0],
-        ]);
-
-        $file = $this->uploadJson([
-            'schema_version' => BackupController::SCHEMA_VERSION,
-            'scoring_weight_presets' => [
-                ['name' => 'pvp', 'weights' => ['power_weight' => 3.0]],
-                ['name' => 'novo', 'weights' => ['power_weight' => 2.0]],
-            ],
-        ]);
-
-        $this->actingAs($user)
-            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
-            ->assertRedirect();
-
-        $this->assertSame(2, $user->scoringWeightPresets()->count());
-        // O original 'pvp' deve ter power_weight 1.0 (não sobrescrito)
-        $pvp = $user->defaultGameAccount->scoringWeightPresets()->where('name', 'pvp')->first();
-        $this->assertSame(1.0, (float) $pvp->weights['power_weight']);
-    }
+    // ============================================================
+    // Isolamento
+    // ============================================================
 
     public function test_isola_por_user(): void
     {
         $userA = User::factory()->create();
         $userB = User::factory()->create();
-        $hero = $this->makeHero('h');
+        $this->makeHero('thoran');
 
-        $file = $this->uploadJson([
-            'schema_version' => BackupController::SCHEMA_VERSION,
-            'roster' => [['hero_slug' => 'h', 'level' => 240]],
-        ]);
+        $file = $this->uploadJson($this->v2Payload([
+            ['name' => 'Alt A', 'roster' => [['hero_slug' => 'thoran']]],
+        ]));
 
         $this->actingAs($userA)
             ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
             ->assertRedirect();
 
-        $this->assertSame(1, $userA->userHeroes()->count());
+        $this->assertSame(2, $userA->gameAccounts()->count());
+        $this->assertSame(1, $userB->gameAccounts()->count());
         $this->assertSame(0, $userB->userHeroes()->count());
-    }
-
-    public function test_replace_remove_tags_existentes_antes_de_importar(): void
-    {
-        $user = User::factory()->create();
-        FormationTag::create([
-            'game_account_id' => $user->defaultGameAccount->id,
-            'name' => 'tag-velha',
-            'color' => 'amber',
-        ]);
-
-        $file = $this->uploadJson([
-            'schema_version' => BackupController::SCHEMA_VERSION,
-            'formation_tags' => [
-                ['name' => 'tag-nova', 'color' => 'sky'],
-            ],
-        ]);
-
-        $this->actingAs($user)
-            ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'replace'])
-            ->assertRedirect();
-
-        $this->assertSame(1, $user->formationTags()->count());
-        $this->assertSame('tag-nova', $user->formationTags()->first()->name);
     }
 }

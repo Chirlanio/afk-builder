@@ -12,11 +12,9 @@ use App\Models\Hero;
 use App\Models\ScoringWeightPreset;
 use App\Models\UserHero;
 use App\Models\UserTierList;
-use App\Services\ActiveGameAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -26,40 +24,45 @@ class BackupController extends Controller
     /**
      * Versão do schema do backup. Bump quando o formato mudar de modo
      * que um import precise saber qual layout esperar.
+     *
+     * v1 — single-account (dados soltos no topo).
+     * v2 — multi-account (dados aninhados em `accounts[]`); mantém retro-
+     *      compat com v1 no import.
      */
-    public const SCHEMA_VERSION = 1;
-
-    public function __construct(private readonly ActiveGameAccount $active) {}
+    public const SCHEMA_VERSION = 2;
 
     public function show(Request $request): Response
     {
-        $account = $this->active->get();
+        $user = $request->user();
 
-        $summary = [
-            'roster_count' => $account->userHeroes()->count(),
-            'formations_count' => $account->formations()->count(),
-            'tier_lists_count' => $account->tierLists()->count(),
-            'formation_tags_count' => $account->formationTags()->count(),
-            'favorites_count' => $account->favoriteHeroes()->count(),
-            'scoring_weight_presets_count' => $account->scoringWeightPresets()->count(),
-        ];
+        $accounts = $user->gameAccounts()->with([])->get()->map(fn (GameAccount $a) => [
+            'id' => $a->id,
+            'name' => $a->name,
+            'is_default' => $a->is_default,
+            'roster_count' => $a->userHeroes()->count(),
+            'formations_count' => $a->formations()->count(),
+            'tier_lists_count' => $a->tierLists()->count(),
+            'formation_tags_count' => $a->formationTags()->count(),
+            'favorites_count' => $a->favoriteHeroes()->count(),
+            'scoring_weight_presets_count' => $a->scoringWeightPresets()->count(),
+        ])->values()->all();
 
         return Inertia::render('settings/backup', [
-            'summary' => $summary,
+            'accounts' => $accounts,
             'schema_version' => self::SCHEMA_VERSION,
         ]);
     }
 
     /**
-     * Gera o JSON com todos os dados da conta ativa. Stream pra não consumir muita memória
-     * em backups grandes (rosters com centenas de heroes + dezenas de formações).
+     * Gera o JSON com todos os dados do user (todas as contas). Stream
+     * pra não consumir muita memória em backups grandes.
      */
     public function download(Request $request): StreamedResponse
     {
-        $account = $this->active->get();
-        $payload = $this->buildPayload($account);
+        $user = $request->user();
+        $payload = $this->buildPayload($user);
 
-        $filename = sprintf('afk-builder-backup-%s-%s.json', $account->id, now()->format('Y-m-d-His'));
+        $filename = sprintf('afk-builder-backup-%s-%s.json', $user->id, now()->format('Y-m-d-His'));
 
         return response()->streamDownload(function () use ($payload) {
             echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -71,9 +74,12 @@ class BackupController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function buildPayload(GameAccount $account): array
+    private function buildPayload(\App\Models\User $user): array
     {
-        $user = $account->user;
+        $accounts = $user->gameAccounts()
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get();
 
         return [
             'schema_version' => self::SCHEMA_VERSION,
@@ -84,11 +90,20 @@ class BackupController extends Controller
                 'email' => $user->email,
                 'locale' => $user->locale,
             ],
-            'game_account' => [
-                'id' => $account->id,
-                'name' => $account->name,
-                'server' => $account->server,
-            ],
+            'accounts' => $accounts->map(fn (GameAccount $a) => $this->buildAccountPayload($a))->values()->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildAccountPayload(GameAccount $account): array
+    {
+        return [
+            'name' => $account->name,
+            'server' => $account->server,
+            'is_default' => $account->is_default,
+            'avatar_hero_slug' => $account->avatarHero?->slug,
             'roster' => $this->buildRoster($account),
             'formations' => $this->buildFormations($account),
             'tier_lists' => $this->buildTierLists($account),
@@ -247,12 +262,14 @@ class BackupController extends Controller
     }
 
     /**
-     * Importa o JSON gerado por download() de volta. Suporta 2 estratégias:
-     * - `replace`: limpa TODOS os dados do user (DELETE cascade) e re-cria do zero
-     * - `merge`: preserva o existente; skip conflitos de unique (nome de tag, preset, etc)
+     * Importa o JSON gerado por download() de volta.
      *
-     * Slugs inexistentes (hero/beast/challenge_type não seedado nesta instância)
-     * são silenciosamente skipados e contados em `skipped`.
+     * Estratégias:
+     * - `replace`: apaga TODAS as contas do user e cria novas do payload
+     * - `merge`: preserva contas existentes; cria novas com nome sufixado se colidir
+     *
+     * Retro-compat: v1 (single-account) é aceito. Trata como se fosse v2
+     * com uma única conta "Conta Importada".
      */
     public function import(Request $request): RedirectResponse
     {
@@ -268,46 +285,61 @@ class BackupController extends Controller
             return back()->withErrors(['file' => 'Arquivo não é JSON válido.']);
         }
 
-        $structureValidator = Validator::make($data, [
-            'schema_version' => ['required', 'integer'],
-            'roster' => ['nullable', 'array'],
-            'formations' => ['nullable', 'array'],
-            'tier_lists' => ['nullable', 'array'],
-            'formation_tags' => ['nullable', 'array'],
-            'favorite_hero_slugs' => ['nullable', 'array'],
-            'scoring_weight_presets' => ['nullable', 'array'],
-        ]);
-        if ($structureValidator->fails()) {
-            return back()->withErrors(['file' => 'Estrutura do JSON inválida.']);
-        }
-
-        if ((int) $data['schema_version'] !== self::SCHEMA_VERSION) {
+        $version = (int) ($data['schema_version'] ?? 0);
+        if (! in_array($version, [1, 2], true)) {
             return back()->withErrors([
-                'file' => "Schema version incompatível: arquivo é v{$data['schema_version']}, app espera v".self::SCHEMA_VERSION.'.',
+                'file' => "Schema version não suportada: {$version}. Aceito: 1, 2.",
             ]);
         }
 
-        $account = $this->active->get();
+        $accountsPayload = $this->normalizeAccountsPayload($data, $version);
+        if ($accountsPayload === null) {
+            return back()->withErrors(['file' => 'Estrutura do JSON inválida.']);
+        }
+
+        $user = $request->user();
         $strategy = $request->input('strategy');
 
-        $summary = DB::transaction(function () use ($account, $data, $strategy) {
+        $summary = DB::transaction(function () use ($user, $accountsPayload, $strategy) {
             if ($strategy === 'replace') {
-                $this->wipeAccountData($account);
+                $user->gameAccounts()->delete();
             }
 
-            return [
-                'roster' => $this->importRoster($account, $data['roster'] ?? [], $strategy),
-                'formation_tags' => $this->importFormationTags($account, $data['formation_tags'] ?? [], $strategy),
-                'formations' => $this->importFormations($account, $data['formations'] ?? [], $strategy),
-                'tier_lists' => $this->importTierLists($account, $data['tier_lists'] ?? [], $strategy),
-                'favorites' => $this->importFavorites($account, $data['favorite_hero_slugs'] ?? [], $strategy),
-                'scoring_weight_presets' => $this->importScoringWeightPresets($account, $data['scoring_weight_presets'] ?? [], $strategy),
-            ];
+            $existingNames = $strategy === 'merge'
+                ? $user->gameAccounts()->pluck('name')->all()
+                : [];
+
+            $totals = ['accounts' => 0, 'roster' => ['imported' => 0, 'skipped' => 0], 'formations' => ['imported' => 0, 'skipped' => 0], 'tier_lists' => ['imported' => 0, 'skipped' => 0], 'formation_tags' => ['imported' => 0, 'skipped' => 0], 'favorites' => ['imported' => 0, 'skipped' => 0], 'scoring_weight_presets' => ['imported' => 0, 'skipped' => 0]];
+
+            foreach ($accountsPayload as $accountData) {
+                $name = $this->resolveUniqueAccountName($accountData['name'], $existingNames);
+                $existingNames[] = $name;
+
+                $account = $user->gameAccounts()->create([
+                    'name' => $name,
+                    'server' => $accountData['server'] ?? null,
+                    'is_default' => ! empty($accountData['is_default']),
+                ]);
+                $totals['accounts']++;
+
+                // Todos os imports abaixo são "replace" internamente na conta recém-criada
+                // (é uma conta nova/limpa em ambos strategies replace e merge).
+                $totals['roster']['imported'] += $this->importRoster($account, $accountData['roster'] ?? [], 'replace')['imported'];
+                $totals['formation_tags']['imported'] += $this->importFormationTags($account, $accountData['formation_tags'] ?? [], 'replace')['imported'];
+                $totals['formations']['imported'] += $this->importFormations($account, $accountData['formations'] ?? [], 'replace')['imported'];
+                $totals['tier_lists']['imported'] += $this->importTierLists($account, $accountData['tier_lists'] ?? [], 'replace')['imported'];
+                $totals['favorites']['imported'] += $this->importFavorites($account, $accountData['favorite_hero_slugs'] ?? [], 'replace')['imported'];
+                $totals['scoring_weight_presets']['imported'] += $this->importScoringWeightPresets($account, $accountData['scoring_weight_presets'] ?? [], 'replace')['imported'];
+            }
+
+            return $totals;
         });
 
         $msg = sprintf(
-            'Backup importado (%s): %d heroes, %d formações, %d tier lists, %d tags, %d favoritos, %d presets.',
+            'Backup importado (%s, v%d): %d conta(s), %d heroes, %d formações, %d tier lists, %d tags, %d favoritos, %d presets.',
             $strategy,
+            $version,
+            $summary['accounts'],
             $summary['roster']['imported'],
             $summary['formations']['imported'],
             $summary['tier_lists']['imported'],
@@ -316,24 +348,62 @@ class BackupController extends Controller
             $summary['scoring_weight_presets']['imported'],
         );
 
-        $totalSkipped = array_sum(array_column($summary, 'skipped'));
-        if ($totalSkipped > 0) {
-            $msg .= " ({$totalSkipped} itens skipados por slug/code não encontrado.)";
-        }
-
         return back()->with('status', $msg);
     }
 
-    private function wipeAccountData(GameAccount $account): void
+    /**
+     * Normaliza o payload pro shape v2 (accounts[]). Backup v1 vira 1
+     * account "Conta Importada" com dados soltos.
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function normalizeAccountsPayload(array $data, int $version): ?array
     {
-        // Cascades on delete cuidam de teams/team_heroes (formations), rows/items (tier_lists),
-        // assignments (tags), e pivots (favorite_heroes).
-        $account->userHeroes()->delete();
-        $account->formations()->delete();
-        $account->tierLists()->delete();
-        $account->formationTags()->delete();
-        $account->favoriteHeroes()->detach();
-        $account->scoringWeightPresets()->delete();
+        if ($version === 2) {
+            if (! isset($data['accounts']) || ! is_array($data['accounts'])) {
+                return null;
+            }
+
+            return $data['accounts'];
+        }
+
+        // v1 — wrap num único account
+        return [[
+            'name' => 'Conta Importada',
+            'server' => null,
+            'is_default' => false,
+            'roster' => $data['roster'] ?? [],
+            'formations' => $data['formations'] ?? [],
+            'tier_lists' => $data['tier_lists'] ?? [],
+            'formation_tags' => $data['formation_tags'] ?? [],
+            'favorite_hero_slugs' => $data['favorite_hero_slugs'] ?? [],
+            'scoring_weight_presets' => $data['scoring_weight_presets'] ?? [],
+        ]];
+    }
+
+    /**
+     * Sufixa " (importada)", " (importada 2)", etc até achar um nome que
+     * não colide com contas existentes do user.
+     *
+     * @param  array<int, string>  $existingNames
+     */
+    private function resolveUniqueAccountName(string $desired, array $existingNames): string
+    {
+        if (! in_array($desired, $existingNames, true)) {
+            return $desired;
+        }
+
+        $suffixed = "{$desired} (importada)";
+        if (! in_array($suffixed, $existingNames, true)) {
+            return $suffixed;
+        }
+
+        $i = 2;
+        while (in_array("{$desired} (importada {$i})", $existingNames, true)) {
+            $i++;
+        }
+
+        return "{$desired} (importada {$i})";
     }
 
     /**
