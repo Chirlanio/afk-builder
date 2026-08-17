@@ -46,7 +46,7 @@ class UserHeroNotesTest extends TestCase
     private function makeUserHero(User $user, Hero $hero): UserHero
     {
         return UserHero::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $hero->id,
             'level' => 200,
             'ascension_value' => 12,

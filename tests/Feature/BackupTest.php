@@ -60,7 +60,7 @@ class BackupTest extends TestCase
         $user = User::factory()->create();
         $hero = $this->makeHero('lucius');
         UserHero::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $hero->id,
             'level' => 200,
             'ascension_value' => 12,
@@ -106,7 +106,7 @@ class BackupTest extends TestCase
         $user = User::factory()->create();
         $hero = $this->makeHero('thoran');
         UserHero::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $hero->id,
             'level' => 240,
             'ascension_value' => 16,
@@ -134,13 +134,13 @@ class BackupTest extends TestCase
         $user = User::factory()->create();
         $hero = $this->makeHero('athalia');
         $tag = FormationTag::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'speedrun',
             'color' => 'emerald',
         ]);
 
         $challenge = ChallengeType::where('code', 'campaign')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challenge->id,
             'name' => 'Counter Wilders',
             'mode' => 'target',
@@ -171,7 +171,7 @@ class BackupTest extends TestCase
         $user = User::factory()->create();
         $hero = $this->makeHero('lucius');
 
-        $tierList = $user->tierLists()->create(['name' => 'PvP Top']);
+        $tierList = $user->defaultGameAccount->tierLists()->create(['name' => 'PvP Top']);
         $row = $tierList->rows()->create(['label' => 'S', 'color' => 'amber', 'position' => 1]);
         $row->items()->create(['hero_id' => $hero->id, 'position' => 1]);
 
@@ -191,7 +191,7 @@ class BackupTest extends TestCase
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('skreg');
-        $user->favoriteHeroes()->attach($hero->id);
+        $user->defaultGameAccount->favoriteHeroes()->attach($hero->id);
 
         $data = json_decode(
             $this->actingAs($user)->get('/settings/backup/download')->streamedContent(),
@@ -205,7 +205,7 @@ class BackupTest extends TestCase
     {
         $user = User::factory()->create();
         ScoringWeightPreset::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'PvP agressivo',
             'challenge_type_id' => null,
             'weights' => ['power_weight' => 2.0],
@@ -227,7 +227,7 @@ class BackupTest extends TestCase
         $userB = User::factory()->create();
         $hero = $this->makeHero('shared');
         UserHero::create([
-            'user_id' => $userA->id,
+            'game_account_id' => $userA->defaultGameAccount->id,
             'hero_id' => $hero->id,
             'level' => 200,
             'ascension_value' => 12,

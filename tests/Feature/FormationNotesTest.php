@@ -33,7 +33,7 @@ class FormationNotesTest extends TestCase
     private function makeFormation(User $user, array $overrides = []): Formation
     {
         $challengeType = ChallengeType::where('code', 'campaign')->first();
-        $formation = $user->formations()->create(array_merge([
+        $formation = $user->defaultGameAccount->formations()->create(array_merge([
             'challenge_type_id' => $challengeType->id,
             'name' => 'Test',
             'mode' => 'target',

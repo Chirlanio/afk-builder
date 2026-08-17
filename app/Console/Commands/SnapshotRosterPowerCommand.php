@@ -2,9 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Models\GameAccount;
 use App\Models\RosterPowerSnapshot;
-use App\Models\User;
-use App\Models\UserHero;
 use App\Services\Optimization\PowerCalculator;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -12,10 +11,10 @@ use Illuminate\Support\Carbon;
 class SnapshotRosterPowerCommand extends Command
 {
     protected $signature = 'roster:snapshot
-        {--user-id= : Restringe a um único user_id (padrão: todos os users com roster)}
+        {--user-id= : Restringe a users com este id (todas as game_accounts do user são processadas)}
         {--date= : Data do snapshot no formato Y-m-d (padrão: hoje)}';
 
-    protected $description = 'Cria/atualiza snapshot diário do power total do roster por user (idempotente via upsert).';
+    protected $description = 'Cria/atualiza snapshot diário do power total do roster por game_account (idempotente via upsert).';
 
     public function handle(PowerCalculator $power): int
     {
@@ -25,19 +24,18 @@ class SnapshotRosterPowerCommand extends Command
         $dateStr = $date->toDateString();
 
         $userIdOption = $this->option('user-id');
-        $usersQuery = User::query();
+        $accountsQuery = GameAccount::query();
         if ($userIdOption !== null) {
-            $usersQuery->where('id', (int) $userIdOption);
+            $accountsQuery->where('user_id', (int) $userIdOption);
         }
 
-        $users = $usersQuery->get();
-        $total = $users->count();
+        $accounts = $accountsQuery->get();
+        $total = $accounts->count();
         $created = 0;
         $skipped = 0;
 
-        foreach ($users as $user) {
-            $userHeroes = UserHero::query()
-                ->where('user_id', $user->id)
+        foreach ($accounts as $account) {
+            $userHeroes = $account->userHeroes()
                 ->with([
                     'hero:id,slug,name,faction_id,hero_class_id,tier_id',
                     'hero.faction:id,code',
@@ -68,9 +66,9 @@ class SnapshotRosterPowerCommand extends Command
                 }
             }
 
-            // upsert por (user_id, snapshot_date) — re-rodar no mesmo dia atualiza
+            // upsert por (game_account_id, snapshot_date) — re-rodar no mesmo dia atualiza
             RosterPowerSnapshot::updateOrCreate(
-                ['user_id' => $user->id, 'snapshot_date' => $dateStr],
+                ['game_account_id' => $account->id, 'snapshot_date' => $dateStr],
                 [
                     'total_power' => $totalPower,
                     'hero_count' => $userHeroes->count(),
@@ -84,7 +82,7 @@ class SnapshotRosterPowerCommand extends Command
         }
 
         $this->info(sprintf(
-            'Snapshot %s: %d processados, %d criados/atualizados, %d skipados (roster vazio).',
+            'Snapshot %s: %d contas processadas, %d criados/atualizados, %d skipados (roster vazio).',
             $dateStr,
             $total,
             $created,

@@ -39,7 +39,7 @@ class InvestmentPlannerTest extends TestCase
         $user = User::factory()->create();
 
         $hero = $this->makeHero('alpha', 'lightbearer', 'tank', 'ascended');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
             'signature_item' => 10, 'furniture' => 0, 'engraving' => 0,
@@ -64,7 +64,7 @@ class InvestmentPlannerTest extends TestCase
 
         // lightbearer cap = 30. Hero já em SI 30 → sem sugestão de SI
         $hero = $this->makeHero('maxed', 'lightbearer', 'tank', 'ascended');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
             'signature_item' => 30, 'furniture' => 0, 'engraving' => 0,
@@ -84,7 +84,7 @@ class InvestmentPlannerTest extends TestCase
 
         // celestial cap = 40. Hero SI 30 → sugere subir pra 40
         $hero = $this->makeHero('celest', 'celestial', 'mage', 'ascended');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240, 'ascension_value' => 16, 'ascension_code' => 'ascended_5_stars',
             'signature_item' => 30, 'furniture' => 0, 'engraving' => 0,
@@ -110,7 +110,7 @@ class InvestmentPlannerTest extends TestCase
         $h2 = $this->makeHero('not-in-team', 'mauler', 'warrior', 'ascended');
 
         foreach ([$h1, $h2] as $h) {
-            $user->userHeroes()->create([
+            $user->defaultGameAccount->userHeroes()->create([
                 'hero_id' => $h->id,
                 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
                 'signature_item' => 10, 'furniture' => 0, 'engraving' => 0,
@@ -119,7 +119,7 @@ class InvestmentPlannerTest extends TestCase
 
         // Cria formation com h1 dentro
         $challengeType = \App\Models\ChallengeType::where('code', 'campaign')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'name' => 'Test',
             'mode' => 'real',
             'teams_count' => 1,
@@ -163,7 +163,7 @@ class InvestmentPlannerTest extends TestCase
             'is_active' => true, 'pending_review' => false,
         ]);
 
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $awakened->id,
             'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
             'signature_item' => 10, 'furniture' => 0, 'engraving' => 0,
@@ -181,7 +181,7 @@ class InvestmentPlannerTest extends TestCase
         $user = User::factory()->create();
 
         $hero = $this->makeHero('beta', 'wilder', 'support', 'ascended');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
             'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
@@ -205,7 +205,7 @@ class InvestmentPlannerTest extends TestCase
         $this->seedCatalog();
         $user = User::factory()->create();
         $hero = $this->makeHero('h', 'lightbearer', 'tank', 'ascended');
-        $uh = $user->userHeroes()->create([
+        $uh = $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
             'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
@@ -232,7 +232,7 @@ class InvestmentPlannerTest extends TestCase
         $this->seedCatalog();
         $user = User::factory()->create();
         $hero = $this->makeHero('h', 'lightbearer', 'tank', 'ascended');
-        $uh = $user->userHeroes()->create([
+        $uh = $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
             'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
@@ -258,14 +258,14 @@ class InvestmentPlannerTest extends TestCase
         $this->seedCatalog();
         $user = User::factory()->create();
         $hero = $this->makeHero('rich', 'lightbearer', 'tank', 'ascended');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
             'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
         ]);
 
         $resources = UserResource::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'primordial_emblems' => 9_999, // suficiente pra qualquer SI bucket
             'amplifying_emblems' => 9_999,
             'faction_emblems' => 0,
@@ -296,7 +296,7 @@ class InvestmentPlannerTest extends TestCase
         $this->seedCatalog();
         $user = User::factory()->create();
         $hero = $this->makeHero('h', 'lightbearer', 'tank', 'ascended');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
             'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
@@ -319,7 +319,7 @@ class InvestmentPlannerTest extends TestCase
         $heroes = [];
         foreach ($levels as $i => $level) {
             $h = $this->makeHero("h{$i}", 'lightbearer', 'tank', 'ascended');
-            $user->userHeroes()->create([
+            $user->defaultGameAccount->userHeroes()->create([
                 'hero_id' => $h->id, 'level' => $level, 'ascension_value' => 12,
                 'ascension_code' => 'ascended_1_star', 'signature_item' => 10, 'furniture' => 0, 'engraving' => 0,
             ]);
@@ -350,14 +350,14 @@ class InvestmentPlannerTest extends TestCase
         $this->seedCatalog();
         $user = User::factory()->create();
         $hero = $this->makeHero('low', 'lightbearer', 'tank', 'legendary');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 100, 'ascension_value' => 1, 'ascension_code' => 'rare',
             'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
         ]);
 
         // Recursos zerados — mas ascension não bloqueia
-        $resources = UserResource::create(['user_id' => $user->id]);
+        $resources = UserResource::create(['game_account_id' => $user->defaultGameAccount->id]);
 
         $suggestions = app(InvestmentPlanner::class)->plan($user->defaultGameAccount, null, 10, $resources);
 

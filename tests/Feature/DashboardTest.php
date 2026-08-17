@@ -65,7 +65,7 @@ class DashboardTest extends TestCase
         $h3 = $this->makeHero('h-f9', 'wilder', 'ranger', 'ascended');
         $h4 = $this->makeHero('h-baseline', 'graveborn', 'warrior', 'legendary');
 
-        $user->userHeroes()->createMany([
+        $user->defaultGameAccount->userHeroes()->createMany([
             ['hero_id' => $h1->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 30, 'furniture' => 0, 'engraving' => 0],
             ['hero_id' => $h2->id, 'level' => 240, 'ascension_value' => 16, 'ascension_code' => 'ascended_5_stars', 'signature_item' => 40, 'furniture' => 0, 'engraving' => 0],
             ['hero_id' => $h3->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 9, 'engraving' => 0],

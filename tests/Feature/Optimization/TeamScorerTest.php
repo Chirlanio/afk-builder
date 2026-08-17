@@ -244,7 +244,7 @@ class TeamScorerTest extends TestCase
         $engravings = [29, 30, 80]; // sem milestone, E30, E80
         foreach ($heroes as $i => $hero) {
             $uh = UserHero::create([
-                'user_id' => $user->id,
+                'game_account_id' => $user->defaultGameAccount->id,
                 'hero_id' => $hero->id,
                 'level' => 100,
                 'ascension_code' => 'mythic',
@@ -285,7 +285,7 @@ class TeamScorerTest extends TestCase
         $user = User::factory()->create();
         $hero = $this->makeHero('h1', 'lightbearer', 'tank');
         $uh = UserHero::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $hero->id,
             'level' => 100, 'ascension_code' => 'mythic', 'ascension_value' => 5,
             'signature_item' => 0, 'furniture' => 0, 'engraving' => 80,

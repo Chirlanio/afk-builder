@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToGameAccount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Str;
 
 class UserTierList extends Model
@@ -28,14 +29,14 @@ class UserTierList extends Model
         'is_template' => 'boolean',
     ];
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
     public function gameAccount(): BelongsTo
     {
         return $this->belongsTo(GameAccount::class);
+    }
+
+    public function user(): HasOneThrough
+    {
+        return $this->hasOneThrough(User::class, GameAccount::class, 'id', 'id', 'game_account_id', 'user_id');
     }
 
     public function rows(): HasMany

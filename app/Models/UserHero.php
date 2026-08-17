@@ -24,7 +24,7 @@ class UserHero extends Model
     ];
 
     protected $fillable = [
-        'user_id',
+        'user_id', // legacy input; trait BelongsToGameAccount deriva game_account_id
         'game_account_id',
         'hero_id',
         'level',
@@ -94,11 +94,6 @@ class UserHero extends Model
         'arena_damage_reduction' => 'float',
         'trial_damage_boost' => 'float',
     ];
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
 
     public function gameAccount(): BelongsTo
     {

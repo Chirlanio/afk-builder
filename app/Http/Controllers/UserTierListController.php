@@ -263,7 +263,10 @@ class UserTierListController extends Controller
     public function publicShow(string $token): Response
     {
         $tierList = UserTierList::where('share_token', $token)
-            ->with(['rows.items.hero:id,slug,name,faction_id,portrait_url', 'user:id,name'])
+            ->with([
+                'rows.items.hero:id,slug,name,faction_id,portrait_url',
+                'user',
+            ])
             ->firstOrFail();
 
         return Inertia::render('tier-lists/public', [
@@ -279,12 +282,12 @@ class UserTierListController extends Controller
     {
         $templates = UserTierList::query()
             ->where('is_template', true)
-            ->with('user:id,name')
+            ->with('user')
             ->withCount(['rows', 'rows as items_count' => function ($q) {
                 $q->join('user_tier_list_items', 'user_tier_list_rows.id', '=', 'user_tier_list_items.user_tier_list_row_id');
             }])
             ->orderByDesc('updated_at')
-            ->get(['id', 'user_id', 'name', 'description', 'updated_at']);
+            ->get(['id', 'game_account_id', 'name', 'description', 'updated_at']);
 
         return Inertia::render('tier-lists/templates', [
             'templates' => $templates,

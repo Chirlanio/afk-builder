@@ -3,12 +3,12 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Models\Pivots\FavoriteHeroPivot;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -27,51 +27,48 @@ class User extends Authenticatable
         return $this->hasOne(GameAccount::class)->where('is_default', true);
     }
 
-    public function userHeroes(): HasMany
+    // Relações agregadas cross-account (retro-compat): percorrem todas as
+    // contas do user. Para dados scoped à conta ativa, use $account->relation
+    // via ActiveGameAccount service.
+
+    public function userHeroes(): HasManyThrough
     {
-        return $this->hasMany(UserHero::class);
+        return $this->hasManyThrough(UserHero::class, GameAccount::class);
     }
 
-    public function formations(): HasMany
+    public function formations(): HasManyThrough
     {
-        return $this->hasMany(Formation::class);
+        return $this->hasManyThrough(Formation::class, GameAccount::class);
     }
 
-    public function tierLists(): HasMany
+    public function tierLists(): HasManyThrough
     {
-        return $this->hasMany(UserTierList::class);
+        return $this->hasManyThrough(UserTierList::class, GameAccount::class);
     }
 
-    public function scoringWeightPresets(): HasMany
+    public function scoringWeightPresets(): HasManyThrough
     {
-        return $this->hasMany(ScoringWeightPreset::class);
+        return $this->hasManyThrough(ScoringWeightPreset::class, GameAccount::class);
     }
 
-    public function formationTags(): HasMany
+    public function formationTags(): HasManyThrough
     {
-        return $this->hasMany(FormationTag::class);
+        return $this->hasManyThrough(FormationTag::class, GameAccount::class);
     }
 
-    public function favoriteHeroes(): BelongsToMany
+    public function rosterPowerSnapshots(): HasManyThrough
     {
-        return $this->belongsToMany(Hero::class, 'user_hero_favorites')
-            ->using(FavoriteHeroPivot::class)
-            ->withTimestamps();
+        return $this->hasManyThrough(RosterPowerSnapshot::class, GameAccount::class);
     }
 
-    public function rosterPowerSnapshots(): HasMany
+    public function resources(): HasOneThrough
     {
-        return $this->hasMany(RosterPowerSnapshot::class)->orderBy('snapshot_date');
+        return $this->hasOneThrough(UserResource::class, GameAccount::class);
     }
 
-    public function resources(): HasOne
+    public function resonatingCrystal(): HasOneThrough
     {
-        return $this->hasOne(UserResource::class);
-    }
-
-    public function resonatingCrystal(): HasOne
-    {
-        return $this->hasOne(UserResonatingCrystal::class);
+        return $this->hasOneThrough(UserResonatingCrystal::class, GameAccount::class);
     }
 
     /**

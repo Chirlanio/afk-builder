@@ -11,6 +11,7 @@ class FormationTag extends Model
 {
     use BelongsToGameAccount;
 
+
     public const COLORS = [
         'amber',
         'sky',
@@ -30,11 +31,6 @@ class FormationTag extends Model
         'name',
         'color',
     ];
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
 
     public function gameAccount(): BelongsTo
     {

@@ -59,7 +59,7 @@ class SearchController extends Controller
             ]);
 
         // Formations — só do user
-        $formations = $user->formations()
+        $formations = $user->defaultGameAccount->formations()
             ->with('challengeType:id,name_pt')
             ->where('name', 'like', $like)
             ->orderByDesc('updated_at')
@@ -74,7 +74,7 @@ class SearchController extends Controller
             ]);
 
         // Tier lists — só do user
-        $tierLists = $user->tierLists()
+        $tierLists = $user->defaultGameAccount->tierLists()
             ->where('name', 'like', $like)
             ->orderByDesc('updated_at')
             ->limit(self::MAX_PER_CATEGORY)

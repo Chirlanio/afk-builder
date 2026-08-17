@@ -69,7 +69,7 @@ class UserHeroArtifactTest extends TestCase
             ])
             ->assertRedirect();
 
-        $userHero = UserHero::where('user_id', $user->id)->where('hero_id', $hero->id)->first();
+        $userHero = UserHero::where('game_account_id', $user->defaultGameAccount->id)->where('hero_id', $hero->id)->first();
         $this->assertNotNull($userHero);
         $this->assertSame($artifact->id, $userHero->artifact_id);
         $this->assertSame(3, $userHero->artifact_star_level);
@@ -90,7 +90,7 @@ class UserHeroArtifactTest extends TestCase
             ])
             ->assertRedirect();
 
-        $userHero = UserHero::where('user_id', $user->id)->first();
+        $userHero = UserHero::where('game_account_id', $user->defaultGameAccount->id)->first();
         $this->assertSame($artifact->id, $userHero->artifact_id);
         $this->assertSame(2, $userHero->artifact_star_level);
     }
@@ -110,7 +110,7 @@ class UserHeroArtifactTest extends TestCase
             ])
             ->assertRedirect();
 
-        $userHero = UserHero::where('user_id', $user->id)->first();
+        $userHero = UserHero::where('game_account_id', $user->defaultGameAccount->id)->first();
         $this->assertNull($userHero->artifact_id);
         $this->assertNull($userHero->artifact_star_level);
     }
@@ -130,7 +130,7 @@ class UserHeroArtifactTest extends TestCase
             ])
             ->assertRedirect();
 
-        $userHero = UserHero::where('user_id', $user->id)->first();
+        $userHero = UserHero::where('game_account_id', $user->defaultGameAccount->id)->first();
         $this->assertSame(3, $userHero->artifact_star_level);
     }
 
@@ -154,7 +154,7 @@ class UserHeroArtifactTest extends TestCase
         $hero = $this->makeHero();
         $artifact = $this->makeArtifact('duras-grace', Artifact::KIND_DURA);
 
-        $userHero = $user->userHeroes()->create([
+        $userHero = $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240,
             'artifact_id' => $artifact->id,
@@ -207,7 +207,7 @@ class UserHeroArtifactTest extends TestCase
             ])
             ->assertRedirect();
 
-        $userHero = UserHero::where('user_id', $user->id)->first();
+        $userHero = UserHero::where('game_account_id', $user->defaultGameAccount->id)->first();
         $this->assertSame($collection->id, $userHero->collection_id);
         $this->assertNull($userHero->artifact_id);
     }
@@ -229,7 +229,7 @@ class UserHeroArtifactTest extends TestCase
             ])
             ->assertRedirect();
 
-        $userHero = UserHero::where('user_id', $user->id)->first();
+        $userHero = UserHero::where('game_account_id', $user->defaultGameAccount->id)->first();
         // Coleção tem prioridade — artifact é zerado mesmo quando vem no mesmo payload
         $this->assertSame($collection->id, $userHero->collection_id);
         $this->assertNull($userHero->artifact_id);
@@ -243,7 +243,7 @@ class UserHeroArtifactTest extends TestCase
         $artifact = $this->makeArtifact('duras-grace', Artifact::KIND_DURA);
         $collection = Collection::create(['slug' => 'rt', 'name' => 'RT']);
 
-        $userHero = $user->userHeroes()->create([
+        $userHero = $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240,
             'collection_id' => $collection->id,
@@ -296,7 +296,7 @@ class UserHeroArtifactTest extends TestCase
         $hero = $this->makeHero('lucius');
         $artifact = $this->makeArtifact('duras-grace', Artifact::KIND_DURA);
 
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240,
             'artifact_id' => $artifact->id,

@@ -129,7 +129,7 @@ class BackupImportTest extends TestCase
         $user = User::factory()->create();
         $hero = $this->makeHero('thoran');
         UserHero::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $hero->id,
             'level' => 100,
             'ascension_value' => 5,
@@ -161,7 +161,7 @@ class BackupImportTest extends TestCase
         $user = User::factory()->create();
         $hero = $this->makeHero('thoran');
         UserHero::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $hero->id,
             'level' => 100,
             'ascension_value' => 5,
@@ -282,7 +282,7 @@ class BackupImportTest extends TestCase
             ->post('/settings/backup/import', ['file' => $file, 'strategy' => 'merge'])
             ->assertRedirect();
 
-        $ids = $user->favoriteHeroes()->pluck('heroes.id')->all();
+        $ids = $user->defaultGameAccount->favoriteHeroes()->pluck('heroes.id')->all();
         $this->assertContains($h1->id, $ids);
         $this->assertContains($h2->id, $ids);
         $this->assertCount(2, $ids);
@@ -292,7 +292,7 @@ class BackupImportTest extends TestCase
     {
         $user = User::factory()->create();
         ScoringWeightPreset::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'pvp',
             'challenge_type_id' => null,
             'weights' => ['power_weight' => 1.0],
@@ -312,7 +312,7 @@ class BackupImportTest extends TestCase
 
         $this->assertSame(2, $user->scoringWeightPresets()->count());
         // O original 'pvp' deve ter power_weight 1.0 (não sobrescrito)
-        $pvp = $user->scoringWeightPresets()->where('name', 'pvp')->first();
+        $pvp = $user->defaultGameAccount->scoringWeightPresets()->where('name', 'pvp')->first();
         $this->assertSame(1.0, (float) $pvp->weights['power_weight']);
     }
 
@@ -339,7 +339,7 @@ class BackupImportTest extends TestCase
     {
         $user = User::factory()->create();
         FormationTag::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'tag-velha',
             'color' => 'amber',
         ]);

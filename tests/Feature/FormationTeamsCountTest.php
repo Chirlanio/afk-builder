@@ -45,7 +45,7 @@ class FormationTeamsCountTest extends TestCase
 
     private function makeFormation(User $user, ChallengeType $ct, int $teamsCount): Formation
     {
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $ct->id,
             'name' => 'Test',
             'mode' => 'real',

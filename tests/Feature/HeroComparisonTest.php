@@ -44,7 +44,7 @@ class HeroComparisonTest extends TestCase
 
         $h1 = $this->makeHero('alpha', 'lightbearer', 'tank', 'ascended');
         $h2 = $this->makeHero('beta', 'mauler', 'mage', 'legendary');
-        $user->userHeroes()->createMany([
+        $user->defaultGameAccount->userHeroes()->createMany([
             ['hero_id' => $h1->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 30, 'furniture' => 3, 'engraving' => 30],
             ['hero_id' => $h2->id, 'level' => 160, 'ascension_value' => 9, 'ascension_code' => 'mythic_plus', 'signature_item' => 10, 'furniture' => 0, 'engraving' => 0],
         ]);
@@ -64,7 +64,7 @@ class HeroComparisonTest extends TestCase
 
         $h1 = $this->makeHero('alpha', 'lightbearer', 'tank', 'ascended');
         $h2 = $this->makeHero('beta', 'mauler', 'mage', 'legendary');
-        $user->userHeroes()->createMany([
+        $user->defaultGameAccount->userHeroes()->createMany([
             ['hero_id' => $h1->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 30, 'furniture' => 3, 'engraving' => 30],
             ['hero_id' => $h2->id, 'level' => 160, 'ascension_value' => 9, 'ascension_code' => 'mythic_plus', 'signature_item' => 10, 'furniture' => 0, 'engraving' => 0],
         ]);
@@ -106,7 +106,7 @@ class HeroComparisonTest extends TestCase
         $a = $this->makeHero('alpha', 'lightbearer', 'tank', 'ascended');
         $b = $this->makeHero('beta', 'mauler', 'mage', 'legendary');
         $c = $this->makeHero('gamma', 'wilder', 'support', 'legendary');
-        $user->userHeroes()->createMany([
+        $user->defaultGameAccount->userHeroes()->createMany([
             ['hero_id' => $a->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0],
             ['hero_id' => $b->id, 'level' => 160, 'ascension_value' => 9, 'ascension_code' => 'mythic_plus', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0],
             ['hero_id' => $c->id, 'level' => 160, 'ascension_value' => 9, 'ascension_code' => 'mythic_plus', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0],
@@ -131,8 +131,8 @@ class HeroComparisonTest extends TestCase
         $h2 = $this->makeHero('outsider', 'mauler', 'mage', 'ascended');
 
         // Só user tem alpha; only other tem outsider
-        $user->userHeroes()->create(['hero_id' => $h1->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0]);
-        $other->userHeroes()->create(['hero_id' => $h2->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0]);
+        $user->defaultGameAccount->userHeroes()->create(['hero_id' => $h1->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0]);
+        $other->defaultGameAccount->userHeroes()->create(['hero_id' => $h2->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0]);
 
         $response = $this->actingAs($user)
             ->get('/roster/compare?heroes[]=alpha&heroes[]=outsider')
@@ -160,7 +160,7 @@ class HeroComparisonTest extends TestCase
         $user = User::factory()->create();
 
         $h = $this->makeHero('alpha', 'lightbearer', 'tank', 'ascended');
-        $user->userHeroes()->create(['hero_id' => $h->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 30, 'furniture' => 0, 'engraving' => 0]);
+        $user->defaultGameAccount->userHeroes()->create(['hero_id' => $h->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 30, 'furniture' => 0, 'engraving' => 0]);
 
         $response = $this->actingAs($user)
             ->get('/roster/compare?heroes[]=alpha&heroes[]=alpha&heroes[]=alpha')
@@ -176,7 +176,7 @@ class HeroComparisonTest extends TestCase
         $user = User::factory()->create();
 
         $h = $this->makeHero('alpha', 'lightbearer', 'tank', 'ascended');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $h->id,
             'level' => 240, 'ascension_value' => 16, 'ascension_code' => 'ascended_5_stars',
             'signature_item' => 30, 'furniture' => 9, 'engraving' => 80,

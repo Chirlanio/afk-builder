@@ -140,7 +140,7 @@ class SignatureItemCostsTest extends TestCase
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('celestial');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240,
             'ascension_value' => 12,

@@ -48,7 +48,7 @@ class RosterPowerSnapshotTest extends TestCase
     private function makeUserHero(User $user, Hero $hero): UserHero
     {
         return UserHero::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $hero->id,
             'level' => 240,
             'ascension_value' => 16,
@@ -146,7 +146,7 @@ class RosterPowerSnapshotTest extends TestCase
         // Cria 3 snapshots em dias diferentes
         for ($i = 0; $i < 3; $i++) {
             RosterPowerSnapshot::create([
-                'user_id' => $user->id,
+                'game_account_id' => $user->defaultGameAccount->id,
                 'snapshot_date' => Carbon::today()->subDays(2 - $i)->toDateString(),
                 'total_power' => 10_000 + $i * 1_000,
                 'hero_count' => 5,
@@ -170,7 +170,7 @@ class RosterPowerSnapshotTest extends TestCase
         $user = User::factory()->create();
         for ($i = 0; $i < 40; $i++) {
             RosterPowerSnapshot::create([
-                'user_id' => $user->id,
+                'game_account_id' => $user->defaultGameAccount->id,
                 'snapshot_date' => Carbon::today()->subDays($i)->toDateString(),
                 'total_power' => 10_000,
                 'hero_count' => 5,
@@ -189,7 +189,7 @@ class RosterPowerSnapshotTest extends TestCase
         $userA = User::factory()->create();
         $userB = User::factory()->create();
         RosterPowerSnapshot::create([
-            'user_id' => $userA->id,
+            'game_account_id' => $userA->defaultGameAccount->id,
             'snapshot_date' => Carbon::today()->toDateString(),
             'total_power' => 10_000,
             'hero_count' => 5,
@@ -206,7 +206,7 @@ class RosterPowerSnapshotTest extends TestCase
     {
         $user = User::factory()->create();
         RosterPowerSnapshot::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'snapshot_date' => Carbon::today()->toDateString(),
             'total_power' => 10_000,
             'hero_count' => 5,
