@@ -1,3 +1,4 @@
+import { AccountSwitcher } from '@/components/account-switcher';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -131,6 +132,7 @@ export function AppSidebar() {
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
+                    <AccountSwitcher />
                 </SidebarMenu>
             </SidebarHeader>
 
