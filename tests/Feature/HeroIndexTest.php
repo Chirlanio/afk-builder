@@ -105,7 +105,7 @@ class HeroIndexTest extends TestCase
         ]);
 
         UserHero::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $hero->id,
             'level' => 220,
             'ascension_value' => 16,
@@ -137,7 +137,7 @@ class HeroIndexTest extends TestCase
         $hero = $this->makeHero('granit');
 
         UserHero::create([
-            'user_id' => $userA->id,
+            'game_account_id' => $userA->defaultGameAccount->id,
             'hero_id' => $hero->id,
             'level' => 200,
             'ascension_value' => 12,

@@ -19,13 +19,13 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        $rosterTotal = $user->userHeroes()->count();
+        $rosterTotal = $user->defaultGameAccount->userHeroes()->count();
 
-        $rosterAscended = $user->userHeroes()
+        $rosterAscended = $user->defaultGameAccount->userHeroes()
             ->where('ascension_value', '>=', 10)
             ->count();
 
-        $rosterByFaction = $user->userHeroes()
+        $rosterByFaction = $user->defaultGameAccount->userHeroes()
             ->join('heroes', 'user_heroes.hero_id', '=', 'heroes.id')
             ->join('factions', 'heroes.faction_id', '=', 'factions.id')
             ->groupBy('factions.code', 'factions.name_pt', 'factions.display_order')
@@ -38,7 +38,7 @@ class DashboardController extends Controller
                 'total' => (int) $row->total,
             ]);
 
-        $rosterByClass = $user->userHeroes()
+        $rosterByClass = $user->defaultGameAccount->userHeroes()
             ->join('heroes', 'user_heroes.hero_id', '=', 'heroes.id')
             ->join('hero_classes', 'heroes.hero_class_id', '=', 'hero_classes.id')
             ->groupBy('hero_classes.code', 'hero_classes.name_pt', 'hero_classes.display_order')
@@ -51,7 +51,7 @@ class DashboardController extends Controller
                 'total' => (int) $row->total,
             ]);
 
-        $rosterByTier = $user->userHeroes()
+        $rosterByTier = $user->defaultGameAccount->userHeroes()
             ->join('heroes', 'user_heroes.hero_id', '=', 'heroes.id')
             ->join('tiers', 'heroes.tier_id', '=', 'tiers.id')
             ->groupBy('tiers.code', 'tiers.name_pt', 'tiers.display_order')
@@ -64,18 +64,18 @@ class DashboardController extends Controller
                 'total' => (int) $row->total,
             ]);
 
-        $rosterAwakened = $user->userHeroes()
+        $rosterAwakened = $user->defaultGameAccount->userHeroes()
             ->join('heroes', 'user_heroes.hero_id', '=', 'heroes.id')
             ->whereRaw("LOWER(REPLACE(heroes.name, ' ', '-')) <> heroes.slug")
             ->count();
 
-        // Fase 37: contagem de favoritos do user
-        $favoritesCount = $user->favoriteHeroes()->count();
+        // Fase 37: contagem de favoritos da conta ativa (default)
+        $favoritesCount = $user->defaultGameAccount?->favoriteHeroes()->count() ?? 0;
 
         // Fase 46: últimos 30 snapshots de power pra montar o chart de evolução
         // Pega os mais recentes via DESC + limit; depois inverte pra ordem cronológica
         // (chart mostra da esquerda → direita = mais antigo → mais novo).
-        $powerHistory = $user->rosterPowerSnapshots()
+        $powerHistory = $user->defaultGameAccount->rosterPowerSnapshots()
             ->orderByDesc('snapshot_date')
             ->limit(30)
             ->get(['snapshot_date', 'total_power', 'hero_count'])
@@ -88,13 +88,13 @@ class DashboardController extends Controller
             ]);
 
         // Fase 28: milestones — heroes com investimento maximo
-        $rosterSi30 = $user->userHeroes()->where('signature_item', '>=', 30)->count();
-        $rosterSi40 = $user->userHeroes()->where('signature_item', '>=', 40)->count();
-        $rosterF9 = $user->userHeroes()->where('furniture', '>=', 9)->count();
-        $rosterEng80 = $user->userHeroes()->where('engraving', '>=', 80)->count();
+        $rosterSi30 = $user->defaultGameAccount->userHeroes()->where('signature_item', '>=', 30)->count();
+        $rosterSi40 = $user->defaultGameAccount->userHeroes()->where('signature_item', '>=', 40)->count();
+        $rosterF9 = $user->defaultGameAccount->userHeroes()->where('furniture', '>=', 9)->count();
+        $rosterEng80 = $user->defaultGameAccount->userHeroes()->where('engraving', '>=', 80)->count();
 
         // Top 5 por power_rating computado via PowerCalculator
-        $topPowerHeroes = $user->userHeroes()
+        $topPowerHeroes = $user->defaultGameAccount->userHeroes()
             ->with([
                 'hero:id,slug,name,portrait_url,faction_id,hero_class_id,tier_id',
                 'hero.faction:id,code',
@@ -127,7 +127,7 @@ class DashboardController extends Controller
             ]);
 
         // Heroes do roster que têm features destacadas (PvP Top, Twisted Realm Top)
-        $rosterHeroIds = $user->userHeroes()->pluck('hero_id')->all();
+        $rosterHeroIds = $user->defaultGameAccount->userHeroes()->pluck('hero_id')->all();
         $featuredInRoster = empty($rosterHeroIds) ? collect() : HeroFeature::query()
             ->whereIn('hero_id', $rosterHeroIds)
             ->whereIn('tag', [HeroFeature::TAG_PVP_TOP, HeroFeature::TAG_TWISTED_REALM_TOP])
@@ -147,9 +147,9 @@ class DashboardController extends Controller
 
         $factionsCount = Faction::count();
 
-        $formationsTotal = $user->formations()->count();
+        $formationsTotal = $user->defaultGameAccount->formations()->count();
 
-        $recentFormations = $user->formations()
+        $recentFormations = $user->defaultGameAccount->formations()
             ->with('challengeType:id,code,name_pt')
             ->orderByDesc('updated_at')
             ->limit(3)

@@ -25,7 +25,7 @@ class FormationShareTest extends TestCase
     private function makeFormation(User $user): Formation
     {
         $challengeType = ChallengeType::where('code', 'campaign')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challengeType->id,
             'name' => 'Test Formation',
             'mode' => 'real',

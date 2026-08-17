@@ -7,13 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Formation extends Model
 {
     use BelongsToGameAccount;
 
     protected $fillable = [
-        'user_id',
+        'user_id', // legacy input; trait BelongsToGameAccount deriva game_account_id
         'game_account_id',
         'challenge_type_id',
         'name',
@@ -31,14 +32,14 @@ class Formation extends Model
         'scoring_weights_override' => 'array',
     ];
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
     public function gameAccount(): BelongsTo
     {
         return $this->belongsTo(GameAccount::class);
+    }
+
+    public function user(): HasOneThrough
+    {
+        return $this->hasOneThrough(User::class, GameAccount::class, 'id', 'id', 'game_account_id', 'user_id');
     }
 
     public function challengeType(): BelongsTo

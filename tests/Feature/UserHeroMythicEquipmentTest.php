@@ -55,7 +55,7 @@ class UserHeroMythicEquipmentTest extends TestCase
             ])
             ->assertRedirect();
 
-        $userHero = UserHero::where('user_id', $user->id)->where('hero_id', $hero->id)->firstOrFail();
+        $userHero = UserHero::where('game_account_id', $user->defaultGameAccount->id)->where('hero_id', $hero->id)->firstOrFail();
         $this->assertSame($boots->id, $userHero->boots_equipment_id);
         $this->assertSame(3, $userHero->boots_equipment_level);
     }
@@ -93,7 +93,7 @@ class UserHeroMythicEquipmentTest extends TestCase
             ])
             ->assertRedirect();
 
-        $userHero = UserHero::where('user_id', $user->id)->where('hero_id', $hero->id)->firstOrFail();
+        $userHero = UserHero::where('game_account_id', $user->defaultGameAccount->id)->where('hero_id', $hero->id)->firstOrFail();
         $this->assertSame($t3->id, $userHero->weapon_equipment_id);
         $this->assertSame(0, $userHero->weapon_equipment_level);
     }
@@ -129,7 +129,7 @@ class UserHeroMythicEquipmentTest extends TestCase
             ])
             ->assertRedirect();
 
-        $userHero = UserHero::where('user_id', $user->id)->where('hero_id', $hero->id)->firstOrFail();
+        $userHero = UserHero::where('game_account_id', $user->defaultGameAccount->id)->where('hero_id', $hero->id)->firstOrFail();
         // Descartado: slot de boots fica null
         $this->assertNull($userHero->boots_equipment_id);
         $this->assertSame(0, $userHero->boots_equipment_level);
@@ -160,7 +160,7 @@ class UserHeroMythicEquipmentTest extends TestCase
             ])
             ->assertRedirect();
 
-        $userHero = UserHero::where('user_id', $user->id)->where('hero_id', $hero->id)->firstOrFail();
+        $userHero = UserHero::where('game_account_id', $user->defaultGameAccount->id)->where('hero_id', $hero->id)->firstOrFail();
         $this->assertSame($boots->id, $userHero->boots_equipment_id);
         $this->assertSame($chest->id, $userHero->chest_equipment_id);
         $this->assertSame($helmet->id, $userHero->helmet_equipment_id);
@@ -173,7 +173,7 @@ class UserHeroMythicEquipmentTest extends TestCase
         $hero = $this->makeHero();
         $boots = Equipment::where('slug', 'gaius-grevas-lightbearer')->firstOrFail();
 
-        $userHero = $user->userHeroes()->create([
+        $userHero = $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240,
             'ascension_value' => 12,

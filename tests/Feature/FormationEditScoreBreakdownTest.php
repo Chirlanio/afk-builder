@@ -49,7 +49,7 @@ class FormationEditScoreBreakdownTest extends TestCase
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('lucius');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240,
             'ascension_value' => 12,
@@ -57,7 +57,7 @@ class FormationEditScoreBreakdownTest extends TestCase
         ]);
 
         $challengeType = ChallengeType::where('code', 'campaign')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challengeType->id,
             'name' => 'Test',
             'mode' => 'real',
@@ -91,7 +91,7 @@ class FormationEditScoreBreakdownTest extends TestCase
     {
         $user = User::factory()->create();
         $challengeType = ChallengeType::where('code', 'campaign')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challengeType->id,
             'name' => 'Test',
             'mode' => 'target',
@@ -112,7 +112,7 @@ class FormationEditScoreBreakdownTest extends TestCase
     {
         $user = User::factory()->create();
         $challengeType = ChallengeType::where('code', 'arena_of_heroes')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challengeType->id,
             'name' => 'PvP test',
             'mode' => 'target',

@@ -38,7 +38,7 @@ class UserResourceTest extends TestCase
             ]);
 
         $this->assertDatabaseHas('user_resources', [
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'primordial_emblems' => 500,
             'amplifying_emblems' => 300,
         ]);
@@ -48,7 +48,7 @@ class UserResourceTest extends TestCase
     {
         $user = User::factory()->create();
         UserResource::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'primordial_emblems' => 200,
             'amplifying_emblems' => 100,
             'mythic_furniture' => 50,
@@ -59,7 +59,7 @@ class UserResourceTest extends TestCase
             ->assertOk();
 
         $this->assertDatabaseHas('user_resources', [
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'primordial_emblems' => 200,    // preservado
             'amplifying_emblems' => 999,    // atualizado
             'mythic_furniture' => 50,       // preservado
@@ -88,15 +88,15 @@ class UserResourceTest extends TestCase
     {
         $userA = User::factory()->create();
         $userB = User::factory()->create();
-        UserResource::create(['user_id' => $userB->id, 'primordial_emblems' => 100]);
+        UserResource::create(['game_account_id' => $userB->defaultGameAccount->id, 'primordial_emblems' => 100]);
 
         $this->actingAs($userA)
             ->patchJson('/roster/resources', ['primordial_emblems' => 9000])
             ->assertOk();
 
         // user B intacto
-        $this->assertDatabaseHas('user_resources', ['user_id' => $userB->id, 'primordial_emblems' => 100]);
+        $this->assertDatabaseHas('user_resources', ['game_account_id' => $userB->defaultGameAccount->id, 'primordial_emblems' => 100]);
         // user A criado novo
-        $this->assertDatabaseHas('user_resources', ['user_id' => $userA->id, 'primordial_emblems' => 9000]);
+        $this->assertDatabaseHas('user_resources', ['game_account_id' => $userA->defaultGameAccount->id, 'primordial_emblems' => 9000]);
     }
 }

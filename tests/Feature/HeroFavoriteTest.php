@@ -54,7 +54,7 @@ class HeroFavoriteTest extends TestCase
             ->assertJsonPath('favorites_count', 1);
 
         $this->assertDatabaseHas('user_hero_favorites', [
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $hero->id,
         ]);
     }
@@ -69,14 +69,14 @@ class HeroFavoriteTest extends TestCase
             ->assertOk()
             ->assertJsonPath('favorites_count', 1);
 
-        $this->assertSame(1, $user->favoriteHeroes()->count());
+        $this->assertSame(1, $user->defaultGameAccount->favoriteHeroes()->count());
     }
 
     public function test_remove_dos_favoritos(): void
     {
         $user = User::factory()->create();
         $hero = $this->makeHero();
-        $user->favoriteHeroes()->attach($hero->id);
+        $user->defaultGameAccount->favoriteHeroes()->attach($hero->id);
 
         $this->actingAs($user)
             ->deleteJson("/heroes/{$hero->id}/favorite")
@@ -85,7 +85,7 @@ class HeroFavoriteTest extends TestCase
             ->assertJsonPath('favorites_count', 0);
 
         $this->assertDatabaseMissing('user_hero_favorites', [
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $hero->id,
         ]);
     }
@@ -109,8 +109,8 @@ class HeroFavoriteTest extends TestCase
 
         $this->actingAs($a)->postJson("/heroes/{$hero->id}/favorite")->assertOk();
 
-        $this->assertSame(1, $a->favoriteHeroes()->count());
-        $this->assertSame(0, $b->favoriteHeroes()->count());
+        $this->assertSame(1, $a->defaultGameAccount->favoriteHeroes()->count());
+        $this->assertSame(0, $b->defaultGameAccount->favoriteHeroes()->count());
     }
 
     public function test_index_inclui_favorite_hero_ids(): void
@@ -118,7 +118,7 @@ class HeroFavoriteTest extends TestCase
         $user = User::factory()->create();
         $h1 = $this->makeHero('h1');
         $h2 = $this->makeHero('h2');
-        $user->favoriteHeroes()->attach($h1->id);
+        $user->defaultGameAccount->favoriteHeroes()->attach($h1->id);
 
         $response = $this->actingAs($user)->get('/heroes')->assertOk();
         $props = $response->viewData('page')['props'];
@@ -131,7 +131,7 @@ class HeroFavoriteTest extends TestCase
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('favoriteu');
-        $user->favoriteHeroes()->attach($hero->id);
+        $user->defaultGameAccount->favoriteHeroes()->attach($hero->id);
 
         $response = $this->actingAs($user)
             ->getJson("/heroes/{$hero->slug}/details")
@@ -157,7 +157,7 @@ class HeroFavoriteTest extends TestCase
         $user = User::factory()->create();
         $h1 = $this->makeHero('h1');
         $h2 = $this->makeHero('h2');
-        $user->favoriteHeroes()->attach([$h1->id, $h2->id]);
+        $user->defaultGameAccount->favoriteHeroes()->attach([$h1->id, $h2->id]);
 
         $response = $this->actingAs($user)->get('/dashboard')->assertOk();
         $stats = $response->viewData('page')['props']['stats'];
@@ -175,12 +175,12 @@ class HeroFavoriteTest extends TestCase
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('vai-sumir');
-        $user->favoriteHeroes()->attach($hero->id);
+        $user->defaultGameAccount->favoriteHeroes()->attach($hero->id);
 
         $hero->delete();
 
         $this->assertDatabaseMissing('user_hero_favorites', [
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $hero->id,
         ]);
     }

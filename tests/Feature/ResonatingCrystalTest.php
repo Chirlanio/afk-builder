@@ -40,8 +40,8 @@ class ResonatingCrystalTest extends TestCase
         // Sem heros Ascendidos no roster, level_cap = 240
         $this->assertSame(240, $props['crystal']['level_cap']);
 
-        $this->assertDatabaseHas('user_resonating_crystals', ['user_id' => $user->id]);
-        $this->assertDatabaseHas('user_resources', ['user_id' => $user->id]);
+        $this->assertDatabaseHas('user_resonating_crystals', ['game_account_id' => $user->defaultGameAccount->id]);
+        $this->assertDatabaseHas('user_resources', ['game_account_id' => $user->defaultGameAccount->id]);
     }
 
     public function test_pentagram_lista_top_5_por_level(): void
@@ -52,7 +52,7 @@ class ResonatingCrystalTest extends TestCase
         $levels = [240, 220, 200, 180, 160, 100];
         foreach ($levels as $i => $level) {
             $hero = $this->makeHero("h{$i}", 'lightbearer', 'tank', 'ascended');
-            $user->userHeroes()->create([
+            $user->defaultGameAccount->userHeroes()->create([
                 'hero_id' => $hero->id,
                 'level' => $level, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
                 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
@@ -80,7 +80,7 @@ class ResonatingCrystalTest extends TestCase
 
         for ($i = 0; $i < 5; $i++) {
             $hero = $this->makeHero("max{$i}", 'lightbearer', 'tank', 'ascended');
-            $user->userHeroes()->create([
+            $user->defaultGameAccount->userHeroes()->create([
                 'hero_id' => $hero->id,
                 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star',
                 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
@@ -104,14 +104,14 @@ class ResonatingCrystalTest extends TestCase
         // 3 ascendidos não-dimensionais + 3 ascendidos dimensionais
         for ($i = 0; $i < 3; $i++) {
             $h = $this->makeHero("regular{$i}", 'lightbearer', 'tank', 'ascended');
-            $user->userHeroes()->create([
+            $user->defaultGameAccount->userHeroes()->create([
                 'hero_id' => $h->id, 'level' => 240, 'ascension_value' => 12,
                 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
             ]);
         }
         for ($i = 0; $i < 3; $i++) {
             $h = $this->makeHero("dim{$i}", 'dimensional', 'tank', 'ascended');
-            $user->userHeroes()->create([
+            $user->defaultGameAccount->userHeroes()->create([
                 'hero_id' => $h->id, 'level' => 240, 'ascension_value' => 12,
                 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
             ]);
@@ -135,7 +135,7 @@ class ResonatingCrystalTest extends TestCase
             ->assertJsonPath('crystal.slots_unlocked', 8);
 
         $this->assertDatabaseHas('user_resonating_crystals', [
-            'user_id' => $user->id, 'level' => 260, 'strengthen_progress' => 7, 'slots_unlocked' => 8,
+            'game_account_id' => $user->defaultGameAccount->id, 'level' => 260, 'strengthen_progress' => 7, 'slots_unlocked' => 8,
         ]);
     }
 
@@ -157,7 +157,7 @@ class ResonatingCrystalTest extends TestCase
 
         // Hero ascendido (para destravar can_upgrade)
         $h = $this->makeHero('asc', 'lightbearer', 'tank', 'ascended');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $h->id, 'level' => 240, 'ascension_value' => 12,
             'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
         ]);
@@ -176,14 +176,14 @@ class ResonatingCrystalTest extends TestCase
 
         // Hero ascendido
         $h = $this->makeHero('asc', 'lightbearer', 'tank', 'ascended');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $h->id, 'level' => 240, 'ascension_value' => 12,
             'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
         ]);
 
         // Garante recursos suficientes pra 1 fortalecimento do nível 241
         UserResource::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'gold' => 1_000_000_000,
             'hero_exp' => 1_000_000_000,
             'hero_essence' => 100_000,
@@ -204,13 +204,13 @@ class ResonatingCrystalTest extends TestCase
         $user = User::factory()->create();
 
         $h = $this->makeHero('asc', 'lightbearer', 'tank', 'ascended');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $h->id, 'level' => 240, 'ascension_value' => 12,
             'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
         ]);
 
         UserResource::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'gold' => 1_000_000_000,
             'hero_exp' => 100_000_000_000,
             'hero_essence' => 1_000_000,

@@ -5,30 +5,33 @@ namespace App\Models\Concerns;
 use App\Models\GameAccount;
 
 /**
- * Auto-preenche game_account_id com o default do user quando ausente.
+ * Compat de testes: quando um create() vem sem game_account_id mas o array
+ * inclui user_id (padrão legacy), resolve o game_account_id do default do
+ * user. Sem essa trait, tests herdados que criam via Model::create(['user_id'
+ * => $u->id, ...]) explodiriam com NOT NULL violation.
  *
- * Bridge da migração Etapa A/B → Etapa D. Enquanto controllers antigos e
- * factories/testes preencherem só user_id, este boot resolve o
- * game_account_id transparentemente. Remover quando user_id for dropado
- * das tabelas de domínio.
+ * Precisa que 'user_id' esteja em $fillable pra que Model::create() aceite
+ * o input — mesmo user_id não sendo coluna real. O boot descarta o atributo
+ * antes do save.
+ *
+ * TODO(D.4): factories dedicadas vão passar game_account_id direto → esta
+ * trait pode virar dead code + drop no fim.
  */
 trait BelongsToGameAccount
 {
     protected static function bootBelongsToGameAccount(): void
     {
         static::creating(function ($model) {
-            // game_account_id ausente + user_id presente → resolve do default
-            if ($model->game_account_id === null && $model->user_id !== null) {
-                $model->game_account_id = GameAccount::where('user_id', $model->user_id)
-                    ->where('is_default', true)
-                    ->value('id');
-            }
+            $userId = $model->getAttributes()['user_id'] ?? null;
 
-            // user_id ausente + game_account_id presente → resolve da conta
-            // (bridge enquanto controllers refatorados criam via $active->relation
-            // e user_id ainda é NOT NULL nas tabelas)
-            if ($model->user_id === null && $model->game_account_id !== null) {
-                $model->user_id = GameAccount::whereKey($model->game_account_id)->value('user_id');
+            if ($userId !== null) {
+                if ($model->game_account_id === null) {
+                    $model->game_account_id = GameAccount::where('user_id', $userId)
+                        ->where('is_default', true)
+                        ->value('id');
+                }
+                // Remove user_id do array de atributos (não existe como coluna real).
+                unset($model->attributes['user_id']);
             }
         });
     }

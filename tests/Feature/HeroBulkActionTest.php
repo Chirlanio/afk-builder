@@ -66,14 +66,14 @@ class HeroBulkActionTest extends TestCase
             ->assertJsonPath('affected', 3)
             ->assertJsonPath('favorites_count', 3);
 
-        $this->assertSame(3, $user->favoriteHeroes()->count());
+        $this->assertSame(3, $user->defaultGameAccount->favoriteHeroes()->count());
     }
 
     public function test_bulk_favorita_e_idempotente(): void
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('h');
-        $user->favoriteHeroes()->attach($hero->id);
+        $user->defaultGameAccount->favoriteHeroes()->attach($hero->id);
 
         $this->actingAs($user)
             ->postJson('/heroes/bulk/favorites', [
@@ -83,7 +83,7 @@ class HeroBulkActionTest extends TestCase
             ->assertOk()
             ->assertJsonPath('favorites_count', 1);
 
-        $this->assertSame(1, $user->favoriteHeroes()->count());
+        $this->assertSame(1, $user->defaultGameAccount->favoriteHeroes()->count());
     }
 
     public function test_bulk_desfavorita(): void
@@ -91,7 +91,7 @@ class HeroBulkActionTest extends TestCase
         $user = User::factory()->create();
         $h1 = $this->makeHero('h1');
         $h2 = $this->makeHero('h2');
-        $user->favoriteHeroes()->attach([$h1->id, $h2->id]);
+        $user->defaultGameAccount->favoriteHeroes()->attach([$h1->id, $h2->id]);
 
         $this->actingAs($user)
             ->postJson('/heroes/bulk/favorites', [
@@ -115,7 +115,7 @@ class HeroBulkActionTest extends TestCase
             ->assertOk()
             ->assertJsonPath('affected', 1);
 
-        $this->assertSame(1, $user->favoriteHeroes()->count());
+        $this->assertSame(1, $user->defaultGameAccount->favoriteHeroes()->count());
     }
 
     public function test_bulk_add_no_roster(): void
@@ -148,7 +148,7 @@ class HeroBulkActionTest extends TestCase
         $h2 = $this->makeHero('h2');
 
         UserHero::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'hero_id' => $h1->id,
             'level' => 240,
             'ascension_value' => 16,
@@ -177,12 +177,12 @@ class HeroBulkActionTest extends TestCase
         $h1 = $this->makeHero('h1');
         $h2 = $this->makeHero('h2');
         UserHero::create([
-            'user_id' => $user->id, 'hero_id' => $h1->id,
+            'game_account_id' => $user->defaultGameAccount->id, 'hero_id' => $h1->id,
             'level' => 1, 'ascension_value' => 0, 'ascension_code' => null,
             'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
         ]);
         UserHero::create([
-            'user_id' => $user->id, 'hero_id' => $h2->id,
+            'game_account_id' => $user->defaultGameAccount->id, 'hero_id' => $h2->id,
             'level' => 1, 'ascension_value' => 0, 'ascension_code' => null,
             'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
         ]);
@@ -252,8 +252,8 @@ class HeroBulkActionTest extends TestCase
             ])
             ->assertOk();
 
-        $this->assertSame(1, $userA->favoriteHeroes()->count());
-        $this->assertSame(0, $userB->favoriteHeroes()->count());
+        $this->assertSame(1, $userA->defaultGameAccount->favoriteHeroes()->count());
+        $this->assertSame(0, $userB->defaultGameAccount->favoriteHeroes()->count());
     }
 
     public function test_dedupe_ids_no_payload(): void

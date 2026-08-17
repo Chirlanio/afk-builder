@@ -48,7 +48,7 @@ class FormationShareController extends Controller
                 'challengeType:id,code,name_pt,description,is_pvp,teams_must_be_unique',
                 'teams.teamHeroes:id,formation_team_id,hero_id,slot,row',
                 'teams.beast:id,slug,name,portrait_url,buffs_strength,buffs_intelligence,buffs_agility,buffs_team,tier',
-                'user:id,name',
+                'user',
             ])
             ->firstOrFail();
 

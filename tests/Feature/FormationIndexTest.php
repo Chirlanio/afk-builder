@@ -33,7 +33,7 @@ class FormationIndexTest extends TestCase
     private function makeFormation(User $user, string $challengeCode, array $overrides = []): Formation
     {
         $challengeType = ChallengeType::where('code', $challengeCode)->first();
-        $formation = $user->formations()->create(array_merge([
+        $formation = $user->defaultGameAccount->formations()->create(array_merge([
             'challenge_type_id' => $challengeType->id,
             'name' => 'F-'.uniqid(),
             'mode' => 'target',

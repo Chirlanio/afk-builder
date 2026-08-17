@@ -30,7 +30,7 @@ class FormationBeastTest extends TestCase
     private function makeFormation(User $user, int $teamsCount = 1): Formation
     {
         $challenge = ChallengeType::where('code', 'campaign')->firstOrFail();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challenge->id,
             'name' => 'Test Formation',
             'mode' => 'real',

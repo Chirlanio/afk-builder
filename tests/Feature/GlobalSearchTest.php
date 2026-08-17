@@ -113,13 +113,13 @@ class GlobalSearchTest extends TestCase
         $other = User::factory()->create();
         $challenge = ChallengeType::where('code', 'campaign')->first();
 
-        $owner->formations()->create([
+        $owner->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challenge->id,
             'name' => 'Counter Wilders',
             'mode' => 'target',
             'teams_count' => 1,
         ]);
-        $other->formations()->create([
+        $other->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challenge->id,
             'name' => 'Counter Wilders',
             'mode' => 'target',
@@ -138,7 +138,7 @@ class GlobalSearchTest extends TestCase
     public function test_busca_tier_list_apenas_do_user(): void
     {
         $owner = User::factory()->create();
-        $owner->tierLists()->create([
+        $owner->defaultGameAccount->tierLists()->create([
             'name' => 'Minha lista PvP',
         ]);
 

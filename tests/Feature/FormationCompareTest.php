@@ -30,7 +30,7 @@ class FormationCompareTest extends TestCase
     {
         $challengeType = ChallengeType::where('code', $teamsCount > 1 ? 'legends_championship' : 'campaign')->first();
 
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challengeType->id,
             'name' => $name,
             'mode' => 'real',

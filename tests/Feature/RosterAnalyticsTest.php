@@ -51,7 +51,7 @@ class RosterAnalyticsTest extends TestCase
         $h2 = $this->makeHero('beta', 'lightbearer', 'mage', 'ascended');
         $h3 = $this->makeHero('gamma', 'mauler', 'warrior', 'legendary');
 
-        $user->userHeroes()->createMany([
+        $user->defaultGameAccount->userHeroes()->createMany([
             ['hero_id' => $h1->id, 'level' => 240, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 30, 'furniture' => 0, 'engraving' => 0],
             ['hero_id' => $h2->id, 'level' => 240, 'ascension_value' => 16, 'ascension_code' => 'ascended_5_stars', 'signature_item' => 40, 'furniture' => 9, 'engraving' => 80],
             ['hero_id' => $h3->id, 'level' => 160, 'ascension_value' => 9, 'ascension_code' => 'mythic_plus', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0],
@@ -101,7 +101,7 @@ class RosterAnalyticsTest extends TestCase
         $hero_strong = $this->makeHero('strong', 'lightbearer', 'tank', 'ascended');
         $hero_weak = $this->makeHero('weak', 'wilder', 'support', 'legendary');
 
-        $user->userHeroes()->createMany([
+        $user->defaultGameAccount->userHeroes()->createMany([
             ['hero_id' => $hero_weak->id, 'level' => 100, 'ascension_value' => 4, 'ascension_code' => 'elite', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0],
             ['hero_id' => $hero_strong->id, 'level' => 240, 'ascension_value' => 16, 'ascension_code' => 'ascended_5_stars', 'signature_item' => 40, 'furniture' => 9, 'engraving' => 80],
         ]);
@@ -124,7 +124,7 @@ class RosterAnalyticsTest extends TestCase
         $levels = [240, 220, 200, 180, 160, 100, 50];
         foreach ($levels as $i => $level) {
             $h = $this->makeHero("h{$i}", 'lightbearer', 'tank', 'ascended');
-            $user->userHeroes()->create([
+            $user->defaultGameAccount->userHeroes()->create([
                 'hero_id' => $h->id, 'level' => $level, 'ascension_value' => 12,
                 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
             ]);
@@ -148,7 +148,7 @@ class RosterAnalyticsTest extends TestCase
 
         // Só 1 hero investido → 7 facções sem nenhum + 4 classes faltando + lightbearer com 1/3
         $h = $this->makeHero('solo', 'lightbearer', 'tank', 'ascended');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $h->id, 'level' => 240, 'ascension_value' => 12,
             'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0,
         ]);

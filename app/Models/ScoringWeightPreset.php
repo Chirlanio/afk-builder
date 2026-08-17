@@ -33,11 +33,6 @@ class ScoringWeightPreset extends Model
         'weights' => 'array',
     ];
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
     public function gameAccount(): BelongsTo
     {
         return $this->belongsTo(GameAccount::class);

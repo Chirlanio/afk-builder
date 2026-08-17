@@ -50,7 +50,7 @@ class TierListTemplateTest extends TestCase
      */
     private function makePopulatedList(User $owner, bool $isTemplate = false): UserTierList
     {
-        $list = $owner->tierLists()->create([
+        $list = $owner->defaultGameAccount->tierLists()->create([
             'name' => 'Meta Q1',
             'description' => 'Tier list de PvP',
             'is_template' => $isTemplate,
@@ -132,7 +132,7 @@ class TierListTemplateTest extends TestCase
 
         $copy = $user->tierLists()->first();
         $this->assertNotNull($copy);
-        $this->assertSame($user->id, $copy->user_id);
+        $this->assertSame($user->defaultGameAccount->id, $copy->game_account_id);
         $this->assertFalse($copy->is_template);
         $this->assertSame($template->id, $copy->cloned_from_id);
 

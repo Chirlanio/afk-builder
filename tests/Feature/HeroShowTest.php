@@ -72,7 +72,7 @@ class HeroShowTest extends TestCase
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('lucius');
-        $userHero = $user->userHeroes()->create([
+        $userHero = $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240,
             'ascension_value' => 12,

@@ -49,13 +49,13 @@ class ScoringWeightPresetTest extends TestCase
         $other = User::factory()->create();
 
         ScoringWeightPreset::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'Meu PvP',
             'challenge_type_id' => null,
             'weights' => $this->validWeights(),
         ]);
         ScoringWeightPreset::create([
-            'user_id' => $other->id,
+            'game_account_id' => $other->defaultGameAccount->id,
             'name' => 'Outro user',
             'challenge_type_id' => null,
             'weights' => $this->validWeights(),
@@ -85,7 +85,7 @@ class ScoringWeightPresetTest extends TestCase
         $this->assertSame(2.0, (float) $response->json('preset.weights.power_weight'));
 
         $this->assertDatabaseHas('scoring_weight_presets', [
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'PvP agressivo',
         ]);
     }
@@ -94,7 +94,7 @@ class ScoringWeightPresetTest extends TestCase
     {
         $user = User::factory()->create();
         ScoringWeightPreset::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'Dup',
             'challenge_type_id' => null,
             'weights' => $this->validWeights(),
@@ -176,7 +176,7 @@ class ScoringWeightPresetTest extends TestCase
     {
         $user = User::factory()->create();
         $preset = ScoringWeightPreset::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'Antigo',
             'challenge_type_id' => null,
             'weights' => $this->validWeights(),
@@ -199,7 +199,7 @@ class ScoringWeightPresetTest extends TestCase
         $owner = User::factory()->create();
         $other = User::factory()->create();
         $preset = ScoringWeightPreset::create([
-            'user_id' => $owner->id,
+            'game_account_id' => $owner->defaultGameAccount->id,
             'name' => 'Privado',
             'challenge_type_id' => null,
             'weights' => $this->validWeights(),
@@ -217,7 +217,7 @@ class ScoringWeightPresetTest extends TestCase
     {
         $user = User::factory()->create();
         $preset = ScoringWeightPreset::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'Pra deletar',
             'challenge_type_id' => null,
             'weights' => $this->validWeights(),
@@ -235,7 +235,7 @@ class ScoringWeightPresetTest extends TestCase
         $owner = User::factory()->create();
         $other = User::factory()->create();
         $preset = ScoringWeightPreset::create([
-            'user_id' => $owner->id,
+            'game_account_id' => $owner->defaultGameAccount->id,
             'name' => 'Privado',
             'challenge_type_id' => null,
             'weights' => $this->validWeights(),
@@ -256,25 +256,25 @@ class ScoringWeightPresetTest extends TestCase
 
         // 3 presets: 1 global, 1 do challenge type da formation (campaign), 1 de outro challenge type
         ScoringWeightPreset::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'Global',
             'challenge_type_id' => null,
             'weights' => $this->validWeights(),
         ]);
         ScoringWeightPreset::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'Campaign-specific',
             'challenge_type_id' => $campaign->id,
             'weights' => $this->validWeights(),
         ]);
         ScoringWeightPreset::create([
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'Arena-only',
             'challenge_type_id' => $arena->id,
             'weights' => $this->validWeights(),
         ]);
 
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $campaign->id,
             'name' => 'F',
             'mode' => 'target',

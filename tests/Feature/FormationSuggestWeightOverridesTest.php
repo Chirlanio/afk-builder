@@ -50,7 +50,7 @@ class FormationSuggestWeightOverridesTest extends TestCase
         $user = User::factory()->create();
         for ($i = 1; $i <= 5; $i++) {
             $hero = $this->makeHero("h{$i}");
-            $user->userHeroes()->create([
+            $user->defaultGameAccount->userHeroes()->create([
                 'hero_id' => $hero->id,
                 'level' => 240,
                 'ascension_value' => 12,
@@ -59,7 +59,7 @@ class FormationSuggestWeightOverridesTest extends TestCase
         }
 
         $challengeType = ChallengeType::where('code', 'campaign')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challengeType->id,
             'name' => 'Test',
             'mode' => 'real',
@@ -83,7 +83,7 @@ class FormationSuggestWeightOverridesTest extends TestCase
     {
         $user = User::factory()->create();
         $challengeType = ChallengeType::where('code', 'campaign')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challengeType->id,
             'name' => 'Test',
             'mode' => 'real',
@@ -104,7 +104,7 @@ class FormationSuggestWeightOverridesTest extends TestCase
     {
         $user = User::factory()->create();
         $challengeType = ChallengeType::where('code', 'campaign')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challengeType->id,
             'name' => 'Test',
             'mode' => 'real',
@@ -126,7 +126,7 @@ class FormationSuggestWeightOverridesTest extends TestCase
         $user = User::factory()->create();
         for ($i = 1; $i <= 6; $i++) {
             $hero = $this->makeHero("h{$i}");
-            $user->userHeroes()->create([
+            $user->defaultGameAccount->userHeroes()->create([
                 'hero_id' => $hero->id,
                 'level' => 240,
                 'ascension_value' => 12,
@@ -135,7 +135,7 @@ class FormationSuggestWeightOverridesTest extends TestCase
         }
 
         $challengeType = ChallengeType::where('code', 'abyssal_expedition')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challengeType->id,
             'name' => 'Test',
             'mode' => 'real',
@@ -161,14 +161,14 @@ class FormationSuggestWeightOverridesTest extends TestCase
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('h1');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240,
             'ascension_value' => 12,
             'ascension_code' => 'ascended_1_star',
         ]);
         $challengeType = ChallengeType::where('code', 'campaign')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challengeType->id,
             'name' => 'Test',
             'mode' => 'real',

@@ -49,7 +49,7 @@ class HeroUsageTest extends TestCase
     private function makeFormationWithHeroes(User $user, string $challengeCode, array $heroIds, int $teamsCount = 1): Formation
     {
         $challenge = ChallengeType::where('code', $challengeCode)->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challenge->id,
             'name' => "F-{$challengeCode}-".uniqid(),
             'mode' => 'target',
@@ -109,7 +109,7 @@ class HeroUsageTest extends TestCase
         $heroIdle = $this->makeHero('idle');
         $heroIdle2 = $this->makeHero('idle2');
 
-        $user->userHeroes()->createMany([
+        $user->defaultGameAccount->userHeroes()->createMany([
             ['hero_id' => $heroUsed->id, 'level' => 200, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0],
             ['hero_id' => $heroIdle->id, 'level' => 200, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0],
             ['hero_id' => $heroIdle2->id, 'level' => 200, 'ascension_value' => 12, 'ascension_code' => 'ascended_1_star', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0],
@@ -133,7 +133,7 @@ class HeroUsageTest extends TestCase
         $heroRich = $this->makeHero('rich');
         $heroBasic = $this->makeHero('basic');
 
-        $user->userHeroes()->createMany([
+        $user->defaultGameAccount->userHeroes()->createMany([
             ['hero_id' => $heroRich->id, 'level' => 240, 'ascension_value' => 14, 'ascension_code' => 'ascended_3_stars', 'signature_item' => 30, 'furniture' => 9, 'engraving' => 80],
             ['hero_id' => $heroBasic->id, 'level' => 100, 'ascension_value' => 5, 'ascension_code' => 'rare_plus', 'signature_item' => 0, 'furniture' => 0, 'engraving' => 0],
         ]);
@@ -154,7 +154,7 @@ class HeroUsageTest extends TestCase
     {
         $user = User::factory()->create();
         $hero = $this->makeHero('used-rich');
-        $user->userHeroes()->create([
+        $user->defaultGameAccount->userHeroes()->create([
             'hero_id' => $hero->id,
             'level' => 240,
             'ascension_value' => 16,

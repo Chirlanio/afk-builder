@@ -33,7 +33,7 @@ class FormationTagTest extends TestCase
     private function makeFormation(User $user): Formation
     {
         $challenge = ChallengeType::where('code', 'campaign')->first();
-        $formation = $user->formations()->create([
+        $formation = $user->defaultGameAccount->formations()->create([
             'challenge_type_id' => $challenge->id,
             'name' => 'F-'.uniqid(),
             'mode' => 'target',
@@ -48,8 +48,8 @@ class FormationTagTest extends TestCase
     {
         $user = User::factory()->create();
         $other = User::factory()->create();
-        FormationTag::create(['user_id' => $user->id, 'name' => 'minha', 'color' => 'sky']);
-        FormationTag::create(['user_id' => $other->id, 'name' => 'outra', 'color' => 'rose']);
+        FormationTag::create(['game_account_id' => $user->defaultGameAccount->id, 'name' => 'minha', 'color' => 'sky']);
+        FormationTag::create(['game_account_id' => $other->defaultGameAccount->id, 'name' => 'outra', 'color' => 'rose']);
 
         $response = $this->actingAs($user)->getJson('/formation-tags')->assertOk();
         $tags = $response->json('tags');
@@ -69,7 +69,7 @@ class FormationTagTest extends TestCase
             ->assertJsonPath('tag.color', 'emerald');
 
         $this->assertDatabaseHas('formation_tags', [
-            'user_id' => $user->id,
+            'game_account_id' => $user->defaultGameAccount->id,
             'name' => 'speedrun',
             'color' => 'emerald',
         ]);
@@ -98,7 +98,7 @@ class FormationTagTest extends TestCase
     public function test_rejeita_nome_duplicado_por_user(): void
     {
         $user = User::factory()->create();
-        FormationTag::create(['user_id' => $user->id, 'name' => 'dup', 'color' => 'amber']);
+        FormationTag::create(['game_account_id' => $user->defaultGameAccount->id, 'name' => 'dup', 'color' => 'amber']);
 
         $this->actingAs($user)
             ->postJson('/formation-tags', ['name' => 'dup'])
@@ -118,7 +118,7 @@ class FormationTagTest extends TestCase
     public function test_atualiza_tag_propria(): void
     {
         $user = User::factory()->create();
-        $tag = FormationTag::create(['user_id' => $user->id, 'name' => 'antiga', 'color' => 'amber']);
+        $tag = FormationTag::create(['game_account_id' => $user->defaultGameAccount->id, 'name' => 'antiga', 'color' => 'amber']);
 
         $this->actingAs($user)
             ->patchJson("/formation-tags/{$tag->id}", ['name' => 'nova', 'color' => 'sky'])
@@ -131,7 +131,7 @@ class FormationTagTest extends TestCase
     {
         $owner = User::factory()->create();
         $other = User::factory()->create();
-        $tag = FormationTag::create(['user_id' => $owner->id, 'name' => 't', 'color' => 'amber']);
+        $tag = FormationTag::create(['game_account_id' => $owner->defaultGameAccount->id, 'name' => 't', 'color' => 'amber']);
 
         $this->actingAs($other)
             ->patchJson("/formation-tags/{$tag->id}", ['name' => 'hack'])
@@ -141,7 +141,7 @@ class FormationTagTest extends TestCase
     public function test_deleta_tag_propria(): void
     {
         $user = User::factory()->create();
-        $tag = FormationTag::create(['user_id' => $user->id, 'name' => 'remove-me', 'color' => 'rose']);
+        $tag = FormationTag::create(['game_account_id' => $user->defaultGameAccount->id, 'name' => 'remove-me', 'color' => 'rose']);
 
         $this->actingAs($user)
             ->deleteJson("/formation-tags/{$tag->id}")
@@ -154,7 +154,7 @@ class FormationTagTest extends TestCase
     {
         $user = User::factory()->create();
         $formation = $this->makeFormation($user);
-        $tag = FormationTag::create(['user_id' => $user->id, 'name' => 'sera-removida', 'color' => 'amber']);
+        $tag = FormationTag::create(['game_account_id' => $user->defaultGameAccount->id, 'name' => 'sera-removida', 'color' => 'amber']);
         $formation->tags()->attach($tag->id);
 
         $this->assertDatabaseHas('formation_tag_assignments', [
@@ -173,8 +173,8 @@ class FormationTagTest extends TestCase
     {
         $user = User::factory()->create();
         $formation = $this->makeFormation($user);
-        $tagA = FormationTag::create(['user_id' => $user->id, 'name' => 'a', 'color' => 'amber']);
-        $tagB = FormationTag::create(['user_id' => $user->id, 'name' => 'b', 'color' => 'sky']);
+        $tagA = FormationTag::create(['game_account_id' => $user->defaultGameAccount->id, 'name' => 'a', 'color' => 'amber']);
+        $tagB = FormationTag::create(['game_account_id' => $user->defaultGameAccount->id, 'name' => 'b', 'color' => 'sky']);
 
         $this->actingAs($user)
             ->patch("/formations/{$formation->id}", [
@@ -191,7 +191,7 @@ class FormationTagTest extends TestCase
     {
         $user = User::factory()->create();
         $formation = $this->makeFormation($user);
-        $tag = FormationTag::create(['user_id' => $user->id, 'name' => 'a', 'color' => 'amber']);
+        $tag = FormationTag::create(['game_account_id' => $user->defaultGameAccount->id, 'name' => 'a', 'color' => 'amber']);
         $formation->tags()->attach($tag->id);
 
         $this->actingAs($user)
@@ -210,7 +210,7 @@ class FormationTagTest extends TestCase
         $owner = User::factory()->create();
         $other = User::factory()->create();
         $formation = $this->makeFormation($owner);
-        $foreignTag = FormationTag::create(['user_id' => $other->id, 'name' => 'foreign', 'color' => 'amber']);
+        $foreignTag = FormationTag::create(['game_account_id' => $other->defaultGameAccount->id, 'name' => 'foreign', 'color' => 'amber']);
 
         $this->actingAs($owner)
             ->patch("/formations/{$formation->id}", [
@@ -225,9 +225,9 @@ class FormationTagTest extends TestCase
     {
         $user = User::factory()->create();
         $formation = $this->makeFormation($user);
-        $tag = FormationTag::create(['user_id' => $user->id, 'name' => 'speedrun', 'color' => 'emerald']);
+        $tag = FormationTag::create(['game_account_id' => $user->defaultGameAccount->id, 'name' => 'speedrun', 'color' => 'emerald']);
         $formation->tags()->attach($tag->id);
-        FormationTag::create(['user_id' => $user->id, 'name' => 'safe', 'color' => 'sky']);
+        FormationTag::create(['game_account_id' => $user->defaultGameAccount->id, 'name' => 'safe', 'color' => 'sky']);
 
         $response = $this->actingAs($user)->get('/formations')->assertOk();
         $props = $response->viewData('page')['props'];
@@ -240,7 +240,7 @@ class FormationTagTest extends TestCase
     {
         $user = User::factory()->create();
         $formation = $this->makeFormation($user);
-        $tag = FormationTag::create(['user_id' => $user->id, 'name' => 'meu', 'color' => 'rose']);
+        $tag = FormationTag::create(['game_account_id' => $user->defaultGameAccount->id, 'name' => 'meu', 'color' => 'rose']);
         $formation->tags()->attach($tag->id);
 
         $response = $this->actingAs($user)->get("/formations/{$formation->id}/edit")->assertOk();
