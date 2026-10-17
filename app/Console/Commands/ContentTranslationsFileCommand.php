@@ -13,31 +13,30 @@ use Illuminate\Support\Sleep;
 use Throwable;
 
 /**
- * Tradução EN→PT-BR em três etapas, por arquivo JSONL:
+ * EN→PT-BR translation in three steps, through a JSONL file:
  *
- *   export    (servidor)  textos ainda sem tradução → arquivo
- *   translate (fora dele) arquivo → arquivo com `translation` em cada linha
- *   import    (servidor)  grava as traduções nos campos *_pt
+ *   export    (server)    untranslated texts → file
+ *   translate (elsewhere) file → file with a `translation` on each line
+ *   import    (server)    writes the translations into the *_pt fields
  *
- * Por que existe: na Hostinger o Google responde HTTP 429 a qualquer requisição
- * feita pelo PHP (a "impressão digital" TLS do libcurl do PHP de lá é tratada
- * como robô — o curl de linha de comando do mesmo servidor passa, mas o PHP não
- * pode chamá-lo: exec/proc_open são bloqueados). De outra máquina o Google
- * aceita. Nas máquinas onde funciona, `content:translate` continua sendo o
- * caminho direto.
+ * Why it exists: on Hostinger, Google answers HTTP 429 to every request made by
+ * PHP (the TLS fingerprint of the server's PHP libcurl is treated as a bot — the
+ * command-line curl on the same server gets through, but PHP cannot call it:
+ * exec/proc_open are blocked). Other machines are accepted. Where it works,
+ * `content:translate` is still the direct path.
  */
 class ContentTranslationsFileCommand extends Command
 {
-    protected $signature = 'content:translations {action : export | translate | import} {file : Caminho do arquivo JSONL}
-        {--output= : (translate) arquivo de saída; padrão: <file>.pt.jsonl}
-        {--delay=1500 : (translate) pausa em ms entre traduções — o Google limita o IP com ~90 seguidas}';
+    protected $signature = 'content:translations {action : export | translate | import} {file : Path to the JSONL file}
+        {--output= : (translate) output file; default: <file>.pt.jsonl}
+        {--delay=1500 : (translate) pause in ms between translations — Google throttles the IP after ~90 in a row}';
 
-    protected $description = 'Exporta, traduz ou importa conteúdo EN→PT-BR via arquivo (quando o servidor não alcança o Google)';
+    protected $description = 'Export, translate or import EN→PT-BR content through a file (when the server cannot reach Google)';
 
-    /** Esperas (s) ao receber HTTP 429 antes de tentar o mesmo texto de novo. */
+    /** Waits (s) after an HTTP 429 before retrying the same text. */
     private const RATE_LIMIT_WAITS = [30, 60, 120, 240];
 
-    /** Modelo → [campo em inglês => campo traduzido]. Também é a lista do que o import aceita. */
+    /** Model → [English field => translated field]. Also the allowlist for import. */
     private const FIELDS = [
         'hero' => [Hero::class, ['lore' => 'lore_pt']],
         'ability' => [HeroAbility::class, ['name' => 'name_pt', 'description' => 'description_pt']],
@@ -73,7 +72,7 @@ class ContentTranslationsFileCommand extends Command
         }
 
         fclose($out);
-        $this->info("{$rows} texto(s) sem tradução exportado(s) para {$file}.");
+        $this->info("Exported {$rows} untranslated text(s) to {$file}.");
 
         return self::SUCCESS;
     }
@@ -82,7 +81,7 @@ class ContentTranslationsFileCommand extends Command
     {
         $translator = new GoogleFreeTranslator;
 
-        // Retoma de onde parou: linhas já traduzidas na saída não são refeitas.
+        // Resume where it stopped: lines already in the output are not redone.
         $done = [];
         if (is_file($output)) {
             foreach (file($output, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -105,11 +104,11 @@ class ContentTranslationsFileCommand extends Command
                 continue;
             }
 
-            // HTTP 429 = limite do Google para o IP: espera e tenta o MESMO texto
-            // de novo (30s, 1, 2 e 4 min) em vez de pular e queimar o arquivo.
+            // HTTP 429 = Google throttling the IP: wait and retry the SAME text
+            // (30s, 1, 2 and 4 min) instead of skipping through the whole file.
             foreach ([0, ...self::RATE_LIMIT_WAITS] as $attempt => $wait) {
                 if ($wait > 0) {
-                    $this->warn("  … limite do Google; aguardando {$wait}s antes de tentar {$key} de novo");
+                    $this->warn("  … Google rate limit; waiting {$wait}s before retrying {$key}");
                     Sleep::for($wait)->seconds();
                 }
 
@@ -132,13 +131,13 @@ class ContentTranslationsFileCommand extends Command
             }
 
             if ($failures >= 20) {
-                $this->error('20 falhas — interrompido. Rode de novo para retomar.');
+                $this->error('20 failures — stopped. Run again to resume.');
                 break;
             }
         }
 
         fclose($out);
-        $this->info("{$translated} traduzido(s) agora; ".count($done).' já estavam prontos. Saída: '.$output);
+        $this->info("Translated {$translated} now; ".count($done).' were already done. Output: '.$output);
 
         return $failures >= 20 ? self::FAILURE : self::SUCCESS;
     }
@@ -157,7 +156,7 @@ class ContentTranslationsFileCommand extends Command
             /** @var Model|null $record */
             $record = $model && $target && is_string($translation) && trim($translation) !== '' ? $model::find($row['id']) : null;
 
-            // Só preenche o que ainda está vazio — não sobrescreve tradução existente.
+            // Only fills empty fields — never overwrites an existing translation.
             if ($record === null || $record->{$target} !== null) {
                 $skipped++;
 
@@ -168,14 +167,14 @@ class ContentTranslationsFileCommand extends Command
             $saved++;
         }
 
-        $this->info("{$saved} tradução(ões) gravada(s); {$skipped} ignorada(s) (já traduzidas ou inválidas).");
+        $this->info("Saved {$saved} translation(s); skipped {$skipped} (already translated or invalid).");
 
         return self::SUCCESS;
     }
 
     private function invalidAction(): int
     {
-        $this->error('Ação inválida. Use export, translate ou import.');
+        $this->error('Invalid action. Use export, translate or import.');
 
         return self::INVALID;
     }

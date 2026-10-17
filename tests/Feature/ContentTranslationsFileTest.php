@@ -24,7 +24,7 @@ class ContentTranslationsFileTest extends TestCase
     {
         parent::setUp();
         $this->seed([FactionSeeder::class, HeroClassSeeder::class, TierSeeder::class]);
-        Sleep::fake(); // pausas entre traduções e esperas do 429
+        Sleep::fake(); // pauses between translations and 429 waits
         $this->dir = sys_get_temp_dir().'/afk-translations-'.uniqid();
         mkdir($this->dir);
     }
@@ -50,14 +50,14 @@ class ContentTranslationsFileTest extends TestCase
         return $hero;
     }
 
-    public function test_exporta_traduz_e_importa(): void
+    public function test_exports_translates_and_imports(): void
     {
         $hero = $this->hero();
         $file = $this->dir.'/textos.jsonl';
 
         $this->artisan('content:translations', ['action' => 'export', 'file' => $file])->assertSuccessful();
         $rows = array_map(fn ($l) => json_decode($l, true), file($file, FILE_IGNORE_NEW_LINES));
-        $this->assertCount(3, $rows); // lore + nome + descrição da habilidade
+        $this->assertCount(3, $rows); // lore + ability name + ability description
 
         Http::fake(['translate.googleapis.com/*' => fn ($request) => Http::response([[['[pt] '.$request['q'], $request['q']]]])]);
         $this->artisan('content:translations', ['action' => 'translate', 'file' => $file])->assertSuccessful();
@@ -69,12 +69,12 @@ class ContentTranslationsFileTest extends TestCase
         $this->assertSame('[pt] Divine Strike', $ability->name_pt);
         $this->assertSame('[pt] Lucius smashes the ground.', $ability->description_pt);
 
-        // Nada mais a exportar depois de importar.
+        // Nothing left to export after importing.
         $this->artisan('content:translations', ['action' => 'export', 'file' => $file])->assertSuccessful();
         $this->assertSame('', trim(file_get_contents($file)));
     }
 
-    public function test_traducao_retoma_de_onde_parou(): void
+    public function test_translate_resumes_where_it_stopped(): void
     {
         $this->hero();
         $file = $this->dir.'/textos.jsonl';
@@ -84,35 +84,35 @@ class ContentTranslationsFileTest extends TestCase
         $this->artisan('content:translations', ['action' => 'translate', 'file' => $file]);
         $this->artisan('content:translations', ['action' => 'translate', 'file' => $file]);
 
-        Http::assertSentCount(3); // a segunda rodada não refaz nada
+        Http::assertSentCount(3); // the second run redoes nothing
         $this->assertCount(3, file($this->dir.'/textos.pt.jsonl', FILE_IGNORE_NEW_LINES));
     }
 
-    public function test_import_nao_sobrescreve_e_ignora_tipos_desconhecidos(): void
+    public function test_import_does_not_overwrite_and_ignores_unknown_types(): void
     {
         $hero = $this->hero();
-        $hero->update(['lore_pt' => 'Tradução revisada à mão']);
+        $hero->update(['lore_pt' => 'Hand-reviewed translation']);
         $file = $this->dir.'/in.pt.jsonl';
         file_put_contents($file, implode(PHP_EOL, [
-            json_encode(['type' => 'hero', 'id' => $hero->id, 'field' => 'lore', 'translation' => 'Outra']),
+            json_encode(['type' => 'hero', 'id' => $hero->id, 'field' => 'lore', 'translation' => 'Another']),
             json_encode(['type' => 'users', 'id' => 1, 'field' => 'password', 'translation' => 'x']),
         ]));
 
         $this->artisan('content:translations', ['action' => 'import', 'file' => $file])
-            ->expectsOutputToContain('0 tradução(ões) gravada(s); 2 ignorada(s)')
+            ->expectsOutputToContain('Saved 0 translation(s); skipped 2')
             ->assertSuccessful();
 
-        $this->assertSame('Tradução revisada à mão', $hero->fresh()->lore_pt);
+        $this->assertSame('Hand-reviewed translation', $hero->fresh()->lore_pt);
     }
 
-    public function test_limite_do_google_espera_e_tenta_o_mesmo_texto_de_novo(): void
+    public function test_google_rate_limit_waits_and_retries_the_same_text(): void
     {
         $hero = $this->hero();
         $hero->abilities()->delete();
         $file = $this->dir.'/textos.jsonl';
         $this->artisan('content:translations', ['action' => 'export', 'file' => $file]);
 
-        // O tradutor já tenta 3x por conta própria; o comando espera e tenta de novo.
+        // The translator already retries 3x on its own; the command then waits and retries.
         Http::fakeSequence('translate.googleapis.com/*')
             ->push('', 429)->push('', 429)->push('', 429)->push('', 429)
             ->push([[['Lucius é um paladino.', 'Lucius is a paladin.']]]);
