@@ -1,4 +1,4 @@
-import { BeastBuffsEditor, normalizeBuffs, type BuffsMap } from '@/components/beast-buffs-editor';
+import { BeastBuffsEditor, hasInvalidBuffs, normalizeBuffs, type BuffsMap } from '@/components/beast-buffs-editor';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -127,8 +127,14 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
 
     const submit = async (e: FormEvent) => {
         e.preventDefault();
-        setSaving(true);
         setErrors({});
+
+        // Buff inválido seria descartado em silêncio pelo normalizeBuffs.
+        if ([data.buffs_strength, data.buffs_intelligence, data.buffs_agility, data.buffs_team].some(hasInvalidBuffs)) {
+            setErrors({ buffs: 'Há buffs com número inválido (destacados em vermelho). Use vírgula para decimais, de 0 a 999,99.' });
+            return;
+        }
+        setSaving(true);
 
         const payload = {
             slug: data.slug,
@@ -295,6 +301,7 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                             onChange={(next) => setBuffsForScope(scope, next)}
                             accent={SCOPE_ACCENT[scope]}
                         />
+                        {errors.buffs && <p className="text-destructive text-[10px]">{errors.buffs}</p>}
                         <p className="text-muted-foreground text-[10px]">
                             {scope === 'team'
                                 ? 'Aplicados a todos os heróis da equipe.'

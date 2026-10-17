@@ -1,4 +1,5 @@
 import { Input } from '@/components/ui/input';
+import { formatDecimalInput, parseDecimal } from '@/lib/decimal';
 import { cn } from '@/lib/utils';
 
 export type BuffsMap = Record<string, number | string>;
@@ -37,15 +38,12 @@ const ACCENT_CLASSES = {
 export function BeastBuffsEditor({ buffs, onChange, accent = 'amber' }: Props) {
     const set = (key: string, raw: string) => {
         const next = { ...buffs };
-        if (raw === '' || raw === '0') {
+        // Guarda o texto como digitado (aceita vírgula — "12,5"); a conversão é
+        // feita em normalizeBuffs. Campo vazio remove o buff.
+        if (raw.trim() === '') {
             delete next[key];
         } else {
-            const num = Number(raw);
-            if (Number.isFinite(num) && num > 0) {
-                next[key] = raw;
-            } else {
-                delete next[key];
-            }
+            next[key] = raw;
         }
         onChange(next);
     };
@@ -54,7 +52,9 @@ export function BeastBuffsEditor({ buffs, onChange, accent = 'amber' }: Props) {
         <div className={cn('grid grid-cols-2 gap-2 rounded-md border p-3 sm:grid-cols-3', ACCENT_CLASSES[accent])}>
             {STAT_FIELDS.map((field) => {
                 const raw = buffs[field.key];
-                const display = raw === undefined || raw === null ? '' : String(raw);
+                const display = raw === undefined || raw === null ? '' : typeof raw === 'number' ? formatDecimalInput(raw) : raw;
+                const parsed = parseDecimal(display);
+                const invalid = parsed !== null && (Number.isNaN(parsed) || parsed < 0 || parsed > 999.99);
                 return (
                     <div key={field.key} className="flex flex-col gap-1">
                         <label className="text-muted-foreground text-[10px] font-medium" htmlFor={`buff-${field.key}`}>
@@ -63,15 +63,14 @@ export function BeastBuffsEditor({ buffs, onChange, accent = 'amber' }: Props) {
                         <div className="flex items-center gap-1">
                             <Input
                                 id={`buff-${field.key}`}
-                                type="number"
+                                type="text"
                                 inputMode="decimal"
-                                step="0.01"
-                                min="0"
-                                max="999.99"
                                 value={display}
                                 onChange={(e) => set(field.key, e.target.value)}
                                 placeholder="0"
-                                className="h-7 text-xs"
+                                aria-invalid={invalid}
+                                title={invalid ? 'Número inválido (0 a 999,99). Use vírgula para decimais.' : undefined}
+                                className={cn('h-7 text-xs', invalid && 'border-destructive')}
                             />
                             <span className="text-muted-foreground text-[10px]">%</span>
                         </div>
@@ -89,10 +88,18 @@ export function BeastBuffsEditor({ buffs, onChange, accent = 'amber' }: Props) {
 export function normalizeBuffs(buffs: BuffsMap): Record<string, number> {
     const out: Record<string, number> = {};
     for (const [key, value] of Object.entries(buffs)) {
-        const num = typeof value === 'string' ? parseFloat(value) : value;
-        if (Number.isFinite(num) && num > 0) {
+        const num = parseDecimal(value);
+        if (num !== null && Number.isFinite(num) && num > 0) {
             out[key] = Number(num.toFixed(2));
         }
     }
     return out;
+}
+
+/** Algum buff digitado não é um número válido (0 a 999,99)? */
+export function hasInvalidBuffs(buffs: BuffsMap): boolean {
+    return Object.values(buffs).some((value) => {
+        const num = parseDecimal(value);
+        return num !== null && (Number.isNaN(num) || num < 0 || num > 999.99);
+    });
 }
