@@ -46,7 +46,8 @@ export default function FormationsCreate({ challengeTypes }: PageProps) {
         form.post('/formations');
     };
 
-    const teamsCount = form.data.teams_count ?? selected?.max_teams ?? 1;
+    // Campanha: a maioria das fases usa 1 equipe (a 4ª de cada bloco tem até 5 grupos).
+    const teamsCount = form.data.teams_count ?? (selected?.code === 'campaign' ? selected.min_teams : selected?.max_teams) ?? 1;
     const teamsCountLocked = !!selected && selected.min_teams === selected.max_teams;
 
     return (

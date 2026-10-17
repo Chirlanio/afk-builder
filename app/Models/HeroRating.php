@@ -21,6 +21,9 @@ class HeroRating extends Model
 
     public const MODE_ABYSSAL_EXPEDITION = 'abyssal_expedition';
 
+    /** Provas da Forja Dracônica — ratings derivados das formações do afk.guide. */
+    public const MODE_DRAGONFORGE = 'dragonforge';
+
     public const STAGE_EARLY = 'early';
 
     public const STAGE_MID = 'mid';

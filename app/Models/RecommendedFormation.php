@@ -19,6 +19,8 @@ class RecommendedFormation extends Model
 
     public const MODE_ARCANE_LABYRINTH = 'arcane_labyrinth';
 
+    public const MODE_DRAGONFORGE = 'dragonforge';
+
     protected $fillable = [
         'slug',
         'name',
@@ -28,6 +30,7 @@ class RecommendedFormation extends Model
         'description',
         'notes',
         'hero_slugs',
+        'teams',
         'core_count',
         'artifacts',
         'source_url',
@@ -38,6 +41,7 @@ class RecommendedFormation extends Model
 
     protected $casts = [
         'hero_slugs' => 'array',
+        'teams' => 'array',
         'artifacts' => 'array',
         'is_active' => 'boolean',
         'sort_order' => 'integer',

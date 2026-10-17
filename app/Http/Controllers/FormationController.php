@@ -124,7 +124,10 @@ class FormationController extends Controller
 
         $challengeType = ChallengeType::findOrFail($data['challenge_type_id']);
 
-        $teamsCount = $data['teams_count'] ?? $challengeType->max_teams;
+        // Campanha: a maioria das fases usa 1 equipe (só a 4ª de cada bloco tem
+        // vários grupos) — o padrão é o mínimo; nos demais modos, o máximo.
+        $defaultTeams = $challengeType->code === 'campaign' ? $challengeType->min_teams : $challengeType->max_teams;
+        $teamsCount = $data['teams_count'] ?? $defaultTeams;
         $teamsCount = max($challengeType->min_teams, min($challengeType->max_teams, $teamsCount));
 
         $account = $this->active->get();

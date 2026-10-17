@@ -29,6 +29,11 @@ interface CrystalState {
     strengthen_progress: number;
     strengthens_per_level: number;
     slots_unlocked: number;
+    slots_occupied: number | null;
+    /** Teto informado pelo jogador (o que o jogo mostra). null = estimado pelo roster. */
+    level_cap_manual: number | null;
+    /** Último nível com custo conhecido (tabela pública). */
+    cost_data_max_level: number;
     effective_level: number;
     is_upgraded: boolean;
     level_cap: number;
@@ -79,7 +84,10 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
         level: crystal.level,
         strengthen_progress: crystal.strengthen_progress,
         slots_unlocked: crystal.slots_unlocked,
+        level_cap: crystal.level_cap_manual as number | null,
+        slots_occupied: crystal.slots_occupied,
     });
+    const [syncError, setSyncError] = useState<string | null>(null);
     const [syncing, setSyncing] = useState(false);
     const [strengthening, setStrengthening] = useState(false);
     const [strengthenError, setStrengthenError] = useState<string | null>(null);
@@ -91,12 +99,14 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
 
     const handleSync = async () => {
         setSyncing(true);
+        setSyncError(null);
         try {
             await axios.patch('/crystal', syncForm);
-            router.reload({ only: ['crystal', 'strengthenCost'] });
+            router.reload({ only: ['crystal', 'strengthenCost', 'nextLevelCost'] });
             setSyncDialogOpen(false);
-        } catch (err) {
-            console.error('Falha ao sincronizar cristal:', err);
+        } catch (err: unknown) {
+            const e = err as { response?: { data?: { errors?: Record<string, string[]> } } };
+            setSyncError(Object.values(e.response?.data?.errors ?? {})[0]?.[0] ?? 'Falha ao sincronizar.');
         } finally {
             setSyncing(false);
         }
@@ -172,20 +182,28 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                             <Crown className="size-3.5" />
                             Teto destravado
                         </div>
-                        <div className="font-mono text-2xl font-bold text-amber-100">
-                            {crystal.level_cap}
-                            <span className="ml-1 text-xs font-normal text-amber-100/40">/ {crystal.max_absolute}</span>
+                        <div className="font-mono text-2xl font-bold text-amber-100">{crystal.level_cap}</div>
+                        <div className="mt-0.5 text-[10px] text-amber-100/40">
+                            {crystal.level_cap_manual !== null
+                                ? 'Informado do jogo'
+                                : 'Estimado: 240 + 5 × heróis Ascendidos do roster (sem Dimensionais)'}
                         </div>
-                        <div className="mt-0.5 text-[10px] text-amber-100/40">240 + 5 × heros Ascendidos (sem Dimensionais)</div>
                     </div>
 
                     <div className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-4">
                         <div className="mb-2 flex items-center gap-1.5 text-[10px] tracking-wider text-amber-100/50 uppercase">
                             <Users className="size-3.5" />
-                            Slots desbloqueados
+                            Posições
                         </div>
-                        <div className="font-mono text-2xl font-bold text-amber-100">{crystal.slots_unlocked}</div>
-                        <div className="mt-0.5 text-[10px] text-amber-100/40">5 iniciais (pentagrama) + Essências Revigorantes</div>
+                        <div className="font-mono text-2xl font-bold text-amber-100">
+                            {crystal.slots_occupied ?? '—'}
+                            <span className="ml-1 text-xs font-normal text-amber-100/40">/ {crystal.slots_unlocked} liberadas</span>
+                        </div>
+                        <div className="mt-0.5 text-[10px] text-amber-100/40">
+                            {crystal.slots_occupied !== null && crystal.slots_unlocked > crystal.slots_occupied
+                                ? `${crystal.slots_unlocked - crystal.slots_occupied} livre(s) — dá para colocar mais heróis no cristal`
+                                : '5 iniciais (pentagrama) + Essências Revigorantes'}
+                        </div>
                     </div>
                 </section>
 
@@ -342,7 +360,7 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                             <p className="text-xs text-amber-100/60">
                                 {!crystal.can_upgrade
                                     ? 'Cristal já está no teto destravado pelos seus heroes Ascendidos. Ascenda mais heroes pra aumentar o limite.'
-                                    : 'Sem dados de custo pro próximo nível.'}
+                                    : `Custo do próximo nível indisponível: a tabela pública de custos (Fandom) vai só até o nível ${crystal.cost_data_max_level}. Continue fortalecendo no jogo e mantenha o nível sincronizado aqui.`}
                             </p>
                         )}
                     </section>
@@ -411,19 +429,30 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                     <DialogHeader>
                         <DialogTitle>Sincronizar com o jogo</DialogTitle>
                         <DialogDescription>
-                            Ajuste o nível atual, o progresso de fortalecimento e a quantidade de slots conforme o estado do seu cristal no jogo.
+                            Copie os números da tela do cristal no jogo (ex: nível 675/1040, 112 posições liberadas, 106 ocupadas).
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="flex flex-col gap-3 py-2">
                         <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-amber-100">Nível do cristal (240–{crystal.max_absolute})</label>
+                            <label className="text-xs font-medium text-amber-100">Nível do cristal</label>
                             <Input
                                 type="number"
                                 min={240}
                                 max={crystal.max_absolute}
                                 value={syncForm.level}
                                 onChange={(e) => setSyncForm((p) => ({ ...p, level: Number(e.target.value) }))}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-amber-100">Teto do cristal no jogo (o número depois da barra)</label>
+                            <Input
+                                type="number"
+                                min={240}
+                                max={crystal.max_absolute}
+                                placeholder="Vazio = estimar pelos heróis Ascendidos do roster"
+                                value={syncForm.level_cap ?? ''}
+                                onChange={(e) => setSyncForm((p) => ({ ...p, level_cap: e.target.value === '' ? null : Number(e.target.value) }))}
                             />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -437,15 +466,34 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                             />
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-amber-100">Slots desbloqueados (5+)</label>
+                            <label className="text-xs font-medium text-amber-100">Posições liberadas</label>
                             <Input
                                 type="number"
                                 min={5}
-                                max={60}
+                                max={500}
                                 value={syncForm.slots_unlocked}
                                 onChange={(e) => setSyncForm((p) => ({ ...p, slots_unlocked: Number(e.target.value) }))}
                             />
                         </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-amber-100">Posições ocupadas</label>
+                            <Input
+                                type="number"
+                                min={0}
+                                max={syncForm.slots_unlocked}
+                                placeholder="Opcional"
+                                value={syncForm.slots_occupied ?? ''}
+                                onChange={(e) =>
+                                    setSyncForm((p) => ({ ...p, slots_occupied: e.target.value === '' ? null : Number(e.target.value) }))
+                                }
+                            />
+                        </div>
+                        {syncError && (
+                            <div className="flex items-center gap-1.5 rounded-md border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-300">
+                                <AlertTriangle className="size-3" />
+                                {syncError}
+                            </div>
+                        )}
                     </div>
 
                     <DialogFooter className="gap-2">

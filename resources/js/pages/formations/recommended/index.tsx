@@ -29,6 +29,7 @@ const MODE_LABEL: Record<RecommendedFormationMode, string> = {
     labyrinth: 'Labirinto',
     king_tower: 'Torre do Rei',
     arcane_labyrinth: 'Labirinto Arcano',
+    dragonforge: 'Forja Dracônica',
 };
 
 const MODE_BADGE: Record<RecommendedFormationMode, string> = {
@@ -38,6 +39,7 @@ const MODE_BADGE: Record<RecommendedFormationMode, string> = {
     labyrinth: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
     king_tower: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
     arcane_labyrinth: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+    dragonforge: 'border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-300',
 };
 
 const TIER_BADGE: Record<string, string> = {
@@ -48,6 +50,10 @@ const TIER_BADGE: Record<string, string> = {
     C: 'bg-zinc-500 text-white',
     D: 'bg-zinc-700 text-white',
     F: 'bg-zinc-900 text-zinc-300',
+    // Resultado em estrelas (Forja Dracônica)
+    '3★': 'bg-amber-400 text-stone-900',
+    '2★': 'bg-zinc-300 text-stone-900',
+    '1★': 'bg-orange-800 text-white',
 };
 
 interface HeroChipProps {
@@ -91,13 +97,17 @@ function HeroChip({ slug, hero, isCore }: HeroChipProps) {
 
 export default function RecommendedFormationsIndex({ recommendedFormations, heroesBySlug }: PageProps) {
     const [cloningSlug, setCloningSlug] = useState<string | null>(null);
+    const [modeFilter, setModeFilter] = useState<'all' | RecommendedFormationMode>('all');
+    const modes = [...new Set(recommendedFormations.map((rf) => rf.mode))];
+    const visibleFormations = modeFilter === 'all' ? recommendedFormations : recommendedFormations.filter((rf) => rf.mode === modeFilter);
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     const handleClone = async (rf: RecommendedFormation) => {
         const ok = await confirm({
             title: `Duplicar '${rf.name}'?`,
-            description:
-                'Uma cópia será criada nas suas formações com os 5 primeiros heróis (core + flex se necessário) pré-posicionados. Você poderá editar livremente.',
+            description: rf.teams?.length
+                ? `Uma cópia será criada nas suas formações com as ${rf.teams.length} equipes pré-posicionadas. Você poderá editar livremente.`
+                : 'Uma cópia será criada nas suas formações com os 5 primeiros heróis (core + flex se necessário) pré-posicionados. Você poderá editar livremente.',
             confirmLabel: 'Duplicar',
         });
         if (!ok) return;
@@ -127,110 +137,142 @@ export default function RecommendedFormationsIndex({ recommendedFormations, hero
                         <p className="text-muted-foreground mt-2 text-sm">Nenhum comp recomendado cadastrado.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        {recommendedFormations.map((rf) => {
-                            const cloning = cloningSlug === rf.slug;
-                            const coreSlugs = rf.hero_slugs.slice(0, rf.core_count);
-                            const flexSlugs = rf.hero_slugs.slice(rf.core_count);
+                    <>
+                        <div className="mb-4 flex flex-wrap gap-1.5">
+                            {(['all', ...modes] as const).map((mode) => (
+                                <Button
+                                    key={mode}
+                                    size="sm"
+                                    variant={modeFilter === mode ? 'default' : 'outline'}
+                                    onClick={() => setModeFilter(mode)}
+                                >
+                                    {mode === 'all' ? 'Todos' : MODE_LABEL[mode]}
+                                    <span className="ml-1 opacity-60">
+                                        {mode === 'all'
+                                            ? recommendedFormations.length
+                                            : recommendedFormations.filter((rf) => rf.mode === mode).length}
+                                    </span>
+                                </Button>
+                            ))}
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                            {visibleFormations.map((rf) => {
+                                const cloning = cloningSlug === rf.slug;
+                                const coreSlugs = rf.hero_slugs.slice(0, rf.core_count);
+                                const flexSlugs = rf.hero_slugs.slice(rf.core_count);
 
-                            return (
-                                <div key={rf.id} className="bg-card flex flex-col gap-3 rounded-xl border p-4">
-                                    <div className="flex flex-wrap items-start justify-between gap-2">
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <h3 className="text-base font-semibold">{rf.name}</h3>
-                                                {rf.tier && (
-                                                    <span
-                                                        className={cn(
-                                                            'rounded px-1.5 py-0.5 text-[10px] font-bold',
-                                                            TIER_BADGE[rf.tier] ?? 'bg-muted',
-                                                        )}
-                                                    >
-                                                        {rf.tier}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                <Badge variant="outline" className={cn(MODE_BADGE[rf.mode])}>
-                                                    {MODE_LABEL[rf.mode]}
-                                                </Badge>
-                                                {rf.level_deficit && (
-                                                    <Badge variant="outline" className="text-[10px]">
-                                                        Déficit: {rf.level_deficit}
+                                return (
+                                    <div key={rf.id} className="bg-card flex flex-col gap-3 rounded-xl border p-4">
+                                        <div className="flex flex-wrap items-start justify-between gap-2">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <h3 className="text-base font-semibold">{rf.name}</h3>
+                                                    {rf.tier && (
+                                                        <span
+                                                            className={cn(
+                                                                'rounded px-1.5 py-0.5 text-[10px] font-bold',
+                                                                TIER_BADGE[rf.tier] ?? 'bg-muted',
+                                                            )}
+                                                        >
+                                                            {rf.tier}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="mt-1 flex flex-wrap items-center gap-2">
+                                                    <Badge variant="outline" className={cn(MODE_BADGE[rf.mode])}>
+                                                        {MODE_LABEL[rf.mode]}
                                                     </Badge>
-                                                )}
+                                                    {rf.level_deficit && (
+                                                        <Badge variant="outline" className="text-[10px]">
+                                                            Déficit: {rf.level_deficit}
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </div>
+                                            {rf.source_url && (
+                                                <a
+                                                    href={rf.source_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1 text-[10px]"
+                                                    title={rf.source_label ?? 'Fonte'}
+                                                >
+                                                    <ExternalLink className="size-3" />
+                                                    {rf.source_label ?? 'Fonte'}
+                                                </a>
+                                            )}
                                         </div>
-                                        {rf.source_url && (
-                                            <a
-                                                href={rf.source_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1 text-[10px]"
-                                                title={rf.source_label ?? 'Fonte'}
-                                            >
-                                                <ExternalLink className="size-3" />
-                                                {rf.source_label ?? 'Fonte'}
-                                            </a>
+
+                                        {rf.teams?.map((team, index) => (
+                                            <div key={index}>
+                                                <div className="mb-1.5 text-[10px] font-semibold tracking-wide text-orange-700 uppercase dark:text-orange-300">
+                                                    Equipe {index + 1}
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {team.map((slug) => (
+                                                        <HeroChip key={slug} slug={slug} hero={heroesBySlug[slug]} isCore={true} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {!rf.teams?.length && coreSlugs.length > 0 && (
+                                            <div>
+                                                <div className="mb-1.5 text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:text-emerald-400">
+                                                    Core ({coreSlugs.length})
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {coreSlugs.map((slug) => (
+                                                        <HeroChip key={slug} slug={slug} hero={heroesBySlug[slug]} isCore={true} />
+                                                    ))}
+                                                </div>
+                                            </div>
                                         )}
-                                    </div>
 
-                                    {coreSlugs.length > 0 && (
-                                        <div>
-                                            <div className="mb-1.5 text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:text-emerald-400">
-                                                Core ({coreSlugs.length})
+                                        {!rf.teams?.length && flexSlugs.length > 0 && (
+                                            <div>
+                                                <div className="text-muted-foreground mb-1.5 text-[10px] font-semibold tracking-wide uppercase">
+                                                    Flex (substituições) — {flexSlugs.length}
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {flexSlugs.map((slug) => (
+                                                        <HeroChip key={slug} slug={slug} hero={heroesBySlug[slug]} isCore={false} />
+                                                    ))}
+                                                </div>
                                             </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {coreSlugs.map((slug) => (
-                                                    <HeroChip key={slug} slug={slug} hero={heroesBySlug[slug]} isCore={true} />
+                                        )}
+
+                                        {rf.description && <p className="text-muted-foreground text-xs">{rf.description}</p>}
+
+                                        {rf.notes && (
+                                            <div className="text-muted-foreground rounded-md border-l-2 border-amber-400/60 bg-amber-500/5 px-2 py-1.5 text-[11px] italic">
+                                                {rf.notes}
+                                            </div>
+                                        )}
+
+                                        {rf.artifacts && rf.artifacts.length > 0 && (
+                                            <div className="flex flex-wrap items-center gap-1">
+                                                <Gem className="text-muted-foreground size-3" />
+                                                <span className="text-muted-foreground text-[10px]">Artefatos:</span>
+                                                {rf.artifacts.map((a) => (
+                                                    <Badge key={a} variant="secondary" className="text-[10px]">
+                                                        {a}
+                                                    </Badge>
                                                 ))}
                                             </div>
+                                        )}
+
+                                        <div className="flex justify-end border-t pt-2">
+                                            <Button size="sm" onClick={() => handleClone(rf)} disabled={cloning}>
+                                                {cloning ? <Loader2 className="size-4 animate-spin" /> : <Swords className="size-4" />}
+                                                {cloning ? 'Duplicando...' : 'Duplicar para minhas formações'}
+                                            </Button>
                                         </div>
-                                    )}
-
-                                    {flexSlugs.length > 0 && (
-                                        <div>
-                                            <div className="text-muted-foreground mb-1.5 text-[10px] font-semibold tracking-wide uppercase">
-                                                Flex (substituições) — {flexSlugs.length}
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {flexSlugs.map((slug) => (
-                                                    <HeroChip key={slug} slug={slug} hero={heroesBySlug[slug]} isCore={false} />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {rf.description && <p className="text-muted-foreground text-xs">{rf.description}</p>}
-
-                                    {rf.notes && (
-                                        <div className="text-muted-foreground rounded-md border-l-2 border-amber-400/60 bg-amber-500/5 px-2 py-1.5 text-[11px] italic">
-                                            {rf.notes}
-                                        </div>
-                                    )}
-
-                                    {rf.artifacts && rf.artifacts.length > 0 && (
-                                        <div className="flex flex-wrap items-center gap-1">
-                                            <Gem className="text-muted-foreground size-3" />
-                                            <span className="text-muted-foreground text-[10px]">Artefatos:</span>
-                                            {rf.artifacts.map((a) => (
-                                                <Badge key={a} variant="secondary" className="text-[10px]">
-                                                    {a}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    <div className="flex justify-end border-t pt-2">
-                                        <Button size="sm" onClick={() => handleClone(rf)} disabled={cloning}>
-                                            {cloning ? <Loader2 className="size-4 animate-spin" /> : <Swords className="size-4" />}
-                                            {cloning ? 'Duplicando...' : 'Duplicar para minhas formações'}
-                                        </Button>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+                    </>
                 )}
             </PageShell>
         </AppLayout>

@@ -170,7 +170,7 @@ export interface UserTierList {
     updated_at: string;
 }
 
-export type RecommendedFormationMode = 'pvp' | 'pve' | 'twisted_realm' | 'labyrinth' | 'king_tower' | 'arcane_labyrinth';
+export type RecommendedFormationMode = 'pvp' | 'pve' | 'twisted_realm' | 'labyrinth' | 'king_tower' | 'arcane_labyrinth' | 'dragonforge';
 
 export interface RecommendedMatch {
     slug: string;
@@ -194,6 +194,8 @@ export interface RecommendedFormation {
     description: string | null;
     notes: string | null;
     hero_slugs: string[];
+    /** Comps de várias equipes (ex: Forja Dracônica): [[equipe 1], [equipe 2], ...]. */
+    teams?: string[][] | null;
     core_count: number;
     artifacts: string[] | null;
     source_url: string | null;

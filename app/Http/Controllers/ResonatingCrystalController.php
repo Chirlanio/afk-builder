@@ -52,7 +52,11 @@ class ResonatingCrystalController extends Controller
         // - pré-upgrade (5 heroes < 240): 5º maior do roster
         // - pós-upgrade: stored.level
         $fifthHighestLevel = (int) ($top5->last()['level'] ?? 0);
-        $isUpgraded = $top5->count() >= 5 && $fifthHighestLevel >= UserResonatingCrystal::MIN_LEVEL;
+        // Também conta como evoluído quando o jogador informou nível/teto do jogo:
+        // o roster no app pode estar incompleto (ex: conta nova, 675/1040 no jogo).
+        $isUpgraded = ($top5->count() >= 5 && $fifthHighestLevel >= UserResonatingCrystal::MIN_LEVEL)
+            || $crystal->level > UserResonatingCrystal::MIN_LEVEL
+            || $crystal->level_cap !== null;
         $effectiveLevel = $isUpgraded ? $crystal->level : $fifthHighestLevel;
 
         $levelCap = UserResonatingCrystal::levelCapForAccount($account);
@@ -82,6 +86,9 @@ class ResonatingCrystalController extends Controller
                 'strengthen_progress' => $crystal->strengthen_progress,
                 'strengthens_per_level' => UserResonatingCrystal::STRENGTHENS_PER_LEVEL,
                 'slots_unlocked' => $crystal->slots_unlocked,
+                'slots_occupied' => $crystal->slots_occupied,
+                'level_cap_manual' => $crystal->level_cap,
+                'cost_data_max_level' => UserResonatingCrystal::COST_DATA_MAX_LEVEL,
                 'effective_level' => $effectiveLevel,
                 'is_upgraded' => $isUpgraded,
                 'level_cap' => $levelCap,
@@ -105,17 +112,30 @@ class ResonatingCrystalController extends Controller
      */
     public function update(Request $request): JsonResponse
     {
+        $crystal = $this->getOrCreateCrystal($this->active->get()->id);
+
         $data = $request->validate([
             'level' => ['nullable', 'integer', 'min:'.UserResonatingCrystal::MIN_LEVEL, 'max:'.UserResonatingCrystal::MAX_LEVEL],
+            // Teto que o jogo mostra (ex: 675/1040). Vazio = estimar pelo roster.
+            'level_cap' => ['nullable', 'integer', 'min:'.UserResonatingCrystal::MIN_LEVEL, 'max:'.UserResonatingCrystal::MAX_LEVEL, 'gte:'.($request->integer('level') ?: $crystal->level)],
             'strengthen_progress' => ['nullable', 'integer', 'min:0', 'max:'.(UserResonatingCrystal::STRENGTHENS_PER_LEVEL - 1)],
-            'slots_unlocked' => ['nullable', 'integer', 'min:'.UserResonatingCrystal::INITIAL_SLOTS, 'max:60'],
+            'slots_unlocked' => ['nullable', 'integer', 'min:'.UserResonatingCrystal::INITIAL_SLOTS, 'max:'.UserResonatingCrystal::MAX_SLOTS],
+            'slots_occupied' => ['nullable', 'integer', 'min:0', 'lte:'.($request->integer('slots_unlocked') ?: $crystal->slots_unlocked)],
+        ], [
+            'level_cap.gte' => 'O teto não pode ser menor que o nível atual.',
+            'slots_occupied.lte' => 'As posições ocupadas não podem passar das liberadas.',
         ]);
 
-        $crystal = $this->getOrCreateCrystal($this->active->get()->id);
         $payload = array_filter($data, fn ($v) => $v !== null);
+        // level_cap/slots_occupied aceitam ser apagados (voltar a estimar / não informar).
+        foreach (['level_cap', 'slots_occupied'] as $clearable) {
+            if ($request->exists($clearable) && $request->input($clearable) === null) {
+                $payload[$clearable] = null;
+            }
+        }
         $crystal->update($payload);
 
-        return response()->json(['crystal' => $crystal->only(['level', 'strengthen_progress', 'slots_unlocked'])]);
+        return response()->json(['crystal' => $crystal->only(['level', 'level_cap', 'strengthen_progress', 'slots_unlocked', 'slots_occupied'])]);
     }
 
     /**

@@ -22,7 +22,7 @@ class ChallengeTypeMode
         'abyssal_expedition' => HeroRating::MODE_ABYSSAL_EXPEDITION,
         'arcane_labyrinth' => HeroRating::MODE_LABYRINTH,
         'bountiful_trials' => HeroRating::MODE_PVE,
-        'dragon_trial' => HeroRating::MODE_PVE,
+        'dragon_trial' => HeroRating::MODE_DRAGONFORGE,
     ];
 
     public static function forCode(?string $code): string

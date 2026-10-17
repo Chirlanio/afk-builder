@@ -23,6 +23,7 @@ class RecommendedFormationMatcher
         HeroRating::MODE_LABYRINTH => [RecommendedFormation::MODE_LABYRINTH, RecommendedFormation::MODE_ARCANE_LABYRINTH, RecommendedFormation::MODE_PVE],
         HeroRating::MODE_TWISTED_REALM => [RecommendedFormation::MODE_TWISTED_REALM, RecommendedFormation::MODE_PVE],
         HeroRating::MODE_ABYSSAL_EXPEDITION => [RecommendedFormation::MODE_PVE],
+        HeroRating::MODE_DRAGONFORGE => [RecommendedFormation::MODE_DRAGONFORGE],
     ];
 
     /**
@@ -53,22 +54,26 @@ class RecommendedFormationMatcher
                 continue;
             }
 
-            $coreSlugs = array_slice($rfSlugs, 0, max(0, $rf->core_count));
-            $allOverlap = 0;
-            $coreOverlap = 0;
-            foreach ($rfSlugs as $idx => $slug) {
-                if (isset($heroSlugSet[$slug])) {
-                    $allOverlap++;
-                    if ($idx < $rf->core_count) {
-                        $coreOverlap++;
-                    }
+            // Comp de várias equipes: o time do editor é comparado com cada equipe
+            // (as 5 dela são o "core") e fica a mais parecida.
+            $candidates = ! empty($rf->teams)
+                ? array_map(fn (array $team, int $i) => ['label' => ' · Equipe '.($i + 1), 'core' => $team, 'all' => $team], $rf->teams, array_keys($rf->teams))
+                : [['label' => '', 'core' => array_slice($rfSlugs, 0, max(0, $rf->core_count)), 'all' => $rfSlugs]];
+
+            $best = null;
+            foreach ($candidates as $candidate) {
+                $allOverlap = count(array_filter($candidate['all'], fn (string $slug) => isset($heroSlugSet[$slug])));
+                $coreOverlap = count(array_filter($candidate['core'], fn (string $slug) => isset($heroSlugSet[$slug])));
+                if ($best === null || [$coreOverlap, $allOverlap] > [$best['core_overlap'], $best['total_overlap']]) {
+                    $best = ['candidate' => $candidate, 'core_overlap' => $coreOverlap, 'total_overlap' => $allOverlap];
                 }
             }
 
-            if ($allOverlap < $minOverlap) {
+            if ($best['total_overlap'] < $minOverlap) {
                 continue;
             }
 
+            $coreSlugs = $best['candidate']['core'];
             $missingCore = array_values(array_filter(
                 $coreSlugs,
                 fn (string $slug) => ! isset($heroSlugSet[$slug]),
@@ -76,13 +81,13 @@ class RecommendedFormationMatcher
 
             $matches[] = [
                 'slug' => $rf->slug,
-                'name' => $rf->name,
+                'name' => $rf->name.$best['candidate']['label'],
                 'mode' => $rf->mode,
                 'tier' => $rf->tier,
-                'core_overlap' => $coreOverlap,
-                'total_overlap' => $allOverlap,
-                'total_core' => (int) $rf->core_count,
-                'percent' => $rf->core_count > 0 ? round($coreOverlap / $rf->core_count, 2) : 0.0,
+                'core_overlap' => $best['core_overlap'],
+                'total_overlap' => $best['total_overlap'],
+                'total_core' => count($coreSlugs),
+                'percent' => count($coreSlugs) > 0 ? round($best['core_overlap'] / count($coreSlugs), 2) : 0.0,
                 'missing_core' => $missingCore,
             ];
         }

@@ -33,7 +33,6 @@ class TeamCapabilityAnalyzer
         'heroes_of_esperia' => self::KIND_PVP,
         'dream_realm' => self::KIND_BOSS,
         'cursed_realm' => self::KIND_BOSS,
-        'dragon_trial' => self::KIND_BOSS,
     ];
 
     /** Capacidades que costumam fazer falta em cada contexto (avisa quando ausentes). */

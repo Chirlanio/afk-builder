@@ -3900,6 +3900,15 @@ O otimizador enxergava os heróis por rótulos (facção, classe, tier rating, s
 
 **Pesos aprendidos dos tier ratings (2026-10-18), também negativo:** com os 3.202 ratings afk.guide de fim de jogo, a capacidade que mais acompanha rating alto é energia para aliados (+1,0 a +1,2 tier), seguida de dissipar, cura e buff — e dano em alvo único, linha de frente e alcance da linha de trás aparecem em heróis com rating MENOR. Usando essas diferenças como pesos, os comps recomendados ficaram no percentil 25,5; o **tier rating médio sozinho (já usado pelo otimizador) fica no 76,5**, e somar capacidades a ele derruba para 54,4. Conclusão: o perfil de capacidades segue informativo; o sinal forte de qualidade de time é o tier rating.
 
+### ✅ Fase 63 — Campanha com vários grupos, Cristal de fim de jogo e Forja Dracônica (2026-10-18)
+
+- **Campanha:** a cada 4 fases, a 4ª é uma batalha de vários grupos (até 5 equipes, heróis exclusivos). O tipo `campaign` passou de 1 para 1-5 equipes (`teams_must_be_unique`); a criação começa com 1 equipe e o jogador escolhe até 5 na fase de grupos.
+- **Cristal Ressonante:** o app cortava em nível 501 e 60 posições — contas reais estão em 675/1040 com 112 posições. Agora: `level_cap` (o teto que o jogo mostra; vazio = estimar por 240 + 5 × Ascended do roster), `slots_occupied`, nível até 2000 e posições até 500. Um nível informado acima de 240 já conta como cristal evoluído, mesmo com o roster incompleto no app. A tabela pública de custos (Fandom) só vai até 501: acima disso a tela avisa que o custo é desconhecido em vez de estimar.
+- **Provas da Forja Dracônica (Dragonforge Trials):** o tipo `dragon_trial` era um palpite da Fase 9 (1 equipe contra alvo dracônico). Corrigido pelo guia do afk.guide: 2 equipes nas fases 3-6 e 3 nas fases 7-12, heróis exclusivos; Dracônicos lutam no nível 600 sem supressão, os demais são suprimidos pela Fúria do Dragão (o Chifre de Dragão reduz); só Dracônicos, Dimensionais e heróis do Cristal; coleções, artefatos e pets não valem.
+  - `DragonforgeTrialsSeeder`: as 81 formações do guia (fases 3-12, 1★ a 3★) como comps recomendados de várias equipes (`recommended_formations.teams`), com o investimento mínimo por fase. Rodado por migration de dados (o deploy só executa `migrate`).
+  - Ratings do modo (`mode=dragonforge`): frequência de cada herói nas formações, ponderada pelas estrelas → S+/S/A/B; fora do guia, A para Dracônicos e C para os demais. São derivados das escolhas do guia — refletem a comunidade, não uma avaliação independente. O perfil do tipo prioriza tier rating (peso 1,6).
+  - Comps de várias equipes: "duplicar" cria a formação com todas as equipes; o matcher compara o time do editor com a equipe mais parecida de cada comp; a página de comps ganhou filtro por modo.
+
 ### ✅ Correções pós-auditoria (2026-10-16)
 
 - **OCR quebrado:** o `post()` do `useForm` ignorava a opção `data` (o backend nunca recebia `heroes`) e `lines` vinha `undefined` no tesseract.js v7. Corrigido conforme a Fase 59, com testes.

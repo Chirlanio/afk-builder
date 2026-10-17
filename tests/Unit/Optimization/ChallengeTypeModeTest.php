@@ -21,7 +21,6 @@ class ChallengeTypeModeTest extends TestCase
         $this->assertSame(HeroRating::MODE_PVE, ChallengeTypeMode::forCode('campaign'));
         $this->assertSame(HeroRating::MODE_PVE, ChallengeTypeMode::forCode('kings_tower'));
         $this->assertSame(HeroRating::MODE_PVE, ChallengeTypeMode::forCode('cursed_realm'));
-        $this->assertSame(HeroRating::MODE_PVE, ChallengeTypeMode::forCode('dragon_trial'));
         $this->assertFalse(ChallengeTypeMode::isPvp('campaign'));
     }
 
@@ -30,6 +29,8 @@ class ChallengeTypeModeTest extends TestCase
         $this->assertSame(HeroRating::MODE_TWISTED_REALM, ChallengeTypeMode::forCode('dream_realm'));
         $this->assertSame(HeroRating::MODE_LABYRINTH, ChallengeTypeMode::forCode('arcane_labyrinth'));
         $this->assertSame(HeroRating::MODE_ABYSSAL_EXPEDITION, ChallengeTypeMode::forCode('abyssal_expedition'));
+        // Provas da Forja Dracônica têm ratings próprios (derivados das formações do afk.guide).
+        $this->assertSame(HeroRating::MODE_DRAGONFORGE, ChallengeTypeMode::forCode('dragon_trial'));
         $this->assertTrue(ChallengeTypeMode::isTwistedRealm('dream_realm'));
     }
 
