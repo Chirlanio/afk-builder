@@ -87,3 +87,19 @@ Cron no servidor:
 ```
 
 **Rollback manual** (cron único): trocar `afk-builder` e `afk-builder.prev` de lugar, movendo o `storage/` junto, e rodar `php artisan optimize`. Migrations já aplicadas não são revertidas.
+
+## E-mail (SMTP)
+
+Envio por `no-reply@nexa.app.br` (e-mail grátis do plano, ativado no hPanel em 2026-10-17): `smtp.hostinger.com`, porta 465, SSL — ver [`env.production.example`](env.production.example). A senha da caixa fica só no `.env` do servidor (`MAIL_PASSWORD='…'`, editado pelo Gerenciador de Arquivos) e é preservada pelos deploys.
+
+DNS no Registro.br (modo avançado — a delegação passa para `d.sec.dns.br`/`e.sec.dns.br`):
+
+| Tipo | Nome | Dados |
+|---|---|---|
+| MX | `nexa.app.br` | `5 mx1.hostinger.com`, `10 mx2.hostinger.com` |
+| TXT | `nexa.app.br` | `v=spf1 include:_spf.mail.hostinger.com ~all` |
+| TXT | `nexa.app.br` | código de verificação de propriedade da Hostinger |
+| CNAME | `hostingermail-{a,b,c}._domainkey` | `hostingermail-{a,b,c}.dkim.mail.hostinger.com` |
+| TXT | `_dmarc` | `v=DMARC1; p=none` |
+
+Hoje o app só envia e-mail de redefinição de senha — a verificação de e-mail no cadastro não está ativa (`User` não implementa `MustVerifyEmail`).
