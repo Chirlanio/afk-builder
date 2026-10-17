@@ -43,9 +43,16 @@ class SingleTeamOptimizer
         }
 
         $excluded = array_flip(array_merge($lockedHeroIds, $blockedHeroIds));
+        // A character already in the team or blocked by another team is out in any version (base/Awakened).
+        $excludedCharacters = [];
+        foreach (array_keys($excluded) as $id) {
+            if (isset($heroPoolById[$id])) {
+                $excludedCharacters[$heroPoolById[$id]->characterKey()] = true;
+            }
+        }
         $candidates = [];
         foreach ($heroPoolById as $id => $hero) {
-            if (! isset($excluded[$id])) {
+            if (! isset($excluded[$id]) && ! isset($excludedCharacters[$hero->characterKey()])) {
                 $candidates[] = $hero;
             }
         }
@@ -99,6 +106,9 @@ class SingleTeamOptimizer
         } else {
             for ($i = 0; $i < $n - 1; $i++) {
                 for ($j = $i + 1; $j < $n; $j++) {
+                    if ($candidates[$i]->characterKey() === $candidates[$j]->characterKey()) {
+                        continue;
+                    }
                     $team = array_merge($locked, [$candidates[$i], $candidates[$j]]);
                     $score = $this->scorer->score($team, $userHeroesById, $synergyWeights, $profile, $beast, $ctx);
                     if ($bestScore === null || $score->total > $bestScore->total) {
@@ -136,13 +146,14 @@ class SingleTeamOptimizer
     ): array {
         $team = $locked;
         $usedIds = array_flip(array_map(fn (Hero $h) => $h->id, $locked));
+        $usedCharacters = array_flip(array_map(fn (Hero $h) => $h->characterKey(), $locked));
 
         for ($pick = 0; $pick < $emptyCount; $pick++) {
             $bestScore = null;
             $bestHero = null;
 
             foreach ($candidates as $candidate) {
-                if (isset($usedIds[$candidate->id])) {
+                if (isset($usedIds[$candidate->id]) || isset($usedCharacters[$candidate->characterKey()])) {
                     continue;
                 }
                 $score = $this->scorer->score(
@@ -165,6 +176,7 @@ class SingleTeamOptimizer
 
             $team[] = $bestHero;
             $usedIds[$bestHero->id] = true;
+            $usedCharacters[$bestHero->characterKey()] = true;
         }
 
         $currentScore = $this->scorer->score($team, $userHeroesById, $synergyWeights, $profile, $beast, $ctx);
@@ -178,14 +190,20 @@ class SingleTeamOptimizer
                     if (isset($usedIds[$candidate->id])) {
                         continue;
                     }
-
+                    // Swapping in another version of a character already in the team is not allowed.
                     $oldHero = $team[$i];
+                    $characterKey = $candidate->characterKey();
+                    if ($characterKey !== $oldHero->characterKey() && isset($usedCharacters[$characterKey])) {
+                        continue;
+                    }
+
                     $team[$i] = $candidate;
                     $newScore = $this->scorer->score($team, $userHeroesById, $synergyWeights, $profile, $beast, $ctx);
 
                     if ($newScore->total > $currentScore->total) {
-                        unset($usedIds[$oldHero->id]);
+                        unset($usedIds[$oldHero->id], $usedCharacters[$oldHero->characterKey()]);
                         $usedIds[$candidate->id] = true;
+                        $usedCharacters[$characterKey] = true;
                         $currentScore = $newScore;
                         $improved = true;
                         break;

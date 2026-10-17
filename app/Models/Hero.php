@@ -65,6 +65,16 @@ class Hero extends Model
     }
 
     /**
+     * Identifies the character regardless of version: a hero and its Awakened
+     * form share the same name ("Shemira" / "shemira-the-soulreaver") and the
+     * game does not allow both in a lineup.
+     */
+    public function characterKey(): string
+    {
+        return Str::slug($this->name ?? '') ?: (string) $this->slug;
+    }
+
+    /**
      * Perfil de capacidades efetivo: o do classificador com as correções do
      * admin aplicadas por cima (remove primeiro, depois add/sobrescreve força).
      *

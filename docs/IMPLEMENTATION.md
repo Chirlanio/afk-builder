@@ -134,7 +134,7 @@ Models Eloquent com relacionamentos completos (incluindo `Hero::synergyPartners`
 - **`ScoreBreakdown`** — resultado com componentes separados (factionBonus, classBalance, synergy, power, total) + detalhes textuais.
 - **`TeamScorer`** — pontua 1 equipe combinando:
   - **Faction bonus base:** 5-stack (1.0) e 3+2 (0.6), com Celestial agindo como wildcard, **Dimensionais excluídos** do stacking.
-  - **Faction bonus especial:** Hypogean recebe `count*0.1` (progressivo, qualquer quantidade); Draconis ganha `+0.3` quando 2+ na equipe (self-advantage).
+  - **Faction bonus especial:** Hypogean recebe `count*0.1` (progressivo, qualquer quantidade); Draconis ganha `+0.3` quando 2+ na equipe (self-advantage). *(Removido na Fase 65.)*
   - **Class balance:** tank presente (+0.3), support presente (+0.3), variedade `n_classes*0.08`.
   - **Synergy:** soma `weight/10` de cada par com entrada em `hero_synergies`.
   - **Power:** soma normalizada por 2000.
@@ -3917,6 +3917,14 @@ O otimizador enxergava os heróis por rótulos (facção, classe, tier rating, s
 - **Desperto:** `Hero::isAwakenedSlug` exige slug = nome + título ("shemira-the-soulreaver"). A regra antiga (slug ≠ nome) marcava o Ukyo ("Ukyo Tachibana"/`ukyo`).
 - **Capacidades:** novas regras ("fatal blow", "impervious to mind control", roubo de vida, "grants the allied target…") corrigiram Brutus e Mortas. Gavus segue sem perfil (sem habilidades na wiki).
 - **`optimizer:benchmark`:** mede em que percentil os comps recomendados completos ficam contra times aleatórios, por componente. No catálogo de produção: **total 88,0** (acaso = 50), facção 78, tier rating 78,5, sinergias 70, classes 59, destaques 59. Variações de peso ficaram entre 86,8 e 89,8, ruído para 9 comps, então **os pesos foram mantidos**. Rodar antes de mudar o `TeamScorer`.
+
+### ✅ Fase 65 — Equipes variadas na campanha com vários grupos (2026-10-18)
+
+- **Sintoma:** ao gerar 5 equipes alvo na campanha, as três primeiras saíam inteiras de Portadores da Luz (ou de outra facção, conforme o catálogo), e o mesmo personagem aparecia duas vezes no time (Shemira + Shemira Desperta, Lucius + Lucius Desperto).
+- **Sinergia sem teto:** cada par cadastrado valia ~1 ponto e a soma não tinha limite (até 6,3 num time), contra 0..1 do tier rating. Como os pares do seeder são quase todos da mesma facção, o otimizador fechava times monofacção. Agora `1 − e^(−soma)`, na faixa de 0 a 1: o 1º par vale mais e os seguintes cada vez menos.
+- **Bônus de facção:** 5 da mesma facção 1,0 → 0,5; 3+2 0,6 → 0,3. Saíram o +0,1 por Hypogean e o +0,3 por 2+ Draconis, heurísticas da Fase 5.1 sem regra do jogo por trás (a força desses heróis já entra pelo tier rating).
+- **Mesmo personagem:** `Hero::characterKey()` (slug do nome) identifica base e Desperto; o `SingleTeamOptimizer` não coloca as duas versões no mesmo time, e uma versão usada em outra equipe bloqueia a outra.
+- **`optimizer:benchmark`:** total 88,0 → **88,2**; o pior comp recomendado subiu do percentil 43 para o 54. Nas 5 equipes de teste, duas ficaram sem bônus de facção e três com 3+2, sem repetição de personagem.
 
 ### ✅ Correções pós-auditoria (2026-10-16)
 

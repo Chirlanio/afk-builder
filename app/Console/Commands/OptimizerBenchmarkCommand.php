@@ -17,18 +17,18 @@ use App\Services\Optimization\TeamScorer;
 use Illuminate\Console\Command;
 
 /**
- * Valida o score contra a comunidade: para cada comp recomendado completo
- * (PvE/PvP, 5 heróis), calcula em que percentil ele fica frente a times
- * aleatórios do catálogo — por componente e no total. Acaso = 50.
+ * Checks the score against the community: for each complete recommended comp
+ * (PvE/PvP, 5 heroes), computes its percentile against random teams from the
+ * catalog — per component and in total. Chance = 50.
  *
- * Usar antes de mudar pesos ou componentes do TeamScorer. Referência
- * (2026-10-18, catálogo de produção): total 88,0; facção 78; tier rating 78,5;
- * sinergias 70; classes 59; destaques 59. Variações de peso ficaram em ±2 —
- * ruído para 9 comps —, então os pesos foram mantidos.
+ * Run it before changing TeamScorer weights or components. Reference
+ * (production catalog): total 88.0 on 2026-10-18; 88.2 after saturating
+ * synergy and halving the faction bonus (worst comp 43 → 54). Weight tweaks
+ * moved it by ±2 — noise for 9 comps.
  *
- * Modo alvo (sem roster): o poder fica constante entre heróis do mesmo tier.
- * As Provas da Forja ficam de fora — os ratings desse modo são derivados dos
- * próprios comps, então o teste seria circular.
+ * Target mode (no roster): power is constant among heroes of the same tier.
+ * Dragonforge Trials are left out — that mode's ratings are derived from the
+ * comps themselves, so the test would be circular.
  */
 class OptimizerBenchmarkCommand extends Command
 {

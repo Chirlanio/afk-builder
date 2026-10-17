@@ -60,7 +60,7 @@ class TeamScorerTest extends TestCase
 
         $score = $this->scorer->score($heroes, [], [], $this->defaultProfile);
 
-        $this->assertSame(1.0, $score->factionBonus);
+        $this->assertSame(0.5, $score->factionBonus);
         $this->assertStringContainsString('5x lightbearer', $score->details['faction_pattern']);
     }
 
@@ -76,7 +76,7 @@ class TeamScorerTest extends TestCase
 
         $score = $this->scorer->score($heroes, [], [], $this->defaultProfile);
 
-        $this->assertSame(0.6, $score->factionBonus);
+        $this->assertSame(0.3, $score->factionBonus);
         $this->assertStringContainsString('3+2', $score->details['faction_pattern']);
     }
 
@@ -92,7 +92,7 @@ class TeamScorerTest extends TestCase
 
         $score = $this->scorer->score($heroes, [], [], $this->defaultProfile);
 
-        $this->assertSame(1.0, $score->factionBonus);
+        $this->assertSame(0.5, $score->factionBonus);
         $this->assertStringContainsString('5x graveborn', $score->details['faction_pattern']);
     }
 
@@ -112,36 +112,19 @@ class TeamScorerTest extends TestCase
         $this->assertNull($score->details['faction_pattern']);
     }
 
-    public function test_hypogean_recebe_bonus_progressivo_independente_de_stack(): void
+    public function test_hypogean_and_draconis_get_no_extra_faction_bonus(): void
     {
         $heroes = [
             $this->makeHero('h1', 'hypogean', 'tank'),
             $this->makeHero('h2', 'hypogean', 'warrior'),
-            $this->makeHero('h3', 'lightbearer', 'ranger'),
-            $this->makeHero('h4', 'mauler', 'mage'),
+            $this->makeHero('h3', 'draconis', 'ranger'),
+            $this->makeHero('h4', 'draconis', 'mage'),
             $this->makeHero('h5', 'wilder', 'support'),
         ];
 
         $score = $this->scorer->score($heroes, [], [], $this->defaultProfile);
 
-        $this->assertEqualsWithDelta(0.2, $score->factionBonus, 0.001);
-        $this->assertArrayHasKey('hypogean_stack', $score->details['special_faction']);
-    }
-
-    public function test_draconis_ganha_self_advantage_com_2_ou_mais(): void
-    {
-        $heroes = [
-            $this->makeHero('h1', 'draconis', 'tank'),
-            $this->makeHero('h2', 'draconis', 'warrior'),
-            $this->makeHero('h3', 'lightbearer', 'ranger'),
-            $this->makeHero('h4', 'mauler', 'mage'),
-            $this->makeHero('h5', 'wilder', 'support'),
-        ];
-
-        $score = $this->scorer->score($heroes, [], [], $this->defaultProfile);
-
-        $this->assertEqualsWithDelta(0.3, $score->factionBonus, 0.001);
-        $this->assertArrayHasKey('draconis_self_advantage', $score->details['special_faction']);
+        $this->assertSame(0.0, $score->factionBonus);
     }
 
     public function test_time_sem_tank_e_sem_support_pontua_baixo_no_class_balance(): void
@@ -205,7 +188,8 @@ class TeamScorerTest extends TestCase
 
         $score = $this->scorer->score([$h1, $h2, $h3], [], $weights, $this->defaultProfile);
 
-        $this->assertEqualsWithDelta(1.5, $score->synergy, 0.001);
+        // raw 15/10 = 1.5, saturated: 1 - e^-1.5
+        $this->assertEqualsWithDelta(1 - exp(-1.5), $score->synergy, 0.001);
     }
 
     public function test_total_combina_componentes_com_pesos_do_profile(): void
@@ -227,8 +211,8 @@ class TeamScorerTest extends TestCase
 
         $score = $this->scorer->score($heroes, [], [], $profile);
 
-        // faction(1.0)*2.0 + class(0.95)*0.5 + synergy(0)*1.0 + power(0)*0.0 = 2.475
-        $this->assertEqualsWithDelta(2.475, $score->total, 0.001);
+        // faction(0.5)*2.0 + class(0.95)*0.5 + synergy(0)*1.0 + power(0)*0.0 = 1.475
+        $this->assertEqualsWithDelta(1.475, $score->total, 0.001);
     }
 
     public function test_engraving_bonus_acumula_milestones_por_hero(): void

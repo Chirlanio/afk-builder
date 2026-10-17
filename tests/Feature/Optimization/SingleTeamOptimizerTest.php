@@ -81,7 +81,7 @@ class SingleTeamOptimizerTest extends TestCase
         $actual = $result['hero_ids'];
         sort($actual);
         $this->assertSame($expected, $actual);
-        $this->assertSame(1.0, $result['score']->factionBonus);
+        $this->assertSame(0.5, $result['score']->factionBonus);
     }
 
     public function test_preenche_apenas_2_slots_vazios_preservando_locked(): void
@@ -168,5 +168,31 @@ class SingleTeamOptimizerTest extends TestCase
         // Com synergia tão forte, heroA + partnerA devem ser escolhidos
         $this->assertContains($heroA->id, $result['hero_ids']);
         $this->assertContains($partnerA->id, $result['hero_ids']);
+    }
+
+    public function test_never_puts_a_hero_and_its_awakened_version_together(): void
+    {
+        $base = $this->makeHero('shemira', 'graveborn', 'mage');
+        $awakened = $this->makeHero('shemira-the-soulreaver', 'graveborn', 'mage');
+        $awakened->update(['name' => 'Shemira']);
+        $others = [
+            $this->makeHero('tank-gb', 'graveborn', 'tank'),
+            $this->makeHero('support-gb', 'graveborn', 'support'),
+            $this->makeHero('ranger-gb', 'graveborn', 'ranger'),
+            $this->makeHero('warrior-mauler', 'mauler', 'warrior'),
+        ];
+        $pool = $this->poolFrom([$base, $awakened, ...$others]);
+
+        // Full fill (greedy + hill climb) and a 2-slot fill (exhaustive) both skip the second version.
+        $full = $this->optimizer->optimize($pool, [], [], $this->profile, [], []);
+        $pair = $this->optimizer->optimize($pool, [], [], $this->profile, [$others[0]->id, $others[1]->id, $others[2]->id], []);
+        $blocked = $this->optimizer->optimize($pool, [], [], $this->profile, [], [$base->id]);
+
+        foreach ([$full, $pair] as $result) {
+            $this->assertCount(5, $result['hero_ids']);
+            $this->assertFalse(in_array($base->id, $result['hero_ids']) && in_array($awakened->id, $result['hero_ids']));
+        }
+        // A version used by another team blocks the other version as well.
+        $this->assertNotContains($awakened->id, $blocked['hero_ids']);
     }
 }

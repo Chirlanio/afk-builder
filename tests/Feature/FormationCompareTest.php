@@ -111,7 +111,7 @@ class FormationCompareTest extends TestCase
         $page = $response->viewData('page');
         $props = $page['props'];
 
-        $this->assertEqualsWithDelta(1.0, $props['formationA']['teams'][0]['score']['faction_bonus'], 0.001);
+        $this->assertEqualsWithDelta(0.5, $props['formationA']['teams'][0]['score']['faction_bonus'], 0.001);
         $this->assertEqualsWithDelta(0.0, $props['formationB']['teams'][0]['score']['faction_bonus'], 0.001);
     }
 }

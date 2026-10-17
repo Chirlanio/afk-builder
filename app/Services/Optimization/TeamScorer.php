@@ -37,8 +37,7 @@ class TeamScorer
         $counts = $this->countByFaction($heroes);
 
         $baseFaction = $this->baseFactionBonus($counts);
-        $specialFaction = $this->specialFactionBonuses($counts);
-        $factionBonus = $baseFaction['score'] + $specialFaction['score'];
+        $factionBonus = $baseFaction['score'];
 
         $classBalance = $this->classBalance($heroes);
         $synergy = $this->synergyScore($heroes, $synergyWeights);
@@ -80,7 +79,6 @@ class TeamScorer
             details: [
                 'faction_counts' => $counts,
                 'faction_pattern' => $baseFaction['pattern'],
-                'special_faction' => $specialFaction['notes'],
                 'mode' => $ctx->mode,
                 'stage' => $ctx->stage,
                 'engraving_milestones' => $engravingResult['milestones'],
@@ -118,7 +116,12 @@ class TeamScorer
     }
 
     /**
-     * Bônus base 5-stack ou 3+2.
+     * Base 5-stack (0.5) or 3+2 (0.3) bonus.
+     *
+     * Halved from 1.0/0.6, and the Hypogean (+0.1 each) and Draconis (+0.3)
+     * extras were dropped: they had no in-game basis and made multi-team
+     * suggestions mono-faction. optimizer:benchmark: 87.7 → 88.2, worst
+     * recommended comp 43 → 54 percentile.
      * - Dimensionais não contam para stacking.
      * - Celestiais agem como wildcard para a facção dominante.
      *
@@ -155,7 +158,7 @@ class TeamScorer
 
         if ($top['count'] + $celestials >= 5 && $top['count'] >= 1) {
             return [
-                'score' => 1.0,
+                'score' => 0.5,
                 'pattern' => "5x {$top['code']}".($celestials > 0 ? " (+{$celestials} celestial)" : ''),
             ];
         }
@@ -167,13 +170,13 @@ class TeamScorer
                 $partnerCode = $second['code'];
 
                 return [
-                    'score' => 0.6,
+                    'score' => 0.3,
                     'pattern' => "3+2: {$top['code']} + {$partnerCode}",
                 ];
             }
             if ($celestials >= $remaining) {
                 return [
-                    'score' => 0.6,
+                    'score' => 0.3,
                     'pattern' => "3+2: {$top['code']} + celestial",
                 ];
             }
@@ -181,37 +184,12 @@ class TeamScorer
 
         if ($top['count'] === 2 && ($second['count'] ?? 0) === 2 && $celestials >= 1) {
             return [
-                'score' => 0.6,
+                'score' => 0.3,
                 'pattern' => "3+2: {$top['code']} + {$second['code']} (com celestial)",
             ];
         }
 
         return ['score' => 0.0, 'pattern' => null];
-    }
-
-    /**
-     * Bônus especiais que se aplicam independentemente do 5-stack/3+2.
-     *
-     * @param  array<string, int>  $counts
-     * @return array{score: float, notes: array<string, mixed>}
-     */
-    private function specialFactionBonuses(array $counts): array
-    {
-        $score = 0.0;
-        $notes = [];
-
-        if ($counts['hypogean'] > 0) {
-            $hypoBonus = $counts['hypogean'] * 0.1;
-            $score += $hypoBonus;
-            $notes['hypogean_stack'] = "{$counts['hypogean']}x → +".round($hypoBonus, 2);
-        }
-
-        if ($counts['draconis'] >= 2) {
-            $score += 0.3;
-            $notes['draconis_self_advantage'] = "{$counts['draconis']}x → +0.3";
-        }
-
-        return ['score' => $score, 'notes' => $notes];
     }
 
     /**
@@ -267,7 +245,13 @@ class TeamScorer
     }
 
     /**
-     * Soma synergias de todos os pares no time.
+     * Synergy of all pairs in the team, saturated to 0..1 (1 - e^-sum).
+     *
+     * A raw sum (~1 point per seeded pair, no ceiling) outweighed tier rating
+     * (0..1) several times over; since seeded pairs are mostly same-faction,
+     * multi-team suggestions came out as mono-faction teams. Saturation keeps
+     * the first pair worth the most and later pairs progressively less. The
+     * optimizer:benchmark total stayed the same (88.0 → 87.7).
      *
      * @param  Hero[]  $heroes
      * @param  array<string, int>  $synergyWeights
@@ -286,7 +270,7 @@ class TeamScorer
             }
         }
 
-        return $score;
+        return 1.0 - exp(-$score);
     }
 
     /**
