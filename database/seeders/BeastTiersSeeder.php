@@ -65,9 +65,8 @@ class BeastTiersSeeder extends Seeder
                     'tier' => $entry['tier'],
                     'tier_note' => $entry['note'],
                     'source_url' => $sourceUrl,
-                    'strength_buff' => 0,
-                    'intelligence_buff' => 0,
-                    'agility_buff' => 0,
+                    // Buffs (buffs_strength/intelligence/agility/team) ficam null —
+                    // preenchidos por `beasts:seed-buffs` ou pelo /admin/beasts.
                     'is_active' => true,
                 ]);
             }
