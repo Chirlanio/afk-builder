@@ -25,6 +25,15 @@ class ScoringProfile
     ];
 
     /**
+     * Off by default (was 0.4). Only 78 of 227 heroes have furniture effects
+     * classified, so the component rewarded having data, not the effects: with
+     * the covered-hero mean imputed for the rest, optimizer:benchmark fell from
+     * 88.3 (weight 0) to 74.0, and top heroes without data (Hybris) were never
+     * suggested. Furniture investment (F3/F9) still counts in power.
+     */
+    public const DEFAULT_FURNITURE_EFFECT_WEIGHT = 0.0;
+
+    /**
      * @param  array<string, float>  $furnitureEffectTagWeights  Pesos por tag — merge sobre os defaults.
      */
     public function __construct(
@@ -34,7 +43,7 @@ class ScoringProfile
         public readonly float $powerWeight = 1.0,
         public readonly float $tierRatingWeight = 1.0,
         public readonly float $featureWeight = 0.5,
-        public readonly float $furnitureEffectWeight = 0.4,
+        public readonly float $furnitureEffectWeight = self::DEFAULT_FURNITURE_EFFECT_WEIGHT,
         public readonly float $engravingWeight = 0.3,
         public readonly array $furnitureEffectTagWeights = [],
         public readonly bool $pvp = false,
@@ -53,7 +62,7 @@ class ScoringProfile
             powerWeight: (float) ($data['power_weight'] ?? 1.0),
             tierRatingWeight: (float) ($data['tier_rating_weight'] ?? 1.0),
             featureWeight: (float) ($data['feature_weight'] ?? 0.5),
-            furnitureEffectWeight: (float) ($data['furniture_effect_weight'] ?? 0.4),
+            furnitureEffectWeight: (float) ($data['furniture_effect_weight'] ?? self::DEFAULT_FURNITURE_EFFECT_WEIGHT),
             engravingWeight: (float) ($data['engraving_weight'] ?? 0.3),
             furnitureEffectTagWeights: is_array($data['furniture_effect_tag_weights'] ?? null)
                 ? $data['furniture_effect_tag_weights']

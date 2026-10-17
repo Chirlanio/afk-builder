@@ -131,6 +131,6 @@ class FormationEditScoreBreakdownTest extends TestCase
         $this->assertSame(1.0, (float) $defaults['power_weight']);
         $this->assertSame(1.0, (float) $defaults['tier_rating_weight']);
         $this->assertSame(0.5, (float) $defaults['feature_weight']);
-        $this->assertSame(0.4, (float) $defaults['furniture_effect_weight']);
+        $this->assertSame(0.0, (float) $defaults['furniture_effect_weight']);
     }
 }

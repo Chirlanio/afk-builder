@@ -234,7 +234,7 @@ class FormationController extends Controller
             'power_weight' => (float) ($profile['power_weight'] ?? 1.0),
             'tier_rating_weight' => (float) ($profile['tier_rating_weight'] ?? 1.0),
             'feature_weight' => (float) ($profile['feature_weight'] ?? 0.5),
-            'furniture_effect_weight' => (float) ($profile['furniture_effect_weight'] ?? 0.4),
+            'furniture_effect_weight' => (float) ($profile['furniture_effect_weight'] ?? ScoringProfile::DEFAULT_FURNITURE_EFFECT_WEIGHT),
             'engraving_weight' => (float) ($profile['engraving_weight'] ?? 0.3),
         ];
     }
