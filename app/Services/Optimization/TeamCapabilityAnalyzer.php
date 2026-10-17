@@ -14,8 +14,9 @@ use App\Services\Optimization\HeroCapabilityClassifier as Cap;
  * essenciais...) separou os comps fortes de times aleatórios — todos ficaram no
  * percentil ≤ 50. Comps fortes vencem por mecânicas específicas (reflexo de dano,
  * burst que dispensa tanque, empilhar charm) e pela força dos heróis, que o texto
- * das habilidades não revela. A informação ajuda o jogador a decidir; virar nota
- * só depois de pesos validados com dados (ex: tier ratings por modo).
+ * das habilidades não revela. Pesos aprendidos dos tier ratings (2026-10-18)
+ * também falharam: percentil 25,5, contra 76,5 do tier rating médio sozinho — e
+ * somar os dois piora (54,4). A informação ajuda o jogador a decidir; não pontue.
  */
 class TeamCapabilityAnalyzer
 {
