@@ -58,11 +58,30 @@ Enquanto o DNS de `nexa.app.br` não aponta para o servidor, o app responde em
 [`link.sh`](link.sh) via cron único). Mesmo código e mesmo banco; o Laravel monta
 URLs a partir do host da requisição, então funciona nos dois endereços.
 
-Depois que `nexa.app.br` estiver no ar com SSL, apagar o site provisório no hPanel.
+`nexa.app.br` está no ar com SSL desde 2026-10-17 — o site provisório pode ser apagado no hPanel.
 
-## Deploys seguintes
+## Deploys seguintes (CI)
 
-1. `git push` para `main`.
-2. Deploy Git de novo (mesmo repositório, branch e diretório): faz pull + `composer install`.
-3. Se o frontend mudou: refazer o passo 7 (build + `build.zip`).
-4. Cron único: `php artisan migrate --force && php artisan optimize`.
+Automático a cada push no `main`, independente de o repositório ser público ou privado:
+
+```
+push main ─► tests.yml ─(verde)─► deploy.yml ─► API Hostinger ─► watcher.sh (cron) ─► no ar
+```
+
+1. **[`deploy.yml`](../../.github/workflows/deploy.yml)** roda quando o workflow `tests` termina com sucesso no `main` (ou manualmente em *Actions → deploy → Run workflow*). Monta o release (`git archive` + `vendor` sem dev + `public/build` + `public/release.txt` com o SHA), pede uma URL de upload à API da Hostinger e envia `deploy/release.tar.gz` e, por último, `deploy/release.sha`.
+2. **[`watcher.sh`](watcher.sh)** (em `public_html/deploy/`, cron a cada minuto) vê o `.sha`, extrai o release em `afk-builder.new`, copia o `.env`, reaproveita o `storage/` e troca os diretórios por rename. Depois roda `migrate --force`, `optimize` e `queue:restart`. A versão anterior fica em `afk-builder.prev`; o log vai para `public_html/deploy/deploy.log`.
+3. O workflow espera `https://nexa.app.br/release.txt` devolver o SHA novo. Se não acontecer em 5 minutos, falha e imprime o final do `deploy.log`.
+
+Configuração no GitHub (*Settings → Secrets and variables → Actions*):
+
+| Tipo | Nome | Valor |
+|---|---|---|
+| Secret | `HOSTINGER_API_TOKEN` | Token da API (hPanel → Perfil → API) |
+| Variable (opcional) | `APP_URL` | URL usada para confirmar o deploy; padrão `https://nexa.app.br` |
+
+Cron no servidor:
+```
+* * * * *  test -f ~/domains/nexa.app.br/public_html/deploy/release.sha && /bin/sh ~/domains/nexa.app.br/public_html/deploy/watcher.sh
+```
+
+**Rollback manual** (cron único): trocar `afk-builder` e `afk-builder.prev` de lugar, movendo o `storage/` junto, e rodar `php artisan optimize`. Migrations já aplicadas não são revertidas.

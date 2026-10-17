@@ -1,0 +1,121 @@
+name: deploy
+
+# Deploy na Hostinger (hospedagem compartilhada, sem SSH): monta o release aqui,
+# envia pela API da Hostinger e o deploy/hostinger/watcher.sh (cron no servidor)
+# aplica. Ver deploy/hostinger/README.md.
+
+on:
+  workflow_run:
+    workflows: [tests]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      HOSTINGER_USERNAME: u401878354
+      HOSTINGER_DOMAIN: nexa.app.br
+      HOSTINGER_API: https://developers.hostinger.com/api/hosting/v1
+      # Endereço público usado para confirmar o deploy (variável do repositório
+      # APP_URL; enquanto o SSL do domínio não sai, aponta para o provisório).
+      APP_URL: ${{ vars.APP_URL || 'https://nexa.app.br' }}
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Build Assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install Production Dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Package Release
+        run: |
+          mkdir release
+          git archive HEAD | tar -x -C release
+          cp -r vendor release/vendor
+          cp -r public/build release/public/build
+          cp bootstrap/cache/packages.php bootstrap/cache/services.php release/bootstrap/cache/
+          echo "$RELEASE_SHA" > release/public/release.txt
+          rm -rf release/tests release/.github release/deploy/oracle release/api release/vercel.json release/.vercelignore
+          tar -czf release.tar.gz -C release .
+          echo "$RELEASE_SHA" > release.sha
+          ls -lh release.tar.gz
+
+      - name: Upload to Hostinger
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: |
+          resp=$(curl -fsS -X POST "$HOSTINGER_API/files/upload-urls" \
+            -H "Authorization: Bearer $HOSTINGER_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"$HOSTINGER_USERNAME\",\"domain\":\"$HOSTINGER_DOMAIN\"}")
+          url=$(jq -r .url <<<"$resp")
+          auth=$(jq -r .auth_key <<<"$resp")
+          rest=$(jq -r .rest_auth_key <<<"$resp")
+          echo "::add-mask::$auth"
+          echo "::add-mask::$rest"
+
+          # TUS 1.0.0: cria o upload e manda os bytes. Destino relativo ao public_html.
+          upload() {
+            size=$(stat -c%s "$1")
+            curl -fsS -o /dev/null -X POST "$url/$2?override=true" \
+              -H "X-Auth: $auth" -H "X-Auth-Rest: $rest" -H "Tus-Resumable: 1.0.0" \
+              -H "Upload-Length: $size" -H "Upload-Offset: 0"
+            curl -fsS -o /dev/null -X PATCH "$url/$2?override=true" \
+              -H "X-Auth: $auth" -H "X-Auth-Rest: $rest" -H "Tus-Resumable: 1.0.0" \
+              -H "Content-Type: application/offset+octet-stream" -H "Upload-Offset: 0" \
+              --data-binary "@$1"
+            echo "enviado: $2 ($size bytes)"
+          }
+
+          upload release.tar.gz deploy/release.tar.gz
+          # Por último: é a presença do .sha que dispara o watcher.sh no servidor.
+          upload release.sha deploy/release.sha
+
+      - name: Wait for Server
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: |
+          # O cron do watcher roda a cada minuto; extrair + migrate leva alguns segundos.
+          for i in $(seq 1 30); do
+            live=$(curl -fsS --max-time 15 "$APP_URL/release.txt" 2>/dev/null || true)
+            if [ "$live" = "$RELEASE_SHA" ]; then
+              echo "No ar: $RELEASE_SHA em $APP_URL"
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "::error::O servidor não aplicou o release em 5 minutos. Final do deploy.log:"
+          curl -fsS -G "$HOSTINGER_API/accounts/$HOSTINGER_USERNAME/domains/$HOSTINGER_DOMAIN/files/content" \
+            -H "Authorization: Bearer $HOSTINGER_API_TOKEN" \
+            --data-urlencode "path=deploy/deploy.log" | jq -r .content | tail -n 40 || true
+          exit 1
