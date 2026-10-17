@@ -102,4 +102,4 @@ DNS no Registro.br (modo avançado — a delegação passa para `d.sec.dns.br`/`
 | CNAME | `hostingermail-{a,b,c}._domainkey` | `hostingermail-{a,b,c}.dkim.mail.hostinger.com` |
 | TXT | `_dmarc` | `v=DMARC1; p=none` |
 
-Hoje o app só envia e-mail de redefinição de senha — a verificação de e-mail no cadastro não está ativa (`User` não implementa `MustVerifyEmail`).
+O app envia dois e-mails: redefinição de senha e confirmação de cadastro. Desde 2026-10-17 o `User` implementa `MustVerifyEmail` e as rotas do app exigem o middleware `verified` — contas novas só acessam depois de confirmar (perfil e configurações continuam liberados para corrigir o e-mail).
