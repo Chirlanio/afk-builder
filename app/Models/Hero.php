@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 class Hero extends Model
 {
@@ -40,6 +41,28 @@ class Hero extends Model
         'capabilities' => 'array',
         'capabilities_manual' => 'array',
     ];
+
+    /**
+     * Herói Desperto (Awakened): o slug da wiki é o nome + o título da versão
+     * desperta ("shemira" → "shemira-the-soulreaver"). Comparar só slug ≠ nome
+     * marcava falsos positivos quando o NOME é mais longo que o slug
+     * ("Ukyo Tachibana" / "ukyo").
+     */
+    public static function isAwakenedSlug(?string $name, ?string $slug): bool
+    {
+        if ($name === null || $slug === null) {
+            return false;
+        }
+
+        $base = Str::slug($name);
+
+        return $slug !== $base && str_starts_with($slug, $base.'-');
+    }
+
+    public function isAwakened(): bool
+    {
+        return self::isAwakenedSlug($this->name, $this->slug);
+    }
 
     /**
      * Perfil de capacidades efetivo: o do classificador com as correções do

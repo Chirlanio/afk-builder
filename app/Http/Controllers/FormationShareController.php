@@ -66,7 +66,7 @@ class FormationShareController extends Controller
                 'gender', 'role_label', 'portrait_url',
             ])
             ->map(fn (Hero $h) => array_merge($h->toArray(), [
-                'is_awakened' => Str::slug($h->name) !== $h->slug,
+                'is_awakened' => $h->isAwakened(),
             ]))
             ->all();
 

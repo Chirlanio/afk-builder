@@ -29,7 +29,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -913,7 +912,7 @@ class FormationController extends Controller
             ])
             ->map(function (Hero $hero) {
                 return array_merge($hero->toArray(), [
-                    'is_awakened' => Str::slug($hero->name) !== $hero->slug,
+                    'is_awakened' => $hero->isAwakened(),
                 ]);
             })
             ->all();

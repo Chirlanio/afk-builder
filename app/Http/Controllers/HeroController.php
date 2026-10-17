@@ -16,7 +16,6 @@ use App\Services\Optimization\PowerCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -40,7 +39,7 @@ class HeroController extends Controller
             ])
             ->map(function (Hero $hero) {
                 return array_merge($hero->toArray(), [
-                    'is_awakened' => Str::slug($hero->name) !== $hero->slug,
+                    'is_awakened' => $hero->isAwakened(),
                 ]);
             });
 
@@ -116,7 +115,7 @@ class HeroController extends Controller
             ->firstOrFail();
 
         $heroPayload = array_merge($hero->toArray(), [
-            'is_awakened' => Str::slug($hero->name) !== $hero->slug,
+            'is_awakened' => $hero->isAwakened(),
             'effective_capabilities' => $hero->effectiveCapabilities(),
         ]);
 
@@ -191,7 +190,7 @@ class HeroController extends Controller
 
                 return [
                     'partner' => array_merge($partner->toArray(), [
-                        'is_awakened' => Str::slug($partner->name) !== $partner->slug,
+                        'is_awakened' => $partner->isAwakened(),
                     ]),
                     'weight' => $s['weight'],
                     'note' => $s['note'],

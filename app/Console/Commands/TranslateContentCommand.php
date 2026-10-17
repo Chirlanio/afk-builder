@@ -6,9 +6,8 @@ use App\Models\Guide;
 use App\Models\Hero;
 use App\Models\HeroAbility;
 use App\Models\HeroFurnitureAbility;
-use Composer\CaBundle\CaBundle;
+use App\Services\GoogleFreeTranslator;
 use Illuminate\Console\Command;
-use Stichoza\GoogleTranslate\GoogleTranslate;
 use Throwable;
 
 class TranslateContentCommand extends Command
@@ -25,15 +24,13 @@ class TranslateContentCommand extends Command
 
     private const TO = 'pt';
 
-    private GoogleTranslate $translator;
+    private GoogleFreeTranslator $translator;
+
+    private int $failures = 0;
 
     public function handle(): int
     {
-        $this->translator = new GoogleTranslate(self::TO, self::FROM);
-        // Confia no CA bundle do Composer (WAMP)
-        $this->translator->setOptions([
-            'verify' => CaBundle::getSystemCaRootBundlePath(),
-        ]);
+        $this->translator = new GoogleFreeTranslator(self::FROM, self::TO);
 
         $type = $this->option('type');
         $force = (bool) $this->option('force');
@@ -59,6 +56,14 @@ class TranslateContentCommand extends Command
         $this->info('Resumo:');
         foreach ($totals as $kind => $n) {
             $this->line("  • {$kind}: {$n} itens traduzidos");
+        }
+
+        // Antes as falhas viravam só uma linha no log e o comando "concluía" sem
+        // traduzir nada (o /admin/sync mostrava sucesso). Agora falhar é visível.
+        if ($this->failures > 0) {
+            $this->error("{$this->failures} trecho(s) não traduzido(s) — veja as linhas '!' acima.");
+
+            return array_sum($totals) === 0 ? self::FAILURE : self::SUCCESS;
         }
 
         return self::SUCCESS;
@@ -242,7 +247,13 @@ class TranslateContentCommand extends Command
 
             return $result;
         } catch (Throwable $e) {
+            $this->failures++;
             $this->line("  <fg=red>!</> falha {$contextLabel}: {$e->getMessage()}");
+
+            // Muitas falhas seguidas = bloqueio; não adianta martelar o Google.
+            if ($this->failures >= 20) {
+                throw new \RuntimeException('20 falhas de tradução — interrompido. Último erro: '.$e->getMessage(), previous: $e);
+            }
 
             return null;
         }

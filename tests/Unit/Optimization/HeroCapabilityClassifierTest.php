@@ -118,6 +118,29 @@ class HeroCapabilityClassifierTest extends TestCase
         ));
     }
 
+    public function test_frases_do_brutus(): void
+    {
+        $this->assertContains(Cap::CC_IMMUNITY, $this->classifier->classifyText(
+            'Brutus hacks at his enemies twice before spinning into a frenzy, dealing damage to them. Brutus is impervious to any mind control skills while spinning.'
+        ));
+        $this->assertContains(Cap::DEBUFF_ENEMY, $this->classifier->classifyText(
+            'Brutus lets out a terrifying roar that causes enemies to become more vulnerable. Any physical damage dealt to enemies is increased by 25%.'
+        ));
+        $this->assertContains(Cap::REVIVE, $this->classifier->classifyText(
+            'When Brutus is dealt a fatal blow he is able to retain 1 health point and is immune to all subsequent damage for 4 seconds.'
+        ));
+    }
+
+    public function test_frases_do_mortas(): void
+    {
+        $this->assertContains(Cap::BUFF_ALLY, $this->classifier->classifyText(
+            "Mortas grants the allied target with the highest Attack Rating 25% of the target's own Attack Rating and 25 Attack Speed points."
+        ));
+        $this->assertContains(Cap::SELF_SUSTAIN, $this->classifier->classifyText(
+            "This is a passive skill that allows for Mortas' Normal Attacks to steal 4% of an enemy's current health and 10% of their current shield value."
+        ));
+    }
+
     public function test_texto_vazio_nao_gera_capacidades(): void
     {
         $this->assertSame([], $this->classifier->classifyText(null));

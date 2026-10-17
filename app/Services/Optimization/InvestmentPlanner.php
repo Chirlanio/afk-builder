@@ -4,11 +4,11 @@ namespace App\Services\Optimization;
 
 use App\Models\Formation;
 use App\Models\GameAccount;
+use App\Models\Hero;
 use App\Models\SignatureItemCost;
 use App\Models\UserHero;
 use App\Models\UserResource;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 /**
  * Gera sugestões priorizadas de "próximo investimento" no roster do user.
@@ -336,7 +336,7 @@ class InvestmentPlanner
             $reasons[] = 'tier_ascended';
         }
 
-        // Awakened detection via slug != slug(name) — alinhado com is_awakened do HeroController
+        // Awakened: mesma regra do Hero::isAwakenedSlug
         if ($this->isAwakened($uh->hero?->name, $uh->hero?->slug)) {
             $multiplier *= self::AWAKENED_MULTIPLIER;
             $reasons[] = 'awakened';
@@ -518,7 +518,6 @@ class InvestmentPlanner
             return false;
         }
 
-        // Mesma regra de HeroController: slug != slug(name) → desperto
-        return Str::slug($name) !== $slug;
+        return Hero::isAwakenedSlug($name, $slug);
     }
 }

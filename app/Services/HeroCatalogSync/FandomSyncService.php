@@ -13,6 +13,23 @@ use Throwable;
 
 class FandomSyncService
 {
+    /**
+     * Campos que a wiki deixa em branco no infobox, por título da página.
+     * Só preenche o que veio vazio — o que a wiki trouxer prevalece.
+     * Fonte: a descrição do próprio herói na página (2026-10-18). Ankhira e
+     * Gourgue ficam de fora: a wiki não dá pistas da classe deles.
+     */
+    private const INFOBOX_FIXES = [
+        'Angelo' => ['class_code' => 'support'],            // "sustained healing for his team"
+        'Arden' => ['class_code' => 'support'],             // controle + escudo mágico nos aliados
+        'Golus' => ['class_code' => 'tank'],                // "durable strength-based tank hero"
+        'Bronn' => ['tier_code' => 'ascended'],             // "warrior" no infobox; sem rarity (herói novo)
+        'Draconis Archer' => ['class_code' => 'ranger'],
+        'Draconis Warrior' => ['class_code' => 'warrior'],
+        'Dreaf' => ['class_code' => 'mage'],                // dano em área por veneno, inteligência
+        'Eletha' => ['class_code' => 'warrior'],            // "strength-based fighter"
+    ];
+
     public function __construct(
         private readonly FandomWikiClient $client,
         private readonly WikitextHeroParser $parser,
@@ -100,6 +117,12 @@ class FandomSyncService
                 }
 
                 $parsed = $this->parser->parse($wikitext);
+
+                if ($parsed !== null) {
+                    foreach (self::INFOBOX_FIXES[$title] ?? [] as $field => $value) {
+                        $parsed[$field] ??= $value;
+                    }
+                }
 
                 if ($parsed === null) {
                     $skipped[] = "{$title}: not a hero page";

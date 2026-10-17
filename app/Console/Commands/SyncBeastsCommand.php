@@ -9,6 +9,14 @@ use Illuminate\Support\Str;
 
 class SyncBeastsCommand extends Command
 {
+    /**
+     * A página master "Beasts" da wiki grafa "Joyous Reamer", mas a besta é
+     * "Joyous Roamer" (patch notes 1.158). Sem isto o sync recriava a duplicata.
+     */
+    private const NAME_FIXES = [
+        'Joyous Reamer' => 'Joyous Roamer',
+    ];
+
     protected $signature = 'beasts:sync
         {--dry-run : Mostra apenas o que seria criado}';
 
@@ -42,6 +50,8 @@ class SyncBeastsCommand extends Command
         $skipped = 0;
 
         foreach ($names as $name) {
+            // Erros de digitação da página "Beasts" da wiki → nome correto.
+            $name = self::NAME_FIXES[$name] ?? $name;
             $slug = Str::slug($name);
             if ($slug === '') {
                 $skipped++;

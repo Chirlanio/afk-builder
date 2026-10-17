@@ -21,7 +21,6 @@ use App\Services\Optimization\ScoringProfile;
 use App\Services\Optimization\TeamScorer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -68,7 +67,7 @@ class FormationCompareController extends Controller
         }
 
         $heroesPayload = $heroesById->map(fn (Hero $h) => array_merge($h->toArray(), [
-            'is_awakened' => Str::slug($h->name) !== $h->slug,
+            'is_awakened' => $h->isAwakened(),
         ]))->values()->all();
 
         return Inertia::render('formations/compare', [
