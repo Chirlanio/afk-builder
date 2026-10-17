@@ -170,6 +170,16 @@ class PowerCalculatorTest extends TestCase
         $this->assertEqualsWithDelta(480.0, $this->calc->statContribution($stats), 0.001);
     }
 
+    public function test_stat_contribution_ignores_game_screen_values_in_the_catalog(): void
+    {
+        $stats = new HeroStat;
+        $stats->hp = 1_588_434_513;
+        $stats->attack = 44_692_846;
+        $stats->defense = 25_690_578;
+
+        $this->assertSame(0.0, $this->calc->statContribution($stats));
+    }
+
     public function test_stat_contribution_lida_com_campos_null(): void
     {
         $stats = new HeroStat;

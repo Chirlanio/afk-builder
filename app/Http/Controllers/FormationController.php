@@ -250,7 +250,7 @@ class FormationController extends Controller
         $scores = [];
 
         $heroPoolById = $this->loadHeroPool($formation, $accountId);
-        $userHeroesById = $this->loadUserHeroes($accountId);
+        $userHeroesById = $this->loadUserHeroes($formation, $accountId);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
         // Fase 27: aplica overrides persistidos quando presentes — breakdown reflete pesos custom.
@@ -464,7 +464,7 @@ class FormationController extends Controller
         }
 
         $heroPoolById = $this->loadHeroPool($formation, $account->id);
-        $userHeroesById = $this->loadUserHeroes($account->id);
+        $userHeroesById = $this->loadUserHeroes($formation, $account->id);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
         // Prioridade: body weight_overrides > formation.scoring_weights_override > defaults.
@@ -551,7 +551,7 @@ class FormationController extends Controller
         }
 
         $heroPoolById = $this->loadHeroPool($formation, $account->id);
-        $userHeroesById = $this->loadUserHeroes($account->id);
+        $userHeroesById = $this->loadUserHeroes($formation, $account->id);
         $synergyWeights = $this->loadSynergyWeights();
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
         // Prioridade: body weight_overrides > formation.scoring_weights_override > defaults.
@@ -810,10 +810,18 @@ class FormationController extends Controller
     }
 
     /**
+     * Target formations plan with any hero of the game at the target investment,
+     * so the roster stays out of scoring: otherwise owned heroes (with real power)
+     * crowd out stronger heroes the account does not have yet.
+     *
      * @return array<int, UserHero>
      */
-    private function loadUserHeroes(int $accountId): array
+    private function loadUserHeroes(Formation $formation, int $accountId): array
     {
+        if ($formation->mode === 'target') {
+            return [];
+        }
+
         return UserHero::where('game_account_id', $accountId)
             ->with([
                 'artifact:id,attributes',

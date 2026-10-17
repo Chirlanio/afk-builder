@@ -96,6 +96,10 @@ class FormationCompareController extends Controller
         array $synergyWeights,
         TeamScorer $scorer,
     ): array {
+        // Target formations ignore the roster (see FormationController::loadUserHeroes).
+        if ($formation->mode === 'target') {
+            $userHeroesById = [];
+        }
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
 
         // Carrega ratings + features só dos heróis envolvidos nas duas formations

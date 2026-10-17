@@ -101,6 +101,13 @@ class PowerCalculator
 
     private const REAL_STAT_HASTE_FACTOR = 0.2;
 
+    /**
+     * Catalog stats are level 1 base stats (HP in the thousands). Anything above
+     * this came from an account's game screen (10^5 to 10^9 HP); with the level 1
+     * factors it reached 10^5 power per hero and decided every suggestion alone.
+     */
+    private const CATALOG_STAT_HP_MAX = 100_000;
+
     /** Limiar pra considerar que `UserHero->hp` tem valor REAL do jogo (não vazio). */
     private const REAL_STAT_HP_THRESHOLD = 1000;
 
@@ -248,7 +255,7 @@ class PowerCalculator
      */
     public function statContribution(?HeroStat $stats): float
     {
-        if ($stats === null) {
+        if ($stats === null || (int) ($stats->hp ?? 0) > self::CATALOG_STAT_HP_MAX) {
             return 0.0;
         }
 

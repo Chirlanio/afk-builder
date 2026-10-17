@@ -3926,6 +3926,13 @@ O otimizador enxergava os heróis por rótulos (facção, classe, tier rating, s
 - **Mesmo personagem:** `Hero::characterKey()` (slug do nome) identifica base e Desperto; o `SingleTeamOptimizer` não coloca as duas versões no mesmo time, e uma versão usada em outra equipe bloqueia a outra.
 - **`optimizer:benchmark`:** total 88,0 → **88,2**; o pior comp recomendado subiu do percentil 43 para o 54. Nas 5 equipes de teste, duas ficaram sem bônus de facção e três com 3+2, sem repetição de personagem.
 
+### ✅ Fase 66 — Modo alvo sem roster e atributos de tela fora do catálogo (2026-10-18)
+
+- **Sintoma:** mesmo após a Fase 65, as 5 equipes alvo da campanha em produção vinham quase todas de Portadores da Luz do roster, e o Hybris (S+) ficava de fora.
+- **Causa 1 — atributos de tela no catálogo:** 14 heróis tinham em `hero_stats` (atributos base de nível 1) os valores da tela do jogo de uma conta de fim de jogo: HP de 0,5 a 1,6 bilhão. Com os fatores de nível 1, cada um valia ~10^5 de poder (contra 0,72 de um herói sem atributos) e decidia sozinho. `PowerCalculator::statContribution` agora ignora atributos de catálogo com HP acima de 100 mil (`CATALOG_STAT_HP_MAX`).
+- **Causa 2 — modo alvo usava o roster:** formações alvo planejam com qualquer herói do jogo no investimento-alvo, mas o poder dos heróis do roster entrava no score. `FormationController::loadUserHeroes` e a comparação de formações não usam mais o roster no modo alvo.
+- **Pendente:** os atributos reais de fim de jogo (10^9 de HP) também estouram a escala de `realStatContribution` (calibrada para ~6×10^5) no modo real; precisa de recalibração antes de usar atributos do roster nessa faixa.
+
 ### ✅ Correções pós-auditoria (2026-10-16)
 
 - **OCR quebrado:** o `post()` do `useForm` ignorava a opção `data` (o backend nunca recebia `heroes`) e `lines` vinha `undefined` no tesseract.js v7. Corrigido conforme a Fase 59, com testes.
