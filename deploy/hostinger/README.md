@@ -50,6 +50,16 @@ PHP CLI: `/opt/alt/php84/usr/bin/php`.
     cd ~/domains/nexa.app.br/public_html/afk-builder && /opt/alt/php84/usr/bin/php artisan tinker --execute="App\Models\User::where('email', 'SEU@EMAIL')->update(['is_admin' => true]);"
     ```
 
+## Endereço provisório
+
+Enquanto o DNS de `nexa.app.br` não aponta para o servidor, o app responde em
+**https://aqua-toad-818246.hostingersite.com** — um site à parte no mesmo plano cujo
+`public_html` é um symlink para `~/domains/nexa.app.br/public_html` (criado por
+[`link.sh`](link.sh) via cron único). Mesmo código e mesmo banco; o Laravel monta
+URLs a partir do host da requisição, então funciona nos dois endereços.
+
+Depois que `nexa.app.br` estiver no ar com SSL, apagar o site provisório no hPanel.
+
 ## Deploys seguintes
 
 1. `git push` para `main`.
