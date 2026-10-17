@@ -701,22 +701,20 @@ class PowerCalculatorTest extends TestCase
         $this->assertEqualsWithDelta(20.0, $this->calc->mythicEquipmentContribution($uh), 0.001);
     }
 
-    public function test_mythic_equipment_contribution_soma_set_bonuses_t3(): void
+    public function test_mythic_equipment_contribution_ignora_set_bonuses(): void
     {
-        // Stats do item: attack 13500 * 0.005 = 67.5
-        // Set bonus: hp_flat 1000000 * 0.0005 = 500, attack_flat 100000 * 0.005 = 500,
-        //            attack_pct 4 * 0.5 = 2, physical_resistance_pct 1.6 * 0.5 = 0.8
-        // total = 67.5 + 500 + 500 + 2 + 0.8 = 1070.3
+        // Set bonuses do seeder são valores absolutos de fim de jogo (+1,39M HP)
+        // fora da escala calibrada — só os stats do item contam.
+        // attack 13500 * 0.005 = 67.5
         $weapon = $this->makeEquipment([
             'slot' => 'weapon',
             'faction_id' => 1,
             'quality_tier' => 'mythic_t3',
             'stats' => ['attack' => 13500],
             'set_bonuses' => [
-                'hp_flat' => 1000000,
-                'attack_flat' => 100000,
+                'hp_flat' => 1392830,
+                'attack_flat' => 582446,
                 'attack_pct' => 4.0,
-                'physical_resistance_pct' => 1.6,
             ],
             'max_upgrade_level' => 0,
             'upgrade_percent_per_level' => 0,
@@ -725,29 +723,37 @@ class PowerCalculatorTest extends TestCase
         $uh = $this->makeUserHero(['weapon_equipment_id' => 1, 'weapon_equipment_level' => 0]);
         $uh->setRelation('weaponEquipment', $weapon);
 
-        $this->assertEqualsWithDelta(1070.3, $this->calc->mythicEquipmentContribution($uh), 0.001);
+        $this->assertEqualsWithDelta(67.5, $this->calc->mythicEquipmentContribution($uh), 0.001);
     }
 
-    public function test_mythic_equipment_faction_bonus_nao_multiplica_set_bonuses(): void
+    public function test_for_user_hero_com_stats_reais_nao_soma_equipamento_de_novo(): void
     {
-        // Faction match: stats do item * 1.30 (attack 1000 * 1.3 * 0.005 = 6.5),
-        // set bonus fica intacto (hp_flat 100000 * 0.0005 = 50) → 56.5
-        $weapon = $this->makeEquipment([
-            'slot' => 'weapon',
+        // A tela de atributos do jogo já mostra os stats com o equipamento —
+        // com stats reais cadastrados, o equipamento não pode contar duas vezes.
+        $equipment = $this->makeEquipment([
+            'slot' => 'boots',
             'faction_id' => 1,
-            'stats' => ['attack' => 1000],
-            'set_bonuses' => ['hp_flat' => 100000],
+            'stats' => ['hp' => 36500, 'haste' => 5],
         ]);
 
-        $uh = $this->makeUserHero(['weapon_equipment_id' => 1, 'weapon_equipment_level' => 0]);
-        $uh->setRelation('weaponEquipment', $weapon);
+        $semEquip = $this->makeUserHero([
+            'ascension_value' => 10, 'level' => 240, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 0,
+            'hp' => 890481, 'attack' => 75446, 'defense' => 13374,
+        ]);
+        $comEquip = $this->makeUserHero([
+            'ascension_value' => 10, 'level' => 240, 'signature_item' => 0,
+            'furniture' => 0, 'engraving' => 0,
+            'hp' => 890481, 'attack' => 75446, 'defense' => 13374,
+            'boots_equipment_id' => 1, 'boots_equipment_level' => 0,
+        ]);
+        $comEquip->setRelation('bootsEquipment', $equipment);
 
-        $faction = new Faction(['code' => 'lightbearer']);
-        $faction->id = 1;
-        $hero = new Hero;
-        $hero->setRelation('faction', $faction);
-
-        $this->assertEqualsWithDelta(56.5, $this->calc->mythicEquipmentContribution($uh, $hero), 0.001);
+        $this->assertEqualsWithDelta(
+            $this->calc->forUserHero($semEquip),
+            $this->calc->forUserHero($comEquip),
+            0.001,
+        );
     }
 
     public function test_for_user_hero_inclui_mythic_equipment_contribution(): void

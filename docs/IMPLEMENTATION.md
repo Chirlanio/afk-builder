@@ -3889,6 +3889,7 @@ Produção em **https://nexa.app.br** — Hostinger Cloud Economy (hospedagem co
 ### ✅ Correções pós-auditoria (2026-10-16)
 
 - **OCR quebrado:** o `post()` do `useForm` ignorava a opção `data` (o backend nunca recebia `heroes`) e `lines` vinha `undefined` no tesseract.js v7. Corrigido conforme a Fase 59, com testes.
-- **Set bonuses dos Equipamentos Míticos no power:** `PowerCalculator::mythicEquipmentContribution` agora soma os `set_bonuses` dos itens T3/T4 por peça (como o `EquipmentSeeder` os modela: arma 100%, demais 50%). `*_flat` somam no stat correspondente; `*_pct` entram como pontos com peso 0.5 (igual às resistências). O bônus de facção (+30%) não multiplica o set bonus. 2 testes novos.
+- **Set bonuses dos Equipamentos Míticos (revertido em 2026-10-17):** chegaram a ser somados ao power, mas os valores do seeder são absolutos de fim de jogo (+1,39M HP, +582k ATK) e um set T3 completo passou a valer ~11k de power — quase 4 heróis Ascended no máximo (~2,65k), decidindo sozinho o otimizador. Ficam fora do cálculo até haver snapshot real de herói com T3+; `MythicEquipmentPowerScaleTest` protege a escala com os dados do seeder.
+- **Contagem dobrada com stats reais:** com atributos reais cadastrados (lidos da tela do jogo, que já incluem o equipamento), o equipamento mítico deixou de ser somado de novo — em `PowerCalculator::forUserHero` e no breakdown da comparação de heróis.
 - **Lint/TS:** `tsc --noEmit` e `eslint` voltaram a passar (erros em `roster/import.tsx`, import morto em `equipments/index.tsx`, `exhaustive-deps` intencionais documentados nos modais de beast/coleção).
 - **530 testes verdes.**

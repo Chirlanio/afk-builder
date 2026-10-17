@@ -126,15 +126,13 @@ class PowerCalculator
         }
 
         // Quando o UserHero tem stats REAIS do jogo preenchidos (player snapshot),
-        // usamos eles direto. Caso contrário, caímos pro baseline do catálogo (Lv 1).
+        // usamos eles direto. Caso contrário, caímos pro baseline do catálogo (Lv 1)
+        // + Equipamento Mítico (sets Gaius/Ancelot/Místico, com bônus de facção).
+        // Com stats reais o equipamento NÃO entra: a tela de atributos do jogo já
+        // mostra os valores com ele equipado, e somar de novo contava duas vezes.
         $base += $this->hasRealStats($userHero)
             ? $this->realStatContribution($userHero)
-            : $this->statContribution($this->safeStats($hero));
-
-        // Equipamento Mítico (sets nomeados Gaius/Ancelot/Místico). Soma stats
-        // dos 4 slots, aplica bônus de facção (+30%) quando o hero pertence à
-        // mesma faction do item.
-        $base += $this->mythicEquipmentContribution($userHero, $hero);
+            : $this->statContribution($this->safeStats($hero)) + $this->mythicEquipmentContribution($userHero, $hero);
 
         // Equipamento na slot artefato/coleção (mutex no controller).
         if ($userHero->relationLoaded('artifact') && $userHero->artifact) {
@@ -275,10 +273,12 @@ class PowerCalculator
      * contribuem com peso menor — refletem percent caps que se traduzem em power
      * efetivo só quando o hero está sob ataque/causando dano.
      *
-     * Set bonuses (T3/T4) entram por peça, do jeito que o EquipmentSeeder os
-     * modela (arma = valor cheio, demais slots = 50%): `*_flat` somam no stat
-     * correspondente e `*_pct` entram como pontos com o mesmo peso modesto das
-     * resistências. O bônus de facção NÃO se aplica a eles — só aos stats do item.
+     * Set bonuses (T3/T4) ficam de fora de propósito: o EquipmentSeeder guarda
+     * valores absolutos de fim de jogo (+1,39M de HP, +582k de ATK só na arma),
+     * numa escala que não bate com a calibração dos REAL_STAT_*_FACTOR (heróis
+     * Lendários, ~890k de HP). Somados, um set completo valia ~10k de power —
+     * quase 4 heróis Ascended no máximo — e passava a decidir sozinho o
+     * otimizador. Recalibrar só com snapshot real de um herói equipado com T3+.
      */
     public function mythicEquipmentContribution(UserHero $userHero, ?Hero $hero = null): float
     {
@@ -297,12 +297,6 @@ class PowerCalculator
             $stats = $equipment->applyFactionBonus($stats, $factionMatch);
 
             foreach ($stats as $key => $value) {
-                $aggregate[$key] = ($aggregate[$key] ?? 0.0) + (float) $value;
-            }
-
-            foreach ($equipment->set_bonuses ?? [] as $key => $value) {
-                // hp_flat → hp, attack_flat → attack...; `_pct` mantém a chave.
-                $key = str_ends_with($key, '_flat') ? substr($key, 0, -5) : $key;
                 $aggregate[$key] = ($aggregate[$key] ?? 0.0) + (float) $value;
             }
         }
@@ -329,8 +323,7 @@ class PowerCalculator
                 'accuracy' => $value * self::REAL_STAT_ACC_FACTOR,
                 'dodge' => $value * self::REAL_STAT_DODGE_FACTOR,
                 'haste' => $value * self::REAL_STAT_HASTE_FACTOR,
-                'physical_resistance_pct', 'magic_resistance_pct',
-                'hp_pct', 'attack_pct', 'defense_pct' => $value * 0.5,
+                'physical_resistance_pct', 'magic_resistance_pct' => $value * 0.5,
                 default => 0.0,
             };
         }

@@ -102,8 +102,13 @@ class HeroComparisonController extends Controller
         ?UserResource $resources,
     ): array {
         $totalPower = (int) round($power->forUserHero($uh, $uh->hero));
-        $statContrib = (int) round($power->statContribution($uh->hero?->stats));
-        $equipContrib = (int) round($power->mythicEquipmentContribution($uh, $uh->hero));
+        // Mesma regra do PowerCalculator::forUserHero: com stats reais, eles
+        // substituem o catálogo e já incluem o equipamento (que não soma de novo).
+        $hasRealStats = $power->hasRealStats($uh);
+        $statContrib = (int) round($hasRealStats
+            ? $power->realStatContribution($uh)
+            : $power->statContribution($uh->hero?->stats));
+        $equipContrib = $hasRealStats ? 0 : (int) round($power->mythicEquipmentContribution($uh, $uh->hero));
         $artifactContrib = (int) round($power->artifactContribution($uh->artifact ?? null, $uh->artifact_star_level));
         $collectionContrib = (int) round($power->collectionContribution($uh->collection ?? null));
 
