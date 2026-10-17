@@ -2,7 +2,7 @@
 
 Produção: **https://nexa.app.br** — conta `u401878354`, plano Cloud Economy, PHP 8.4, LiteSpeed.
 
-Diferente da Oracle (`deploy/oracle/`), aqui não há root, supervisor nem nginx:
+Hospedagem compartilhada: não há root, SSH pelo MCP, supervisor nem nginx:
 
 | Necessidade | Como é resolvida |
 |---|---|

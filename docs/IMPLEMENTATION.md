@@ -3874,11 +3874,17 @@ Um usuário pode ter várias contas do jogo (main/alts/servidores). Todo dado de
 - **E — UI:** `account-switcher.tsx` no sidebar + CRUD em `/settings/accounts`.
 - **F — Backup v2:** export/import de todas as contas (`schema_version: 2`), com retrocompatibilidade para arquivos v1.
 
-### ✅ Fase 61 — Deploy
+### ✅ Fase 61 — Deploy na Hostinger + CI (2026-10-17)
 
-- **Oracle Cloud Always Free** (`deploy/oracle/`): nginx + PHP-FPM + MySQL + supervisor (queue worker) + cron (scheduler). Ver `deploy/oracle/README.md`.
-- **Vercel** (`vercel.json` + `api/index.php`): runtime `vercel-php`. Sem fila nem scheduler persistentes — o `/admin/sync` e os jobs diários não funcionam nesse alvo.
-- **Hostinger (hospedagem compartilhada):** ver `deploy/hostinger/README.md`.
+Produção em **https://nexa.app.br** — Hostinger Cloud Economy (hospedagem compartilhada, LiteSpeed, PHP 8.4, MySQL local). Detalhes operacionais em `deploy/hostinger/README.md`.
+
+- **Layout:** app em `public_html/afk-builder`; `public_html/.htaccess` reescreve tudo para `afk-builder/public/` (`.env` e código nunca são servidos) e libera `/.well-known/` para a validação do SSL.
+- **DNS:** domínio no Registro.br (modo avançado), registro A para o servidor. SSL emitido pela Hostinger.
+- **Deploy contínuo:** push no `main` → workflow `tests` → `.github/workflows/deploy.yml` monta o release (`vendor` sem dev + `public/build` + `public/release.txt` com o SHA) e envia pela API da Hostinger (secret `HOSTINGER_API_TOKEN`). No servidor, `deploy/hostinger/watcher.sh` (cron a cada minuto) troca os diretórios por rename preservando `.env` e `storage/`, roda `migrate`/`optimize`/`queue:restart` e guarda a versão anterior em `afk-builder.prev`. O workflow só fica verde quando `/release.txt` devolve o SHA novo. Não depende de SSH nem de o repositório ser público.
+- **Scheduler e fila:** `deploy/hostinger/cron.sh schedule|queue`. O agendador da Hostinger não executa linhas `cd … && php artisan …` — no primeiro dia scheduler e fila ficaram parados por isso. A fila roda um worker por vez (`flock`) com `DB_QUEUE_RETRY_AFTER=1900`, acima do timeout de 1800s do `RunArtisanCommandJob` (com o padrão de 90s, syncs longos do `/admin/sync` seriam reprocessados e marcados como falhos).
+- **Setup inicial:** `setup.sh` (migrate + seeds estáticos) e `catalog.sh` (sync da Fandom + seeders que dependem dos heróis), rodados por cron único — sem SSH pelo MCP.
+- **Bug achado no deploy:** `BeastTiersSeeder` ainda usava as colunas `*_buff` removidas na Fase 51 — corrigido, com `CatalogSeedersTest` cobrindo os seeders de catálogo.
+- **Removidos:** os alvos Oracle Cloud (`deploy/oracle/`) e Vercel (`vercel.json`, `api/index.php`), que não chegaram a ser usados.
 
 ### ✅ Correções pós-auditoria (2026-10-16)
 

@@ -117,7 +117,7 @@ resources/js/
                            # tier-lists, crystal, equipments, guides, admin, settings)
   lib/afk.ts               # Tema das facções, ícones de classe, stages de ascensão
   types/afk.ts             # Tipos compartilhados (Hero, Faction, Formation, etc.)
-deploy/                    # Oracle Cloud (VPS) e Hostinger (hospedagem compartilhada)
+deploy/hostinger/          # Deploy na Hostinger (scripts, cron, watcher do CI)
 docs/
   IMPLEMENTATION.md        # Status detalhado por fase + schema + conventions
 ```
@@ -161,7 +161,7 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 58. Equipamentos Míticos (480 itens, bônus de facção e de set no power) | ✅ |
 | 59. Importação de roster via OCR (screenshots) | ✅ |
 | 60. Múltiplas contas de jogo por usuário (switcher, CRUD, backup v2) | ✅ |
-| 61. Deploy (Oracle Cloud, Vercel, Hostinger) | ✅ |
+| 61. Deploy na Hostinger (nexa.app.br) com CI no GitHub Actions | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 

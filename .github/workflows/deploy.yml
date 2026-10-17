@@ -64,7 +64,7 @@ jobs:
           cp -r public/build release/public/build
           cp bootstrap/cache/packages.php bootstrap/cache/services.php release/bootstrap/cache/
           echo "$RELEASE_SHA" > release/public/release.txt
-          rm -rf release/tests release/.github release/deploy/oracle release/api release/vercel.json release/.vercelignore
+          rm -rf release/tests release/.github
           tar -czf release.tar.gz -C release .
           echo "$RELEASE_SHA" > release.sha
           ls -lh release.tar.gz
