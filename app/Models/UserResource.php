@@ -2,14 +2,11 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToGameAccount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserResource extends Model
 {
-    use BelongsToGameAccount;
-
     public const FIELDS = [
         'primordial_emblems',
         'amplifying_emblems',
@@ -23,7 +20,6 @@ class UserResource extends Model
     ];
 
     protected $fillable = [
-        'user_id',
         'game_account_id',
         'primordial_emblems',
         'amplifying_emblems',

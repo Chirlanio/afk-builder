@@ -701,6 +701,55 @@ class PowerCalculatorTest extends TestCase
         $this->assertEqualsWithDelta(20.0, $this->calc->mythicEquipmentContribution($uh), 0.001);
     }
 
+    public function test_mythic_equipment_contribution_soma_set_bonuses_t3(): void
+    {
+        // Stats do item: attack 13500 * 0.005 = 67.5
+        // Set bonus: hp_flat 1000000 * 0.0005 = 500, attack_flat 100000 * 0.005 = 500,
+        //            attack_pct 4 * 0.5 = 2, physical_resistance_pct 1.6 * 0.5 = 0.8
+        // total = 67.5 + 500 + 500 + 2 + 0.8 = 1070.3
+        $weapon = $this->makeEquipment([
+            'slot' => 'weapon',
+            'faction_id' => 1,
+            'quality_tier' => 'mythic_t3',
+            'stats' => ['attack' => 13500],
+            'set_bonuses' => [
+                'hp_flat' => 1000000,
+                'attack_flat' => 100000,
+                'attack_pct' => 4.0,
+                'physical_resistance_pct' => 1.6,
+            ],
+            'max_upgrade_level' => 0,
+            'upgrade_percent_per_level' => 0,
+        ]);
+
+        $uh = $this->makeUserHero(['weapon_equipment_id' => 1, 'weapon_equipment_level' => 0]);
+        $uh->setRelation('weaponEquipment', $weapon);
+
+        $this->assertEqualsWithDelta(1070.3, $this->calc->mythicEquipmentContribution($uh), 0.001);
+    }
+
+    public function test_mythic_equipment_faction_bonus_nao_multiplica_set_bonuses(): void
+    {
+        // Faction match: stats do item * 1.30 (attack 1000 * 1.3 * 0.005 = 6.5),
+        // set bonus fica intacto (hp_flat 100000 * 0.0005 = 50) → 56.5
+        $weapon = $this->makeEquipment([
+            'slot' => 'weapon',
+            'faction_id' => 1,
+            'stats' => ['attack' => 1000],
+            'set_bonuses' => ['hp_flat' => 100000],
+        ]);
+
+        $uh = $this->makeUserHero(['weapon_equipment_id' => 1, 'weapon_equipment_level' => 0]);
+        $uh->setRelation('weaponEquipment', $weapon);
+
+        $faction = new Faction(['code' => 'lightbearer']);
+        $faction->id = 1;
+        $hero = new Hero;
+        $hero->setRelation('faction', $faction);
+
+        $this->assertEqualsWithDelta(56.5, $this->calc->mythicEquipmentContribution($uh, $hero), 0.001);
+    }
+
     public function test_for_user_hero_inclui_mythic_equipment_contribution(): void
     {
         $equipment = $this->makeEquipment([

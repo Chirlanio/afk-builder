@@ -2,14 +2,11 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToGameAccount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserHero extends Model
 {
-    use BelongsToGameAccount;
-
     /** Stats reusam o schema de HeroStat (ver HeroStat::CORE_FIELDS / EXTRA_FIELDS). */
     public const STAT_FIELDS = [
         'hp', 'attack', 'defense',
@@ -24,7 +21,6 @@ class UserHero extends Model
     ];
 
     protected $fillable = [
-        'user_id', // legacy input; trait BelongsToGameAccount deriva game_account_id
         'game_account_id',
         'hero_id',
         'level',

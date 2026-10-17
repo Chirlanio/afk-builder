@@ -2,16 +2,12 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToGameAccount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class FormationTag extends Model
 {
-    use BelongsToGameAccount;
-
-
     public const COLORS = [
         'amber',
         'sky',
@@ -26,7 +22,6 @@ class FormationTag extends Model
     public const DEFAULT_COLOR = 'amber';
 
     protected $fillable = [
-        'user_id',
         'game_account_id',
         'name',
         'color',

@@ -66,6 +66,8 @@ export function CollectionFormModal({ open, onOpenChange, collection, onSaved }:
             setData(EMPTY);
         }
         setErrors({});
+        // Reseta o form só ao abrir ou trocar de coleção — não a cada re-render do objeto.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, collection?.id]);
 
     const submit = async (e: FormEvent) => {

@@ -101,6 +101,8 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
             setData(EMPTY);
         }
         setErrors({});
+        // Reseta o form só ao abrir ou trocar de besta — não a cada re-render do objeto.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, beast?.id]);
 
     const handleUpload = async (file: File) => {

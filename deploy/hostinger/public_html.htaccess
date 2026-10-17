@@ -1,0 +1,19 @@
+# .htaccess da raiz do site (public_html) na Hostinger.
+#
+# O repositório é clonado em public_html/afk-builder e só a pasta public/ do
+# Laravel pode ser servida. Toda requisição é reescrita para dentro dela, então
+# arquivos como afk-builder/.env nunca são entregues: /afk-builder/.env vira
+# afk-builder/public/afk-builder/.env, que não existe e cai no 404 do Laravel.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Força HTTPS.
+    RewriteCond %{HTTPS} off
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Já reescrito para public/ — deixa o .htaccess do Laravel assumir.
+    RewriteRule ^afk-builder/public/ - [L]
+
+    RewriteRule ^(.*)$ afk-builder/public/$1 [L]
+</IfModule>

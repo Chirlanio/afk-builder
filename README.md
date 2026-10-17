@@ -93,22 +93,31 @@ Acesse `http://127.0.0.1:8000`. Crie uma conta em `/register` (sem verificação
 
 ```
 app/
-  Console/Commands/        # heroes:sync, heroes:resolve-images
-  Http/Controllers/        # HeroController, UserHeroController, FormationController
-  Models/                  # Faction, Hero, HeroClass, Tier, ChallengeType, UserHero,
-                           # Formation, FormationTeam, FormationTeamHero, SyncLog, etc.
-  Services/HeroCatalogSync/  # FandomWikiClient, WikitextHeroParser, FandomSyncService
+  Console/Commands/        # heroes:sync/enrich/resolve-images, artifacts:sync, beasts:sync,
+                           # roster:snapshot, content:translate, ratings sync etc.
+  Http/Controllers/        # Domínio (heroes, roster, formations, tier lists, crystal...)
+    Admin/                   # Aprovação de heróis, beasts, coleções, stats, /admin/sync
+    Settings/                # Perfil, senha, contas de jogo, backup/import, idioma
+  Models/                  # Catálogo (Hero, Faction, Equipment, Beast...) + dados do
+                           # jogador, todos pertencentes a uma GameAccount
+  Services/
+    ActiveGameAccount.php    # Resolve a conta de jogo ativa (sessão + default)
+    HeroCatalogSync/         # FandomWikiClient, WikitextHeroParser, FandomSyncService
+    Optimization/            # PowerCalculator, TeamScorer, optimizers, InvestmentPlanner
+    Formations/              # Versionamento de formações
 database/
-  migrations/              # 15 migrations (tabelas estáticas → catálogo → user data)
-  seeders/                 # FactionSeeder, HeroClassSeeder, TierSeeder, ChallengeTypeSeeder
+  migrations/              # ~77 migrations (estáticas → catálogo → dados do jogador → contas)
+  seeders/                 # Facções, classes, tiers, desafios, sinergias, equipamentos, guias...
 resources/js/
-  components/              # shadcn UI + componentes específicos:
-    formation-editor/        # hero-chip, team-slot, team-row, hero-pool
-    hero-card.tsx              # card do catálogo
-    roster-modal.tsx           # modal de adicionar/editar herói no roster
-  pages/                   # Inertia pages: heroes/index, formations/{index,create,edit}
+  components/              # shadcn UI (ui/) + componentes de domínio:
+    formation-editor/        # hero-chip, team-slot, team-row, hero-pool, beast-slot
+    hero-detail-modal.tsx    # perfil completo do herói
+    roster-edit-modal.tsx    # adicionar/editar herói no roster
+  pages/                   # 38 páginas Inertia (dashboard, heroes, roster, formations,
+                           # tier-lists, crystal, equipments, guides, admin, settings)
   lib/afk.ts               # Tema das facções, ícones de classe, stages de ascensão
   types/afk.ts             # Tipos compartilhados (Hero, Faction, Formation, etc.)
+deploy/                    # Oracle Cloud (VPS) e Hostinger (hospedagem compartilhada)
 docs/
   IMPLEMENTATION.md        # Status detalhado por fase + schema + conventions
 ```
@@ -139,11 +148,20 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 | 14b. Coleções da Galeria Tenebrosa (cadastro manual admin, mutex com artefato) | ✅ |
 | 14c. Beasts (pets — sync de nomes via wiki, buffs S/I/A admin, ativo por formação) | ✅ |
 | 14d. Integração ao optimizer (PowerCalculator soma art/col/beast; scorer/optimizers propagam beast) | ✅ |
-| 15. Equipamentos por herói (4 slots: Arma/Capacete/Peitoral/Bota com tier T1-T6 + level 1-20) | ✅ |
+| 15. Equipamentos por herói (sistema T1-T6 — substituído pelos Equipamentos Míticos da Fase 58) | ✅ |
 | 16. Auth + Dashboard com tema AFK (login como tela inicial, redesign de auth, dashboard com stats, i18n PT-BR via lib) | ✅ |
 | 17. Sidebar customizado (logo AFK + nome) + PageShell padrão + dark global (paleta AFK) + 12 páginas migradas | ✅ |
 | 18. Mobile-first responsive (DialogContent + PageShell + editor de formações com Pool em bottom sheet) | ✅ |
 | 19. Admin de sincronizações (/admin/sync com 8 comandos via queue) + script start.ps1/start.cmd | ✅ |
+| 20–24. Tier ratings externos, comps recomendados, tier lists customizadas, destaques por fase | ✅ |
+| 25–33. Furniture no scorer, custos de SI, pesos/presets de scoring, estatísticas de uso, notas e filtros de formações | ✅ |
+| 34–45. Diff de formações, tags, export PNG, favoritos, busca global (Cmd+K), backup/import JSON, atalhos, bulk edit | ✅ |
+| 46–52. Histórico de power, templates de tier list, beasts por equipe, filtros avançados, nº de equipes ajustável, engravings | ✅ |
+| 53–57. Analytics do roster, planner de investimento, resource tracker, Cristal Ressonante, comparação de heróis | ✅ |
+| 58. Equipamentos Míticos (480 itens, bônus de facção e de set no power) | ✅ |
+| 59. Importação de roster via OCR (screenshots) | ✅ |
+| 60. Múltiplas contas de jogo por usuário (switcher, CRUD, backup v2) | ✅ |
+| 61. Deploy (Oracle Cloud, Vercel, Hostinger) | ✅ |
 
 ## Quirks do ambiente Windows/WAMP
 
@@ -153,10 +171,11 @@ Ver [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) para detalhes.
 
 ## Cron / scheduler
 
-`routes/console.php` registra dois jobs diários:
+`routes/console.php` registra três jobs diários:
 
 - `heroes:sync` às **03:30** — detecta heróis novos da wiki
 - `heroes:resolve-images` às **03:50** — atualiza URLs de imagem CDN
+- `roster:snapshot` às **04:00** — snapshot do power do roster (alimenta o gráfico do dashboard)
 
 Para o scheduler rodar de fato em produção (Linux):
 

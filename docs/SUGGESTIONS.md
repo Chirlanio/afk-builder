@@ -3,7 +3,7 @@
 Este documento lista as melhorias estratégicas propostas para elevar o AFK Builder ao próximo patamar de utilidade para a comunidade de AFK Arena.
 
 ## 1. Importação de Roster via OCR (Screenshot) ✅
-*   **Status:** Implementado (Fase 34).
+*   **Status:** Implementado (Fase 59; corrigido em 2026-10-16).
 *   **Descrição:** Redução drástica do atrito de entrada de dados permitindo o upload de prints do jogo para atualizar o nível e a identidade dos heróis no roster através de reconhecimento óptico de caracteres (Tesseract.js).
 
 ## 2. Builder de Coleções (Galeria Tenebrosa)

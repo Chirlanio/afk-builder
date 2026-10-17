@@ -2,18 +2,14 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToGameAccount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RosterPowerSnapshot extends Model
 {
-    use BelongsToGameAccount;
-
     public $timestamps = false;
 
     protected $fillable = [
-        'user_id',
         'game_account_id',
         'snapshot_date',
         'total_power',

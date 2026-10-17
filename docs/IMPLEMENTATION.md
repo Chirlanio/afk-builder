@@ -2,7 +2,7 @@
 
 Documento vivo do estado da aplicação. Atualizar conforme novas fases concluem.
 
-> **Última atualização:** 2026-05-06 (Fases 18 e 19 — mobile-first responsive + admin de sincronizações com cancelamento)
+> **Última atualização:** 2026-10-16 (Fases 59–61 — importação via OCR, múltiplas contas de jogo, deploy — e correções pós-auditoria)
 
 ---
 
@@ -3849,3 +3849,40 @@ private const ALL_FACTIONS = [
 - `UserHeroMythicEquipmentTest`: novo test `hero_de_faction_diferente_nao_ve_items_de_outras_factions` confirma o filtro AND
 - **507 testes verdes** (+2 nesta sub-fase)
 
+
+---
+
+### ✅ Fase 59 — Importação de roster via OCR (`/roster/import`)
+
+Upload de screenshots do jogo → OCR no navegador (tesseract.js, idioma `eng`) → fuzzy match dos nomes contra o catálogo (Fuse.js, threshold 0.4) → revisão manual → gravação.
+
+- **Rotas:** `GET /roster/import` (roster.import) e `POST /roster/import` (roster.import.store).
+- **Frontend** (`pages/roster/import.tsx`): um único worker processa as imagens em sequência; linhas extraídas via `recognize(file, {}, { blocks: true })` (desde o tesseract.js v6 a hierarquia blocks → paragraphs → lines só vem quando pedida). Linhas com nível mas sem nome reconhecível viram "Herói não identificado", resolvidas com um picker. O mesmo herói detectado em várias imagens fica com o maior nível.
+- **Backend** (`RosterImportController::store`): valida `heroes` (1–300 itens), `hero_id` distinto e ativo, `level` 1–240; limita o nível ao `max_level` do tier; grava em transação na **conta de jogo ativa**. Heróis já no roster só têm o nível atualizado — ascensão, SI, móveis etc. ficam intactos.
+- **Testes:** `RosterImportTest` (7 cenários — guest, só ativos no index, criação, update preservando campos, clamp por tier, validações, conta ativa).
+
+### ✅ Fase 60 — Múltiplas contas de jogo (Etapas A–F + D.4)
+
+Um usuário pode ter várias contas do jogo (main/alts/servidores). Todo dado de domínio passou a pertencer a uma `GameAccount`, não mais ao `User`.
+
+- **A — Schema aditivo:** tabela `game_accounts` (user_id, name, server, avatar_hero_id, is_default) + coluna `game_account_id` nas 9 tabelas de domínio, com backfill.
+- **B — Model** `GameAccount` + relations; `GameAccountObserver` garante sempre exatamente uma default por user.
+- **C — `ActiveGameAccount`** (serviço): resolve a conta ativa via sessão (`active_game_account_id`) com fallback na default; middleware `EnsureGameAccount`; conta ativa compartilhada no Inertia. Troca via `POST /game-accounts/{id}/switch`.
+- **D.1/D.2 — Controllers:** 19 controllers refatorados para escopar por conta ativa; `UserObserver` cria a "Conta Principal" no registro.
+- **D.3 — Drop de `user_id`:** `game_account_id` vira NOT NULL; `User` passa a expor as relations via `hasManyThrough`.
+- **D.4 — Limpeza (2026-10-16):** removida a trait de compatibilidade `BelongsToGameAccount` (os testes já usavam `game_account_id` direto) e o `user_id` "fantasma" do `$fillable` dos 8 models de domínio.
+- **E — UI:** `account-switcher.tsx` no sidebar + CRUD em `/settings/accounts`.
+- **F — Backup v2:** export/import de todas as contas (`schema_version: 2`), com retrocompatibilidade para arquivos v1.
+
+### ✅ Fase 61 — Deploy
+
+- **Oracle Cloud Always Free** (`deploy/oracle/`): nginx + PHP-FPM + MySQL + supervisor (queue worker) + cron (scheduler). Ver `deploy/oracle/README.md`.
+- **Vercel** (`vercel.json` + `api/index.php`): runtime `vercel-php`. Sem fila nem scheduler persistentes — o `/admin/sync` e os jobs diários não funcionam nesse alvo.
+- **Hostinger (hospedagem compartilhada):** ver `deploy/hostinger/README.md`.
+
+### ✅ Correções pós-auditoria (2026-10-16)
+
+- **OCR quebrado:** o `post()` do `useForm` ignorava a opção `data` (o backend nunca recebia `heroes`) e `lines` vinha `undefined` no tesseract.js v7. Corrigido conforme a Fase 59, com testes.
+- **Set bonuses dos Equipamentos Míticos no power:** `PowerCalculator::mythicEquipmentContribution` agora soma os `set_bonuses` dos itens T3/T4 por peça (como o `EquipmentSeeder` os modela: arma 100%, demais 50%). `*_flat` somam no stat correspondente; `*_pct` entram como pontos com peso 0.5 (igual às resistências). O bônus de facção (+30%) não multiplica o set bonus. 2 testes novos.
+- **Lint/TS:** `tsc --noEmit` e `eslint` voltaram a passar (erros em `roster/import.tsx`, import morto em `equipments/index.tsx`, `exhaustive-deps` intencionais documentados nos modais de beast/coleção).
+- **530 testes verdes.**

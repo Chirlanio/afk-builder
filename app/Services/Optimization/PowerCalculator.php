@@ -268,8 +268,10 @@ class PowerCalculator
      * contribuem com peso menor — refletem percent caps que se traduzem em power
      * efetivo só quando o hero está sob ataque/causando dano.
      *
-     * Set bonuses (T3+) ainda não são contabilizados aqui — TODO 58d quando o
-     * UI de listagem de sets completo for ligado.
+     * Set bonuses (T3/T4) entram por peça, do jeito que o EquipmentSeeder os
+     * modela (arma = valor cheio, demais slots = 50%): `*_flat` somam no stat
+     * correspondente e `*_pct` entram como pontos com o mesmo peso modesto das
+     * resistências. O bônus de facção NÃO se aplica a eles — só aos stats do item.
      */
     public function mythicEquipmentContribution(UserHero $userHero, ?Hero $hero = null): float
     {
@@ -288,6 +290,12 @@ class PowerCalculator
             $stats = $equipment->applyFactionBonus($stats, $factionMatch);
 
             foreach ($stats as $key => $value) {
+                $aggregate[$key] = ($aggregate[$key] ?? 0.0) + (float) $value;
+            }
+
+            foreach ($equipment->set_bonuses ?? [] as $key => $value) {
+                // hp_flat → hp, attack_flat → attack...; `_pct` mantém a chave.
+                $key = str_ends_with($key, '_flat') ? substr($key, 0, -5) : $key;
                 $aggregate[$key] = ($aggregate[$key] ?? 0.0) + (float) $value;
             }
         }
@@ -314,7 +322,8 @@ class PowerCalculator
                 'accuracy' => $value * self::REAL_STAT_ACC_FACTOR,
                 'dodge' => $value * self::REAL_STAT_DODGE_FACTOR,
                 'haste' => $value * self::REAL_STAT_HASTE_FACTOR,
-                'physical_resistance_pct', 'magic_resistance_pct' => $value * 0.5,
+                'physical_resistance_pct', 'magic_resistance_pct',
+                'hp_pct', 'attack_pct', 'defense_pct' => $value * 0.5,
                 default => 0.0,
             };
         }

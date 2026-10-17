@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToGameAccount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,10 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Formation extends Model
 {
-    use BelongsToGameAccount;
-
     protected $fillable = [
-        'user_id', // legacy input; trait BelongsToGameAccount deriva game_account_id
         'game_account_id',
         'challenge_type_id',
         'name',
