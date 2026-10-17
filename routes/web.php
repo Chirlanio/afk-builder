@@ -43,7 +43,7 @@ Route::get('/tier/{token}', [UserTierListController::class, 'publicShow'])
     ->where('token', '[A-Za-z0-9]{32}')
     ->name('tier-lists.public');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::post('game-accounts/{gameAccount}/switch', GameAccountSwitchController::class)
