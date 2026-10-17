@@ -195,7 +195,7 @@ export const FormationExportPreview = forwardRef<HTMLDivElement, Props>(function
                     }}
                 >
                     <span>Gerado em {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-                    <span>github.com/Chirlanio/afk-builder</span>
+                    <span>nexa.app.br</span>
                 </div>
             </div>
         </div>
