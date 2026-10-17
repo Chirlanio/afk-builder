@@ -103,3 +103,23 @@ DNS no Registro.br (modo avançado — a delegação passa para `d.sec.dns.br`/`
 | TXT | `_dmarc` | `v=DMARC1; p=none` |
 
 O app envia dois e-mails: redefinição de senha e confirmação de cadastro. Desde 2026-10-17 o `User` implementa `MustVerifyEmail` e as rotas do app exigem o middleware `verified` — contas novas só acessam depois de confirmar (perfil e configurações continuam liberados para corrigir o e-mail).
+
+## Backup
+
+[`backup.sh`](backup.sh) roda todo dia às 05:30 UTC (02:30 em Brasília, antes do `heroes:sync`):
+
+```
+30 5 * * *  /bin/sh /home/u401878354/domains/nexa.app.br/public_html/afk-builder/deploy/hostinger/backup.sh
+```
+
+- **Banco:** `mysqldump --single-transaction` do `u401878354_afk`, comprimido. O arquivo só é mantido se o dump terminar íntegro (linha `Dump completed`).
+- **Uploads:** `storage/app/public` (imagens enviadas pelo `/admin`).
+- **Destino:** `~/backups/afk-builder/`, fora do `public_html` e com permissão 600. Ficam os últimos **14 dias**; log em `~/backups/afk-builder/backup.log`.
+- As credenciais saem do `.env` para um arquivo de opções temporário — nunca pela linha de comando.
+
+É uma cópia no mesmo servidor: protege contra erro de dados (migration ruim, exclusão acidental), não contra perda do servidor. Para isso, baixar de vez em quando um `db-*.sql.gz` pelo Gerenciador de Arquivos ou contar com o backup do plano no hPanel.
+
+**Restaurar** (cron único):
+```
+gzip -dc ~/backups/afk-builder/db-AAAAMMDD-HHMMSS.sql.gz | mysql --defaults-extra-file=<arquivo com as credenciais> u401878354_afk
+```
