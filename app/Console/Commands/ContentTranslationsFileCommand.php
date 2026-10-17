@@ -9,6 +9,7 @@ use App\Models\HeroFurnitureAbility;
 use App\Services\GoogleFreeTranslator;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Sleep;
 use Throwable;
 
 /**
@@ -28,9 +29,13 @@ use Throwable;
 class ContentTranslationsFileCommand extends Command
 {
     protected $signature = 'content:translations {action : export | translate | import} {file : Caminho do arquivo JSONL}
-        {--output= : (translate) arquivo de saída; padrão: <file>.pt.jsonl}';
+        {--output= : (translate) arquivo de saída; padrão: <file>.pt.jsonl}
+        {--delay=1500 : (translate) pausa em ms entre traduções — o Google limita o IP com ~90 seguidas}';
 
     protected $description = 'Exporta, traduz ou importa conteúdo EN→PT-BR via arquivo (quando o servidor não alcança o Google)';
+
+    /** Esperas (s) ao receber HTTP 429 antes de tentar o mesmo texto de novo. */
+    private const RATE_LIMIT_WAITS = [30, 60, 120, 240];
 
     /** Modelo → [campo em inglês => campo traduzido]. Também é a lista do que o import aceita. */
     private const FIELDS = [
@@ -91,6 +96,8 @@ class ContentTranslationsFileCommand extends Command
         $translated = 0;
         $failures = 0;
 
+        $delayMs = max(0, (int) $this->option('delay'));
+
         foreach ($lines as $i => $line) {
             $row = json_decode($line, true);
             $key = "{$row['type']}:{$row['id']}:{$row['field']}";
@@ -98,19 +105,35 @@ class ContentTranslationsFileCommand extends Command
                 continue;
             }
 
-            try {
-                $row['translation'] = $translator->translate($row['text']);
-                fwrite($out, json_encode($row, JSON_UNESCAPED_UNICODE).PHP_EOL);
-                $translated++;
-                $this->line('  ['.($i + 1).'/'.count($lines)."] {$key}");
-                usleep(200_000);
-            } catch (Throwable $e) {
-                $failures++;
-                $this->warn("  ! {$key}: {$e->getMessage()}");
-                if ($failures >= 20) {
-                    $this->error('20 falhas — interrompido. Rode de novo para retomar.');
+            // HTTP 429 = limite do Google para o IP: espera e tenta o MESMO texto
+            // de novo (30s, 1, 2 e 4 min) em vez de pular e queimar o arquivo.
+            foreach ([0, ...self::RATE_LIMIT_WAITS] as $attempt => $wait) {
+                if ($wait > 0) {
+                    $this->warn("  … limite do Google; aguardando {$wait}s antes de tentar {$key} de novo");
+                    Sleep::for($wait)->seconds();
+                }
+
+                try {
+                    $row['translation'] = $translator->translate($row['text']);
+                    fwrite($out, json_encode($row, JSON_UNESCAPED_UNICODE).PHP_EOL);
+                    $translated++;
+                    $this->line('  ['.($i + 1).'/'.count($lines)."] {$key}");
+                    Sleep::for($delayMs)->milliseconds();
+                    break;
+                } catch (Throwable $e) {
+                    $rateLimited = str_contains($e->getMessage(), '429');
+                    if ($rateLimited && $attempt < count(self::RATE_LIMIT_WAITS)) {
+                        continue;
+                    }
+                    $failures++;
+                    $this->warn("  ! {$key}: {$e->getMessage()}");
                     break;
                 }
+            }
+
+            if ($failures >= 20) {
+                $this->error('20 falhas — interrompido. Rode de novo para retomar.');
+                break;
             }
         }
 

@@ -11,6 +11,7 @@ use Database\Seeders\HeroClassSeeder;
 use Database\Seeders\TierSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use Tests\TestCase;
 
 class ContentTranslationsFileTest extends TestCase
@@ -23,6 +24,7 @@ class ContentTranslationsFileTest extends TestCase
     {
         parent::setUp();
         $this->seed([FactionSeeder::class, HeroClassSeeder::class, TierSeeder::class]);
+        Sleep::fake(); // pausas entre traduções e esperas do 429
         $this->dir = sys_get_temp_dir().'/afk-translations-'.uniqid();
         mkdir($this->dir);
     }
@@ -101,5 +103,24 @@ class ContentTranslationsFileTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame('Tradução revisada à mão', $hero->fresh()->lore_pt);
+    }
+
+    public function test_limite_do_google_espera_e_tenta_o_mesmo_texto_de_novo(): void
+    {
+        $hero = $this->hero();
+        $hero->abilities()->delete();
+        $file = $this->dir.'/textos.jsonl';
+        $this->artisan('content:translations', ['action' => 'export', 'file' => $file]);
+
+        // O tradutor já tenta 3x por conta própria; o comando espera e tenta de novo.
+        Http::fakeSequence('translate.googleapis.com/*')
+            ->push('', 429)->push('', 429)->push('', 429)->push('', 429)
+            ->push([[['Lucius é um paladino.', 'Lucius is a paladin.']]]);
+
+        $this->artisan('content:translations', ['action' => 'translate', 'file' => $file])->assertSuccessful();
+
+        Sleep::assertSlept(fn ($duration) => $duration->totalSeconds == 30);
+        $row = json_decode(file($this->dir.'/textos.pt.jsonl', FILE_IGNORE_NEW_LINES)[0], true);
+        $this->assertSame('Lucius é um paladino.', $row['translation']);
     }
 }
