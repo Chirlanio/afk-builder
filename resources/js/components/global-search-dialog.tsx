@@ -1,9 +1,9 @@
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { BookOpen, ListChecks, Loader2, Search, Swords, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
 
 export interface SearchResultItem {
     id: number;
@@ -149,7 +149,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
 
                 {/* Input bar */}
                 <div className="flex items-center gap-3 border-b px-4 py-3">
-                    <Search className="size-4 shrink-0 text-muted-foreground" />
+                    <Search className="text-muted-foreground size-4 shrink-0" />
                     <input
                         ref={inputRef}
                         type="text"
@@ -157,15 +157,15 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="Buscar heróis, formações, tier lists, guias…"
-                        className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                        className="placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none"
                         aria-label="Termo de busca"
                     />
-                    {loading && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+                    {loading && <Loader2 className="text-muted-foreground size-4 animate-spin" />}
                     {!loading && query.length > 0 && (
                         <button
                             type="button"
                             onClick={() => setQuery('')}
-                            className="rounded p-0.5 text-muted-foreground hover:bg-accent"
+                            className="text-muted-foreground hover:bg-accent rounded p-0.5"
                             aria-label="Limpar"
                         >
                             <X className="size-3.5" />
@@ -176,11 +176,9 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
                 {/* Resultados */}
                 <div className="max-h-[60vh] overflow-y-auto">
                     {query.trim().length < MIN_QUERY ? (
-                        <p className="px-4 py-8 text-center text-xs text-muted-foreground">
-                            Digite pelo menos {MIN_QUERY} caracteres para buscar.
-                        </p>
+                        <p className="text-muted-foreground px-4 py-8 text-center text-xs">Digite pelo menos {MIN_QUERY} caracteres para buscar.</p>
                     ) : showEmpty ? (
-                        <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                        <p className="text-muted-foreground px-4 py-8 text-center text-sm">
                             Nada encontrado para <span className="font-semibold">"{query}"</span>.
                         </p>
                     ) : (
@@ -191,7 +189,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
                             const Icon = meta.icon;
                             return (
                                 <div key={category} className="border-b last:border-b-0">
-                                    <div className="flex items-center gap-2 bg-muted/30 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <div className="bg-muted/30 text-muted-foreground flex items-center gap-2 px-4 py-1.5 text-[11px] font-semibold tracking-wide uppercase">
                                         <Icon className="size-3" />
                                         {meta.label}
                                     </div>
@@ -217,14 +215,14 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
                                                         loading="lazy"
                                                     />
                                                 ) : (
-                                                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+                                                    <span className="bg-muted text-muted-foreground grid size-8 shrink-0 place-items-center rounded-full">
                                                         <Icon className="size-3.5" />
                                                     </span>
                                                 )}
                                                 <div className="min-w-0 flex-1">
                                                     <div className="truncate font-medium">{item.label}</div>
                                                     {item.sublabel && (
-                                                        <div className="truncate text-[11px] text-muted-foreground">{item.sublabel}</div>
+                                                        <div className="text-muted-foreground truncate text-[11px]">{item.sublabel}</div>
                                                     )}
                                                 </div>
                                             </button>
@@ -237,11 +235,11 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
                 </div>
 
                 {/* Footer hint */}
-                <div className="flex items-center justify-between border-t bg-muted/30 px-4 py-1.5 text-[10px] text-muted-foreground">
+                <div className="bg-muted/30 text-muted-foreground flex items-center justify-between border-t px-4 py-1.5 text-[10px]">
                     <span className="flex items-center gap-2">
-                        <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono">↑↓</kbd> Navegar
-                        <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono">Enter</kbd> Abrir
-                        <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono">Esc</kbd> Fechar
+                        <kbd className="bg-background rounded border px-1.5 py-0.5 font-mono">↑↓</kbd> Navegar
+                        <kbd className="bg-background rounded border px-1.5 py-0.5 font-mono">Enter</kbd> Abrir
+                        <kbd className="bg-background rounded border px-1.5 py-0.5 font-mono">Esc</kbd> Fechar
                     </span>
                 </div>
             </DialogContent>

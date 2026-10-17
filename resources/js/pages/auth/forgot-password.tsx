@@ -20,10 +20,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
     };
 
     return (
-        <AuthLayout
-            title="Esqueci minha senha"
-            description="Informe seu e-mail e enviaremos um link de redefinição"
-        >
+        <AuthLayout title="Esqueci minha senha" description="Informe seu e-mail e enviaremos um link de redefinição">
             <Head title="Recuperar senha" />
 
             {status && (
@@ -56,19 +53,12 @@ export default function ForgotPassword({ status }: { status?: string }) {
                     className="w-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 font-semibold text-zinc-900 shadow-[0_0_20px_-5px_rgba(251,191,36,0.6)] transition-all hover:from-amber-400 hover:to-yellow-300 hover:shadow-[0_0_25px_-5px_rgba(251,191,36,0.85)]"
                     disabled={processing}
                 >
-                    {processing ? (
-                        <LoaderCircle className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <Mail className="h-4 w-4" />
-                    )}
+                    {processing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                     Enviar link de redefinição
                 </Button>
 
                 <div className="text-center text-sm text-amber-100/60">
-                    <TextLink
-                        href={route('login')}
-                        className="font-semibold text-amber-300 hover:text-amber-200"
-                    >
+                    <TextLink href={route('login')} className="font-semibold text-amber-300 hover:text-amber-200">
                         Voltar para o login
                     </TextLink>
                 </div>

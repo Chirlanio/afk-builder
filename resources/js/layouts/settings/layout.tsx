@@ -1,5 +1,5 @@
-import { Settings } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import { Settings } from 'lucide-react';
 
 import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
@@ -34,11 +34,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     const currentPath = window.location.pathname;
 
     return (
-        <PageShell
-            title="Configurações"
-            icon={Settings}
-            description="Gerencie seu perfil e a segurança da sua conta."
-        >
+        <PageShell title="Configurações" icon={Settings} description="Gerencie seu perfil e a segurança da sua conta.">
             <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
                 <aside className="w-full max-w-xl lg:w-48">
                     <nav className="flex flex-col space-y-1 space-x-0">

@@ -1,6 +1,3 @@
-import { Head, Link, router } from '@inertiajs/react';
-import axios from 'axios';
-import { LayoutTemplate, ListChecks, Pencil, Plus, Share2, Sparkles, Trash2 } from 'lucide-react';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +5,9 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import type { UserTierList } from '@/types/afk';
+import { Head, Link, router } from '@inertiajs/react';
+import axios from 'axios';
+import { LayoutTemplate, ListChecks, Pencil, Plus, Share2, Sparkles, Trash2 } from 'lucide-react';
 
 interface PageProps {
     tierLists: (UserTierList & { rows_count: number })[];
@@ -58,8 +58,8 @@ export default function TierListsIndex({ tierLists }: PageProps) {
             >
                 {tierLists.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
-                        <ListChecks className="size-10 text-muted-foreground" />
-                        <p className="mt-2 text-sm text-muted-foreground">Nenhuma tier list criada ainda.</p>
+                        <ListChecks className="text-muted-foreground size-10" />
+                        <p className="text-muted-foreground mt-2 text-sm">Nenhuma tier list criada ainda.</p>
                         <Button asChild className="mt-4" size="sm">
                             <Link href="/tier-lists/create">
                                 <Plus className="size-4" />
@@ -70,14 +70,16 @@ export default function TierListsIndex({ tierLists }: PageProps) {
                 ) : (
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                         {tierLists.map((list) => (
-                            <div key={list.id} className="flex flex-col gap-2 rounded-xl border bg-card p-4">
+                            <div key={list.id} className="bg-card flex flex-col gap-2 rounded-xl border p-4">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0 flex-1">
                                         <Link href={`/tier-lists/${list.id}/edit`} className="block truncate text-base font-semibold hover:underline">
                                             {list.name}
                                         </Link>
                                         <div className="mt-1 flex flex-wrap items-center gap-1">
-                                            <Badge variant="outline" className="text-[10px]">{list.rows_count} tiers</Badge>
+                                            <Badge variant="outline" className="text-[10px]">
+                                                {list.rows_count} tiers
+                                            </Badge>
                                             {list.share_token && (
                                                 <Badge variant="secondary" className="gap-1 text-[10px]">
                                                     <Share2 className="size-3" />
@@ -93,9 +95,7 @@ export default function TierListsIndex({ tierLists }: PageProps) {
                                         </div>
                                     </div>
                                 </div>
-                                {list.description && (
-                                    <p className="line-clamp-2 text-xs text-muted-foreground">{list.description}</p>
-                                )}
+                                {list.description && <p className="text-muted-foreground line-clamp-2 text-xs">{list.description}</p>}
                                 <div className="mt-auto flex justify-end gap-1 border-t pt-2">
                                     <Button asChild size="sm" variant="outline">
                                         <Link href={`/tier-lists/${list.id}/edit`}>
@@ -103,7 +103,12 @@ export default function TierListsIndex({ tierLists }: PageProps) {
                                             Editar
                                         </Link>
                                     </Button>
-                                    <Button size="sm" variant="ghost" onClick={() => handleDelete(list)} className="text-destructive hover:bg-destructive/10">
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleDelete(list)}
+                                        className="text-destructive hover:bg-destructive/10"
+                                    >
                                         <Trash2 className="size-3" />
                                     </Button>
                                 </div>

@@ -2,15 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 class RecommendedFormation extends Model
 {
     public const MODE_PVP = 'pvp';
+
     public const MODE_PVE = 'pve';
+
     public const MODE_TWISTED_REALM = 'twisted_realm';
+
     public const MODE_LABYRINTH = 'labyrinth';
+
     public const MODE_KING_TOWER = 'king_tower';
+
     public const MODE_ARCANE_LABYRINTH = 'arcane_labyrinth';
 
     protected $fillable = [
@@ -44,14 +50,15 @@ class RecommendedFormation extends Model
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, Hero>
+     * @return Collection<int, Hero>
      */
-    public function resolveHeroes(): \Illuminate\Database\Eloquent\Collection
+    public function resolveHeroes(): Collection
     {
         $slugs = $this->hero_slugs ?? [];
         if ($slugs === []) {
             return Hero::query()->whereRaw('1 = 0')->get();
         }
+
         return Hero::query()->whereIn('slug', $slugs)->get();
     }
 }

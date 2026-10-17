@@ -1,8 +1,8 @@
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import {
-    BookOpen,
     Ban,
+    BookOpen,
     CheckCircle2,
     ChevronDown,
     ChevronUp,
@@ -115,10 +115,7 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
     const [cancellingId, setCancellingId] = useState<number | null>(null);
     const { confirm, dialog: confirmDialog } = useConfirm();
 
-    const hasActive = useMemo(
-        () => runs.some((r) => r.status === 'pending' || r.status === 'running'),
-        [runs],
-    );
+    const hasActive = useMemo(() => runs.some((r) => r.status === 'pending' || r.status === 'running'), [runs]);
 
     const cancelRun = async (run: CommandRun) => {
         const ok = await confirm({
@@ -135,12 +132,18 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
             setRuns((prev) => prev.map((r) => (r.id === run.id ? { ...r, status: 'cancelled', finished_at: new Date().toISOString() } : r)));
         } catch (e) {
             const err = e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
-            const msg = err.response?.data?.message
-                ?? Object.values(err.response?.data?.errors ?? {}).flat().join(' · ')
-                ?? 'Erro ao cancelar';
+            const msg =
+                err.response?.data?.message ??
+                Object.values(err.response?.data?.errors ?? {})
+                    .flat()
+                    .join(' · ') ??
+                'Erro ao cancelar';
             alert(msg);
             // Refetch real status pra UI ficar consistente.
-            axios.get('/admin/sync/runs').then((r) => setRuns(r.data.runs)).catch(() => {});
+            axios
+                .get('/admin/sync/runs')
+                .then((r) => setRuns(r.data.runs))
+                .catch(() => {});
         } finally {
             setCancellingId(null);
         }
@@ -149,7 +152,10 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
     useEffect(() => {
         if (!hasActive) return;
         const id = setInterval(() => {
-            axios.get('/admin/sync/runs').then((r) => setRuns(r.data.runs)).catch(() => {});
+            axios
+                .get('/admin/sync/runs')
+                .then((r) => setRuns(r.data.runs))
+                .catch(() => {});
         }, 3000);
         return () => clearInterval(id);
     }, [hasActive]);
@@ -180,9 +186,12 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                     <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-200">
                         <CircleAlert className="size-5 shrink-0" />
                         <div className="text-sm">
-                            <p className="font-semibold">Queue driver: <code className="rounded bg-black/30 px-1">{queueDriver}</code></p>
+                            <p className="font-semibold">
+                                Queue driver: <code className="rounded bg-black/30 px-1">{queueDriver}</code>
+                            </p>
                             <p className="text-amber-200/80">
-                                Esta funcionalidade espera <code>QUEUE_CONNECTION=database</code>. Confirme se o worker está rodando: <code className="ml-1 rounded bg-black/30 px-1">php artisan queue:work</code>.
+                                Esta funcionalidade espera <code>QUEUE_CONNECTION=database</code>. Confirme se o worker está rodando:{' '}
+                                <code className="ml-1 rounded bg-black/30 px-1">php artisan queue:work</code>.
                             </p>
                         </div>
                     </div>
@@ -191,8 +200,8 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-100/80">
                     <p>
                         <span className="font-semibold text-amber-200">Importante:</span> rode{' '}
-                        <code className="rounded bg-black/30 px-1.5 py-0.5">php artisan queue:work</code> num terminal separado para que os jobs sejam processados.
-                        Sem o worker, as execuções ficam em <em>Aguardando</em> indefinidamente.
+                        <code className="rounded bg-black/30 px-1.5 py-0.5">php artisan queue:work</code> num terminal separado para que os jobs sejam
+                        processados. Sem o worker, as execuções ficam em <em>Aguardando</em> indefinidamente.
                     </p>
                 </div>
 
@@ -209,7 +218,7 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                     <h2 className="flex items-center gap-2 text-sm font-semibold tracking-wider text-amber-100/60 uppercase">
                         Últimas execuções
                         {hasActive && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-medium normal-case text-sky-300">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-sky-300 normal-case">
                                 <Loader2 className="size-3 animate-spin" />
                                 atualizando
                             </span>
@@ -220,9 +229,9 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                             Nenhuma execução registrada ainda.
                         </div>
                     ) : (
-                        <div className="overflow-x-auto rounded-lg border bg-card">
+                        <div className="bg-card overflow-x-auto rounded-lg border">
                             <table className="w-full min-w-[700px] text-sm">
-                                <thead className="border-b text-xs text-muted-foreground">
+                                <thead className="text-muted-foreground border-b text-xs">
                                     <tr>
                                         <th className="px-3 py-2 text-left font-medium">Comando</th>
                                         <th className="px-3 py-2 text-left font-medium">Status</th>
@@ -234,30 +243,37 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                                 </thead>
                                 <tbody>
                                     {runs.map((run) => (
-                                        <tr key={run.id} className="border-b last:border-0 hover:bg-muted/30">
+                                        <tr key={run.id} className="hover:bg-muted/30 border-b last:border-0">
                                             <td className="px-3 py-2">
                                                 <div className="font-mono text-xs">{run.command}</div>
                                                 {Object.keys(run.args).length > 0 && (
-                                                    <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                                                        {Object.entries(run.args).map(([k, v]) => `${k}=${v === true ? '✓' : v}`).join(' · ')}
+                                                    <div className="text-muted-foreground mt-0.5 truncate text-[10px]">
+                                                        {Object.entries(run.args)
+                                                            .map(([k, v]) => `${k}=${v === true ? '✓' : v}`)
+                                                            .join(' · ')}
                                                     </div>
                                                 )}
                                             </td>
                                             <td className="px-3 py-2">
-                                                <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium', STATUS_BADGE[run.status])}>
+                                                <span
+                                                    className={cn(
+                                                        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium',
+                                                        STATUS_BADGE[run.status],
+                                                    )}
+                                                >
                                                     {run.status === 'running' && <Loader2 className="size-2.5 animate-spin" />}
                                                     {run.status === 'completed' && <CheckCircle2 className="size-2.5" />}
                                                     {run.status === 'failed' && <CircleAlert className="size-2.5" />}
                                                     {STATUS_LABEL[run.status]}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">
+                                            <td className="text-muted-foreground px-3 py-2 text-xs whitespace-nowrap">
                                                 {run.started_at ? new Date(run.started_at).toLocaleTimeString('pt-BR') : '—'}
                                             </td>
-                                            <td className="px-3 py-2 text-xs tabular-nums text-muted-foreground">
+                                            <td className="text-muted-foreground px-3 py-2 text-xs tabular-nums">
                                                 {run.duration_seconds !== null ? `${run.duration_seconds}s` : '—'}
                                             </td>
-                                            <td className="px-3 py-2 text-xs text-muted-foreground">{run.user_name ?? '—'}</td>
+                                            <td className="text-muted-foreground px-3 py-2 text-xs">{run.user_name ?? '—'}</td>
                                             <td className="px-3 py-2 text-right">
                                                 <div className="flex justify-end gap-1">
                                                     {run.status === 'pending' && (
@@ -268,7 +284,11 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                                                             disabled={cancellingId === run.id}
                                                             className="text-zinc-400 hover:bg-red-500/10 hover:text-red-300"
                                                         >
-                                                            {cancellingId === run.id ? <Loader2 className="size-3.5 animate-spin" /> : <Ban className="size-3.5" />}
+                                                            {cancellingId === run.id ? (
+                                                                <Loader2 className="size-3.5 animate-spin" />
+                                                            ) : (
+                                                                <Ban className="size-3.5" />
+                                                            )}
                                                             Cancelar
                                                         </Button>
                                                     )}
@@ -289,9 +309,7 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
             <Dialog open={openRunId !== null} onOpenChange={(o) => !o && setOpenRunId(null)}>
                 <DialogContent className="max-w-3xl">
                     <DialogHeader>
-                        <DialogTitle className="font-mono text-base">
-                            {openRunDetail?.command ?? '—'}
-                        </DialogTitle>
+                        <DialogTitle className="font-mono text-base">{openRunDetail?.command ?? '—'}</DialogTitle>
                         <DialogDescription asChild>
                             <div>
                                 {openRunDetail && (
@@ -305,9 +323,7 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                                         {openRunDetail.duration_seconds !== null && (
                                             <span className="text-muted-foreground">{openRunDetail.duration_seconds}s</span>
                                         )}
-                                        {openRunDetail.user_name && (
-                                            <span className="text-muted-foreground">por {openRunDetail.user_name}</span>
-                                        )}
+                                        {openRunDetail.user_name && <span className="text-muted-foreground">por {openRunDetail.user_name}</span>}
                                     </div>
                                 )}
                             </div>
@@ -316,10 +332,10 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
 
                     {loadingDetail ? (
                         <div className="flex justify-center py-8">
-                            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                            <Loader2 className="text-muted-foreground size-6 animate-spin" />
                         </div>
                     ) : openRunDetail ? (
-                        <pre className="max-h-[60vh] overflow-auto rounded-md bg-black/60 p-3 text-[11px] leading-relaxed text-emerald-200 whitespace-pre-wrap">
+                        <pre className="max-h-[60vh] overflow-auto rounded-md bg-black/60 p-3 text-[11px] leading-relaxed whitespace-pre-wrap text-emerald-200">
                             {openRunDetail.output || '(sem output)'}
                         </pre>
                     ) : null}
@@ -359,9 +375,12 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                 setOpen(false);
             } catch (e) {
                 const err = e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
-                const msg = err.response?.data?.message
-                    ?? Object.values(err.response?.data?.errors ?? {}).flat().join(' · ')
-                    ?? 'Erro ao disparar comando';
+                const msg =
+                    err.response?.data?.message ??
+                    Object.values(err.response?.data?.errors ?? {})
+                        .flat()
+                        .join(' · ') ??
+                    'Erro ao disparar comando';
                 setError(msg);
             } finally {
                 setBusy(false);
@@ -369,7 +388,7 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
         };
 
         return (
-            <div className="flex flex-col gap-3 rounded-xl border border-amber-400/15 bg-card p-4">
+            <div className="bg-card flex flex-col gap-3 rounded-xl border border-amber-400/15 p-4">
                 <div className="flex items-start gap-3">
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-amber-300">
                         <Icon className="size-5" />
@@ -380,9 +399,7 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                     </div>
                 </div>
 
-                {cmd.description && (
-                    <p className="text-xs leading-relaxed text-amber-100/60">{cmd.description}</p>
-                )}
+                {cmd.description && <p className="text-xs leading-relaxed text-amber-100/60">{cmd.description}</p>}
 
                 {cmd.options.length > 0 && (
                     <button
@@ -406,7 +423,7 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                                             checked={Boolean(args[opt.name])}
                                             onCheckedChange={(v) => setArgs((a) => ({ ...a, [opt.name]: v === true }))}
                                         />
-                                        <span className="text-xs text-muted-foreground">
+                                        <span className="text-muted-foreground text-xs">
                                             <code>--{opt.name}</code>
                                         </span>
                                     </div>
@@ -440,7 +457,9 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                                         </SelectTrigger>
                                         <SelectContent>
                                             {Object.entries(opt.options).map(([k, label]) => (
-                                                <SelectItem key={k} value={k}>{label}</SelectItem>
+                                                <SelectItem key={k} value={k}>
+                                                    {label}
+                                                </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -450,11 +469,7 @@ export default function SyncAdminIndex({ commands, runs: initialRuns, queueDrive
                     </div>
                 )}
 
-                {error && (
-                    <p className="rounded border border-red-500/40 bg-red-500/10 px-2 py-1 text-xs text-red-300">
-                        {error}
-                    </p>
-                )}
+                {error && <p className="rounded border border-red-500/40 bg-red-500/10 px-2 py-1 text-xs text-red-300">{error}</p>}
 
                 <Button onClick={dispatch} disabled={busy} size="sm" className="self-start">
                     {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}

@@ -1,6 +1,3 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { ChevronRight, Crown, Flame, Plus, Scale, Sparkles, Star, Target, TrendingUp, Trophy, Users, X, Zap } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
 import { EngravingBadge } from '@/components/engraving-badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
@@ -8,6 +5,9 @@ import { ascendedStars, CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { ClassCode, EquipmentQuality, FactionCode, TierCode } from '@/types/afk';
+import { Head, Link, router } from '@inertiajs/react';
+import { ChevronRight, Crown, Flame, Plus, Scale, Sparkles, Star, Target, TrendingUp, Trophy, Users, X, Zap } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 
 type UpgradeKind = 'signature_item' | 'furniture' | 'engraving' | 'ascension';
 
@@ -199,9 +199,7 @@ export default function RosterCompare({ heroes, rosterOptions, minHeroes, maxHer
                 <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-12 text-center">
                     <Users className="size-12 text-amber-100/30" />
                     <h2 className="text-xl font-semibold text-amber-100">Roster vazio</h2>
-                    <p className="max-w-md text-sm text-amber-100/60">
-                        Adicione heróis ao seu roster pra começar a comparar.
-                    </p>
+                    <p className="max-w-md text-sm text-amber-100/60">Adicione heróis ao seu roster pra começar a comparar.</p>
                     <Link
                         href="/heroes"
                         className="mt-2 inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-3 py-1.5 text-xs font-medium text-amber-200 hover:bg-amber-500/25"
@@ -225,8 +223,8 @@ export default function RosterCompare({ heroes, rosterOptions, minHeroes, maxHer
                         <div className="flex-1">
                             <h1 className="text-lg font-semibold text-amber-100">Comparar heróis lado a lado</h1>
                             <p className="mt-1 text-xs text-amber-100/60">
-                                Compare até {maxHeroes} heróis do seu roster: power total, milestones de investimento,
-                                equipamento e próximos upgrades sugeridos. Mínimo de {minHeroes} pra ver os destaques.
+                                Compare até {maxHeroes} heróis do seu roster: power total, milestones de investimento, equipamento e próximos upgrades
+                                sugeridos. Mínimo de {minHeroes} pra ver os destaques.
                             </p>
                         </div>
                     </div>
@@ -262,7 +260,7 @@ export default function RosterCompare({ heroes, rosterOptions, minHeroes, maxHer
                                 </button>
 
                                 {pickerOpen && (
-                                    <div className="absolute left-0 top-full z-10 mt-1 w-72 rounded-lg border border-amber-400/20 bg-zinc-950/95 p-2 shadow-xl">
+                                    <div className="absolute top-full left-0 z-10 mt-1 w-72 rounded-lg border border-amber-400/20 bg-zinc-950/95 p-2 shadow-xl">
                                         <input
                                             type="text"
                                             autoFocus
@@ -273,9 +271,7 @@ export default function RosterCompare({ heroes, rosterOptions, minHeroes, maxHer
                                         />
                                         <ul className="mt-2 max-h-56 overflow-y-auto">
                                             {filteredOptions.length === 0 ? (
-                                                <li className="px-2 py-3 text-center text-[11px] text-amber-100/40">
-                                                    Nenhum herói encontrado.
-                                                </li>
+                                                <li className="px-2 py-3 text-center text-[11px] text-amber-100/40">Nenhum herói encontrado.</li>
                                             ) : (
                                                 filteredOptions.map((o) => (
                                                     <li key={o.slug}>
@@ -309,9 +305,7 @@ export default function RosterCompare({ heroes, rosterOptions, minHeroes, maxHer
                 {heroes.length === 0 ? (
                     <div className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-8 text-center">
                         <Users className="mx-auto mb-3 size-10 text-amber-100/30" />
-                        <p className="text-sm font-semibold text-amber-100">
-                            Selecione pelo menos {minHeroes} heróis pra começar a comparar.
-                        </p>
+                        <p className="text-sm font-semibold text-amber-100">Selecione pelo menos {minHeroes} heróis pra começar a comparar.</p>
                         <p className="mt-1 text-xs text-amber-100/50">
                             Use o botão acima ou{' '}
                             <Link href="/roster/analytics" className="text-amber-300 underline hover:text-amber-200">
@@ -377,7 +371,7 @@ function HeroCard({ hero, index, winners }: HeroCardProps) {
                 ) : (
                     <div className="size-14 rounded-md bg-zinc-800" />
                 )}
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                     <Link href={`/heroes/${hero.slug}`} className="block truncate text-sm font-semibold text-amber-100 hover:underline">
                         {hero.name}
                     </Link>
@@ -391,9 +385,14 @@ function HeroCard({ hero, index, winners }: HeroCardProps) {
             </header>
 
             {/* Power total */}
-            <div className={cn('rounded-lg border bg-black/30 p-3', winners.total_power === index ? 'border-amber-400/60 ring-1 ring-amber-400/30' : 'border-amber-400/10')}>
+            <div
+                className={cn(
+                    'rounded-lg border bg-black/30 p-3',
+                    winners.total_power === index ? 'border-amber-400/60 ring-1 ring-amber-400/30' : 'border-amber-400/10',
+                )}
+            >
                 <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-amber-100/50">
+                    <span className="flex items-center gap-1 text-[10px] tracking-wider text-amber-100/50 uppercase">
                         <TrendingUp className="size-3" />
                         Power total
                     </span>
@@ -404,7 +403,7 @@ function HeroCard({ hero, index, winners }: HeroCardProps) {
                         </span>
                     )}
                 </div>
-                <div className="mt-1 font-mono text-xl font-bold tabular-nums text-amber-100">{formatNumber(hero.power.total)}</div>
+                <div className="mt-1 font-mono text-xl font-bold text-amber-100 tabular-nums">{formatNumber(hero.power.total)}</div>
             </div>
 
             {/* Métricas comparáveis */}
@@ -429,7 +428,7 @@ function HeroCard({ hero, index, winners }: HeroCardProps) {
 
             {/* Equipamentos Míticos */}
             <section className="rounded-lg border border-amber-400/10 bg-black/20 p-2">
-                <header className="mb-1.5 flex items-center gap-1 text-[10px] uppercase tracking-wider text-amber-100/50">
+                <header className="mb-1.5 flex items-center gap-1 text-[10px] tracking-wider text-amber-100/50 uppercase">
                     <Target className="size-3" />
                     Equipamentos Míticos
                 </header>
@@ -442,9 +441,7 @@ function HeroCard({ hero, index, winners }: HeroCardProps) {
                                 {item ? (
                                     <span className="truncate font-mono text-amber-100" title={item.name_pt}>
                                         {item.name_pt}
-                                        {item.max_upgrade_level > 0 && (
-                                            <span className="ml-1 text-amber-300/70">+{item.level}</span>
-                                        )}
+                                        {item.max_upgrade_level > 0 && <span className="ml-1 text-amber-300/70">+{item.level}</span>}
                                     </span>
                                 ) : (
                                     <span className="text-amber-100/30">—</span>
@@ -453,7 +450,12 @@ function HeroCard({ hero, index, winners }: HeroCardProps) {
                         );
                     })}
                 </div>
-                <div className={cn('mt-2 flex items-center justify-between text-[10px]', winners.equipment_contribution === index ? 'font-semibold text-amber-200' : 'text-amber-100/50')}>
+                <div
+                    className={cn(
+                        'mt-2 flex items-center justify-between text-[10px]',
+                        winners.equipment_contribution === index ? 'font-semibold text-amber-200' : 'text-amber-100/50',
+                    )}
+                >
                     <span>Contribuição</span>
                     <span className="font-mono">{formatNumber(hero.power.equipment_contribution)}</span>
                 </div>
@@ -487,7 +489,12 @@ function HeroCard({ hero, index, winners }: HeroCardProps) {
             )}
 
             {/* Stats base do hero */}
-            <div className={cn('flex items-center justify-between rounded-lg border bg-black/20 px-2 py-1.5 text-[10px]', winners.stat_contribution === index ? 'border-amber-400/30 text-amber-200' : 'border-amber-400/10 text-amber-100/60')}>
+            <div
+                className={cn(
+                    'flex items-center justify-between rounded-lg border bg-black/20 px-2 py-1.5 text-[10px]',
+                    winners.stat_contribution === index ? 'border-amber-400/30 text-amber-200' : 'border-amber-400/10 text-amber-100/60',
+                )}
+            >
                 <span className="flex items-center gap-1">
                     <Flame className="size-3" />
                     Stats base (catálogo)
@@ -497,7 +504,7 @@ function HeroCard({ hero, index, winners }: HeroCardProps) {
 
             {/* Próximos upgrades */}
             <section className="rounded-lg border border-amber-400/10 bg-black/20 p-2">
-                <header className="mb-1.5 flex items-center gap-1 text-[10px] uppercase tracking-wider text-amber-100/50">
+                <header className="mb-1.5 flex items-center gap-1 text-[10px] tracking-wider text-amber-100/50 uppercase">
                     <Zap className="size-3" />
                     Próximos upgrades
                 </header>
@@ -508,7 +515,12 @@ function HeroCard({ hero, index, winners }: HeroCardProps) {
                         {hero.upgrades.map((u, i) => (
                             <li key={i} className="flex flex-col gap-1 rounded border border-amber-400/5 bg-black/20 p-1.5">
                                 <div className="flex flex-wrap items-center gap-1">
-                                    <span className={cn('inline-flex items-center rounded border px-1 py-0.5 text-[9px] font-semibold', KIND_BADGE[u.kind])}>
+                                    <span
+                                        className={cn(
+                                            'inline-flex items-center rounded border px-1 py-0.5 text-[9px] font-semibold',
+                                            KIND_BADGE[u.kind],
+                                        )}
+                                    >
                                         {KIND_LABEL[u.kind]}
                                     </span>
                                     <span className="font-mono text-[10px] text-amber-100">{formatStep(u.kind, u.from, u.to)}</span>
@@ -542,8 +554,13 @@ interface MetricProps {
 
 function Metric({ label, value, formatter, suffix, highlight, maxLevel }: MetricProps) {
     return (
-        <div className={cn('flex items-center justify-between rounded border px-2 py-1', highlight ? 'border-amber-400/40 bg-amber-500/10' : 'border-amber-400/5 bg-black/15')}>
-            <dt className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-amber-100/50">
+        <div
+            className={cn(
+                'flex items-center justify-between rounded border px-2 py-1',
+                highlight ? 'border-amber-400/40 bg-amber-500/10' : 'border-amber-400/5 bg-black/15',
+            )}
+        >
+            <dt className="flex items-center gap-1 text-[10px] tracking-wider text-amber-100/50 uppercase">
                 {label}
                 {highlight && <Trophy className="size-2.5 text-amber-300" />}
             </dt>

@@ -403,7 +403,7 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                     onClick={onToggleFavorite}
                     disabled={favoriting}
                     className={cn(
-                        'absolute top-3 left-3 z-10 grid size-9 place-items-center rounded-full border bg-background/70 backdrop-blur transition-colors',
+                        'bg-background/70 absolute top-3 left-3 z-10 grid size-9 place-items-center rounded-full border backdrop-blur transition-colors',
                         data.isFavorited
                             ? 'border-rose-500/40 text-rose-500 hover:bg-rose-500/10'
                             : 'border-border text-muted-foreground hover:text-foreground',
@@ -596,8 +596,8 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
 
                             {/* Fase 40: bloco de notas markdown renderizado quando há conteúdo */}
                             {userHero.notes && userHero.notes.trim().length > 0 && (
-                                <div className="rounded-lg border bg-muted/30 px-3 py-2">
-                                    <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                <div className="bg-muted/30 rounded-lg border px-3 py-2">
+                                    <div className="text-muted-foreground mb-1 flex items-center gap-1.5 text-[10px] font-semibold tracking-wide uppercase">
                                         <ScrollText className="size-3" />
                                         Anotações
                                     </div>
@@ -1010,20 +1010,15 @@ function MythicSlotView({ icon, label, equipment, level, heroFactionId }: Mythic
             icon={icon}
             label={`${label}: ${cleanName} ${tierLabel}`}
             empty={false}
-            accentClass={cn(
-                QUALITY_BADGE_CLASS[equipment.quality_tier] ?? '',
-                factionMatches && 'shadow-[inset_0_0_8px_rgba(251,191,36,0.4)]',
-            )}
+            accentClass={cn(QUALITY_BADGE_CLASS[equipment.quality_tier] ?? '', factionMatches && 'shadow-[inset_0_0_8px_rgba(251,191,36,0.4)]')}
             valueText={
                 <span className="flex items-center justify-center gap-0.5">
-                    <span className={cn('rounded px-1 text-[9px] font-bold', QUALITY_BADGE_CLASS[equipment.quality_tier] ?? '')}>
-                        {tierLabel}
-                    </span>
+                    <span className={cn('rounded px-1 text-[9px] font-bold', QUALITY_BADGE_CLASS[equipment.quality_tier] ?? '')}>{tierLabel}</span>
                 </span>
             }
             detail={
                 <div className="flex flex-col items-center gap-0.5 text-[9px]">
-                    <span className="text-muted-foreground truncate max-w-full" title={cleanName}>
+                    <span className="text-muted-foreground max-w-full truncate" title={cleanName}>
                         {cleanName}
                     </span>
                     {equipment.max_upgrade_level > 0 && (
@@ -1032,9 +1027,7 @@ function MythicSlotView({ icon, label, equipment, level, heroFactionId }: Mythic
                         </span>
                     )}
                     {factionMatches && (
-                        <span className="rounded bg-amber-500/20 px-1 text-[8px] font-bold text-amber-600 dark:text-amber-400">
-                            +30%
-                        </span>
+                        <span className="rounded bg-amber-500/20 px-1 text-[8px] font-bold text-amber-600 dark:text-amber-400">+30%</span>
                     )}
                 </div>
             }

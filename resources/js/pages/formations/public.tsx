@@ -2,12 +2,12 @@ import { HeroChip } from '@/components/formation-editor/hero-chip';
 import { MarkdownContent } from '@/components/markdown-content';
 import { Badge } from '@/components/ui/badge';
 import { FACTION_THEME } from '@/lib/afk';
+import { summarizeScope } from '@/lib/beast';
 import { cn } from '@/lib/utils';
 import type { ChallengeType, ClassCode, Faction, FactionCode, Formation, FormationTeam, Hero, HeroClass, Tier, TierCode } from '@/types/afk';
 import { Head, Link } from '@inertiajs/react';
 import { CheckCircle2, Eye, PawPrint, Target } from 'lucide-react';
 import { useMemo } from 'react';
-import { summarizeScope } from '@/lib/beast';
 
 interface PageProps {
     formation: Formation & {
@@ -113,7 +113,7 @@ export default function FormationsPublic({ formation, heroes, factions, heroClas
                             )}
                         </div>
                         {formation.notes && (
-                            <div className="mt-3 rounded-lg border bg-muted/30 p-3 text-muted-foreground">
+                            <div className="bg-muted/30 text-muted-foreground mt-3 rounded-lg border p-3">
                                 <MarkdownContent>{formation.notes}</MarkdownContent>
                             </div>
                         )}
@@ -151,18 +151,26 @@ export default function FormationsPublic({ formation, heroes, factions, heroClas
                                     {team.beast && (
                                         <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5 text-xs">
                                             {team.beast.portrait_url ? (
-                                                <img src={team.beast.portrait_url} alt={team.beast.name} className="size-7 rounded object-cover object-top" loading="lazy" />
+                                                <img
+                                                    src={team.beast.portrait_url}
+                                                    alt={team.beast.name}
+                                                    className="size-7 rounded object-cover object-top"
+                                                    loading="lazy"
+                                                />
                                             ) : (
-                                                <div className="grid size-7 place-items-center rounded bg-muted text-muted-foreground">
+                                                <div className="bg-muted text-muted-foreground grid size-7 place-items-center rounded">
                                                     <PawPrint className="size-3.5" />
                                                 </div>
                                             )}
                                             <span className="font-medium">{team.beast.name}</span>
                                             {team.beast_level !== undefined && team.beast_level !== null && (
-                                                <span className="rounded bg-muted/60 px-1 text-[10px] tabular-nums">Nv {team.beast_level}</span>
+                                                <span className="bg-muted/60 rounded px-1 text-[10px] tabular-nums">Nv {team.beast_level}</span>
                                             )}
                                             <span className="text-muted-foreground">
-                                                {summarizeScope(team.beast.buffs_team, 3) || summarizeScope(team.beast.buffs_strength, 2) || summarizeScope(team.beast.buffs_intelligence, 2) || summarizeScope(team.beast.buffs_agility, 2)}
+                                                {summarizeScope(team.beast.buffs_team, 3) ||
+                                                    summarizeScope(team.beast.buffs_strength, 2) ||
+                                                    summarizeScope(team.beast.buffs_intelligence, 2) ||
+                                                    summarizeScope(team.beast.buffs_agility, 2)}
                                             </span>
                                         </div>
                                     )}

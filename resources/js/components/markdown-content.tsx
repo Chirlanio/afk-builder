@@ -1,6 +1,6 @@
+import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { cn } from '@/lib/utils';
 
 interface MarkdownContentProps {
     children: string;
@@ -13,23 +13,15 @@ interface MarkdownContentProps {
  */
 export function MarkdownContent({ children, className }: MarkdownContentProps) {
     return (
-        <div className={cn('min-w-0 break-words text-sm leading-relaxed [&_*]:max-w-full [&_pre]:overflow-x-auto', className)}>
+        <div className={cn('min-w-0 text-sm leading-relaxed break-words [&_*]:max-w-full [&_pre]:overflow-x-auto', className)}>
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                    h1: ({ children }) => (
-                        <h1 className="mt-4 mb-2 text-xl font-semibold first:mt-0">{children}</h1>
-                    ),
-                    h2: ({ children }) => (
-                        <h2 className="mt-4 mb-2 text-lg font-semibold first:mt-0">{children}</h2>
-                    ),
-                    h3: ({ children }) => (
-                        <h3 className="mt-3 mb-1.5 text-base font-semibold first:mt-0">{children}</h3>
-                    ),
+                    h1: ({ children }) => <h1 className="mt-4 mb-2 text-xl font-semibold first:mt-0">{children}</h1>,
+                    h2: ({ children }) => <h2 className="mt-4 mb-2 text-lg font-semibold first:mt-0">{children}</h2>,
+                    h3: ({ children }) => <h3 className="mt-3 mb-1.5 text-base font-semibold first:mt-0">{children}</h3>,
                     h4: ({ children }) => (
-                        <h4 className="mt-2 mb-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground first:mt-0">
-                            {children}
-                        </h4>
+                        <h4 className="text-muted-foreground mt-2 mb-1 text-sm font-semibold tracking-wide uppercase first:mt-0">{children}</h4>
                     ),
                     p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                     ul: ({ children }) => <ul className="mb-2 ml-5 list-disc space-y-1 last:mb-0">{children}</ul>,
@@ -42,7 +34,7 @@ export function MarkdownContent({ children, className }: MarkdownContentProps) {
                             href={href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-medium text-primary underline-offset-2 hover:underline"
+                            className="text-primary font-medium underline-offset-2 hover:underline"
                         >
                             {children}
                         </a>
@@ -53,21 +45,13 @@ export function MarkdownContent({ children, className }: MarkdownContentProps) {
                         </div>
                     ),
                     thead: ({ children }) => <thead className="bg-muted/50">{children}</thead>,
-                    th: ({ children }) => (
-                        <th className="border-b px-3 py-2 text-left font-semibold">{children}</th>
-                    ),
-                    td: ({ children }) => (
-                        <td className="border-b px-3 py-2 last:border-b-0">{children}</td>
-                    ),
-                    code: ({ children }) => (
-                        <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">{children}</code>
-                    ),
+                    th: ({ children }) => <th className="border-b px-3 py-2 text-left font-semibold">{children}</th>,
+                    td: ({ children }) => <td className="border-b px-3 py-2 last:border-b-0">{children}</td>,
+                    code: ({ children }) => <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">{children}</code>,
                     blockquote: ({ children }) => (
-                        <blockquote className="my-2 border-l-2 border-primary/40 pl-3 italic text-muted-foreground">
-                            {children}
-                        </blockquote>
+                        <blockquote className="border-primary/40 text-muted-foreground my-2 border-l-2 pl-3 italic">{children}</blockquote>
                     ),
-                    hr: () => <hr className="my-4 border-border" />,
+                    hr: () => <hr className="border-border my-4" />,
                 }}
             >
                 {children}

@@ -100,10 +100,10 @@ class GuideSeeder extends Seeder
 
             // 1) Se a entry tem `static_content`, usa o markdown do disco e ignora fetch da wiki
             if (! empty($entry['static_content'])) {
-                $path = __DIR__ . '/guides/' . $entry['static_content'];
+                $path = __DIR__.'/guides/'.$entry['static_content'];
                 if (File::exists($path)) {
                     $content = File::get($path);
-                    $sourceUrl = 'https://afk-arena.fandom.com/wiki/' . rawurlencode(str_replace(' ', '_', $entry['wiki_page']));
+                    $sourceUrl = 'https://afk-arena.fandom.com/wiki/'.rawurlencode(str_replace(' ', '_', $entry['wiki_page']));
                 } else {
                     $this->command?->warn("static_content '{$entry['static_content']}' não encontrado em guides/.");
                 }
@@ -116,9 +116,9 @@ class GuideSeeder extends Seeder
                     if ($wikitext) {
                         $content = $parser->wikitextToMarkdown($wikitext);
                         if (mb_strlen($content) > self::CONTENT_MAX_CHARS) {
-                            $content = mb_substr($content, 0, self::CONTENT_MAX_CHARS) . "\n\n*[…] (Conteúdo truncado — veja a fonte para versão completa)*";
+                            $content = mb_substr($content, 0, self::CONTENT_MAX_CHARS)."\n\n*[…] (Conteúdo truncado — veja a fonte para versão completa)*";
                         }
-                        $sourceUrl = 'https://afk-arena.fandom.com/wiki/' . rawurlencode(str_replace(' ', '_', $entry['wiki_page']));
+                        $sourceUrl = 'https://afk-arena.fandom.com/wiki/'.rawurlencode(str_replace(' ', '_', $entry['wiki_page']));
                     }
                 } catch (Throwable $e) {
                     $this->command?->warn("Falha ao buscar '{$entry['wiki_page']}': {$e->getMessage()}");

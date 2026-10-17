@@ -1,7 +1,3 @@
-import { Head, router } from '@inertiajs/react';
-import axios from 'axios';
-import { ExternalLink, Gem, Loader2, Sparkles, Swords } from 'lucide-react';
-import { useState } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +7,10 @@ import { FACTION_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { Faction, FactionCode, Hero, RecommendedFormation, RecommendedFormationMode } from '@/types/afk';
+import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
+import { ExternalLink, Gem, Loader2, Sparkles, Swords } from 'lucide-react';
+import { useState } from 'react';
 
 interface PageProps {
     recommendedFormations: RecommendedFormation[];
@@ -63,7 +63,7 @@ function HeroChip({ slug, hero, isCore }: HeroChipProps) {
                 className="flex flex-col items-center gap-1 rounded-lg border-2 border-dashed border-amber-500/40 bg-amber-500/5 p-1.5 opacity-60"
                 title={`${slug} (não cadastrado)`}
             >
-                <div className="grid size-12 place-items-center rounded-md bg-muted text-[10px] text-muted-foreground">?</div>
+                <div className="bg-muted text-muted-foreground grid size-12 place-items-center rounded-md text-[10px]">?</div>
                 <span className="line-clamp-1 max-w-[60px] text-center text-[9px] text-amber-600 dark:text-amber-400">{slug}</span>
             </div>
         );
@@ -82,9 +82,9 @@ function HeroChip({ slug, hero, isCore }: HeroChipProps) {
             {hero.portrait_url ? (
                 <img src={hero.portrait_url} alt={hero.name} className="size-12 rounded-md object-cover object-top" loading="lazy" />
             ) : (
-                <div className="grid size-12 place-items-center rounded-md bg-muted text-[10px] text-muted-foreground">?</div>
+                <div className="bg-muted text-muted-foreground grid size-12 place-items-center rounded-md text-[10px]">?</div>
             )}
-            <span className="line-clamp-1 max-w-[60px] text-center text-[10px] font-medium leading-tight">{hero.name}</span>
+            <span className="line-clamp-1 max-w-[60px] text-center text-[10px] leading-tight font-medium">{hero.name}</span>
         </div>
     );
 }
@@ -123,8 +123,8 @@ export default function RecommendedFormationsIndex({ recommendedFormations, hero
             >
                 {recommendedFormations.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
-                        <Sparkles className="size-10 text-muted-foreground" />
-                        <p className="mt-2 text-sm text-muted-foreground">Nenhum comp recomendado cadastrado.</p>
+                        <Sparkles className="text-muted-foreground size-10" />
+                        <p className="text-muted-foreground mt-2 text-sm">Nenhum comp recomendado cadastrado.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -134,21 +134,30 @@ export default function RecommendedFormationsIndex({ recommendedFormations, hero
                             const flexSlugs = rf.hero_slugs.slice(rf.core_count);
 
                             return (
-                                <div key={rf.id} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+                                <div key={rf.id} className="bg-card flex flex-col gap-3 rounded-xl border p-4">
                                     <div className="flex flex-wrap items-start justify-between gap-2">
                                         <div className="min-w-0 flex-1">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <h3 className="text-base font-semibold">{rf.name}</h3>
                                                 {rf.tier && (
-                                                    <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-bold', TIER_BADGE[rf.tier] ?? 'bg-muted')}>
+                                                    <span
+                                                        className={cn(
+                                                            'rounded px-1.5 py-0.5 text-[10px] font-bold',
+                                                            TIER_BADGE[rf.tier] ?? 'bg-muted',
+                                                        )}
+                                                    >
                                                         {rf.tier}
                                                     </span>
                                                 )}
                                             </div>
                                             <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                <Badge variant="outline" className={cn(MODE_BADGE[rf.mode])}>{MODE_LABEL[rf.mode]}</Badge>
+                                                <Badge variant="outline" className={cn(MODE_BADGE[rf.mode])}>
+                                                    {MODE_LABEL[rf.mode]}
+                                                </Badge>
                                                 {rf.level_deficit && (
-                                                    <Badge variant="outline" className="text-[10px]">Déficit: {rf.level_deficit}</Badge>
+                                                    <Badge variant="outline" className="text-[10px]">
+                                                        Déficit: {rf.level_deficit}
+                                                    </Badge>
                                                 )}
                                             </div>
                                         </div>
@@ -157,7 +166,7 @@ export default function RecommendedFormationsIndex({ recommendedFormations, hero
                                                 href={rf.source_url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                                                className="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1 text-[10px]"
                                                 title={rf.source_label ?? 'Fonte'}
                                             >
                                                 <ExternalLink className="size-3" />
@@ -168,7 +177,7 @@ export default function RecommendedFormationsIndex({ recommendedFormations, hero
 
                                     {coreSlugs.length > 0 && (
                                         <div>
-                                            <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                                            <div className="mb-1.5 text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:text-emerald-400">
                                                 Core ({coreSlugs.length})
                                             </div>
                                             <div className="flex flex-wrap gap-2">
@@ -181,7 +190,7 @@ export default function RecommendedFormationsIndex({ recommendedFormations, hero
 
                                     {flexSlugs.length > 0 && (
                                         <div>
-                                            <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                            <div className="text-muted-foreground mb-1.5 text-[10px] font-semibold tracking-wide uppercase">
                                                 Flex (substituições) — {flexSlugs.length}
                                             </div>
                                             <div className="flex flex-wrap gap-2">
@@ -192,22 +201,22 @@ export default function RecommendedFormationsIndex({ recommendedFormations, hero
                                         </div>
                                     )}
 
-                                    {rf.description && (
-                                        <p className="text-xs text-muted-foreground">{rf.description}</p>
-                                    )}
+                                    {rf.description && <p className="text-muted-foreground text-xs">{rf.description}</p>}
 
                                     {rf.notes && (
-                                        <div className="rounded-md border-l-2 border-amber-400/60 bg-amber-500/5 px-2 py-1.5 text-[11px] italic text-muted-foreground">
+                                        <div className="text-muted-foreground rounded-md border-l-2 border-amber-400/60 bg-amber-500/5 px-2 py-1.5 text-[11px] italic">
                                             {rf.notes}
                                         </div>
                                     )}
 
                                     {rf.artifacts && rf.artifacts.length > 0 && (
                                         <div className="flex flex-wrap items-center gap-1">
-                                            <Gem className="size-3 text-muted-foreground" />
-                                            <span className="text-[10px] text-muted-foreground">Artefatos:</span>
+                                            <Gem className="text-muted-foreground size-3" />
+                                            <span className="text-muted-foreground text-[10px]">Artefatos:</span>
                                             {rf.artifacts.map((a) => (
-                                                <Badge key={a} variant="secondary" className="text-[10px]">{a}</Badge>
+                                                <Badge key={a} variant="secondary" className="text-[10px]">
+                                                    {a}
+                                                </Badge>
                                             ))}
                                         </div>
                                     )}

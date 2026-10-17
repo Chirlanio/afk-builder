@@ -13,15 +13,7 @@ interface PageShellProps {
     contentClassName?: string;
 }
 
-export function PageShell({
-    title,
-    description,
-    icon: Icon,
-    actions,
-    children,
-    width = 'full',
-    contentClassName,
-}: PageShellProps) {
+export function PageShell({ title, description, icon: Icon, actions, children, width = 'full', contentClassName }: PageShellProps) {
     return (
         <div className="flex flex-1 flex-col gap-4 p-3 sm:gap-6 sm:p-4 md:p-6">
             <header className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-end md:justify-between">
@@ -32,28 +24,14 @@ export function PageShell({
                         </div>
                     )}
                     <div className="min-w-0 flex-1">
-                        <h1 className="text-xl font-bold tracking-tight text-amber-50 sm:text-2xl md:text-3xl">
-                            {title}
-                        </h1>
-                        {description && (
-                            <p className="mt-1 max-w-2xl text-xs text-amber-100/60 sm:text-sm">{description}</p>
-                        )}
+                        <h1 className="text-xl font-bold tracking-tight text-amber-50 sm:text-2xl md:text-3xl">{title}</h1>
+                        {description && <p className="mt-1 max-w-2xl text-xs text-amber-100/60 sm:text-sm">{description}</p>}
                     </div>
                 </div>
-                {actions && (
-                    <div className="flex flex-wrap items-center gap-2 [&>*]:flex-1 sm:[&>*]:flex-initial md:flex-nowrap">
-                        {actions}
-                    </div>
-                )}
+                {actions && <div className="flex flex-wrap items-center gap-2 md:flex-nowrap [&>*]:flex-1 sm:[&>*]:flex-initial">{actions}</div>}
             </header>
 
-            <div
-                className={cn(
-                    'flex flex-1 flex-col gap-4 sm:gap-6',
-                    width === 'narrow' && 'mx-auto w-full max-w-3xl',
-                    contentClassName,
-                )}
-            >
+            <div className={cn('flex flex-1 flex-col gap-4 sm:gap-6', width === 'narrow' && 'mx-auto w-full max-w-3xl', contentClassName)}>
                 {children}
             </div>
         </div>

@@ -1,9 +1,9 @@
-import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
-import { Plus, X } from 'lucide-react';
 import { EngravingBadge } from '@/components/engraving-badge';
 import { cn } from '@/lib/utils';
 import type { ClassCode, FactionCode, Hero, TierCode } from '@/types/afk';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
+import { Plus, X } from 'lucide-react';
 import { HeroChip } from './hero-chip';
 
 interface TeamSlotProps {
@@ -25,7 +25,11 @@ interface TeamSlotProps {
 export function TeamSlot({ teamPosition, slotPosition, hero, factionCode, classCode, tierCode, onRemove, engraving }: TeamSlotProps) {
     const dropId = `slot:${teamPosition}:${slotPosition}`;
 
-    const { setNodeRef: setDropRef, isOver, active } = useDroppable({
+    const {
+        setNodeRef: setDropRef,
+        isOver,
+        active,
+    } = useDroppable({
         id: dropId,
         data: { kind: 'slot', teamPosition, slotPosition },
     });
@@ -57,8 +61,8 @@ export function TeamSlot({ teamPosition, slotPosition, hero, factionCode, classC
                 {...attributes}
                 style={transform ? { transform: CSS.Translate.toString(transform) } : undefined}
                 className={cn(
-                    'relative flex h-24 w-24 cursor-grab items-center justify-center rounded-lg border-2 border-dashed bg-muted/20 transition-all',
-                    beingDraggedOver && 'border-primary bg-primary/15 ring-2 ring-primary',
+                    'bg-muted/20 relative flex h-24 w-24 cursor-grab items-center justify-center rounded-lg border-2 border-dashed transition-all',
+                    beingDraggedOver && 'border-primary bg-primary/15 ring-primary ring-2',
                     !hero && !beingDraggedOver && 'border-border/60 hover:border-foreground/40',
                     hero && 'border-transparent',
                     isDragging && 'z-50 cursor-grabbing opacity-50',
@@ -67,15 +71,9 @@ export function TeamSlot({ teamPosition, slotPosition, hero, factionCode, classC
                 aria-label={hero ? `Slot ${slotPosition} (${hero.name})` : `Slot ${slotPosition} vazio`}
             >
                 {hero && factionCode && classCode && tierCode ? (
-                    <HeroChip
-                        hero={hero}
-                        factionCode={factionCode}
-                        classCode={classCode}
-                        tierCode={tierCode}
-                        size="lg"
-                    />
+                    <HeroChip hero={hero} factionCode={factionCode} classCode={classCode} tierCode={tierCode} size="lg" />
                 ) : (
-                    <Plus className="size-5 text-muted-foreground/50" />
+                    <Plus className="text-muted-foreground/50 size-5" />
                 )}
             </div>
 
@@ -88,7 +86,7 @@ export function TeamSlot({ teamPosition, slotPosition, hero, factionCode, classC
                         e.stopPropagation();
                         onRemove();
                     }}
-                    className="absolute -top-2 -right-2 z-20 grid size-7 place-items-center rounded-full bg-destructive text-destructive-foreground shadow-md hover:scale-110 lg:-top-1.5 lg:-right-1.5 lg:size-5"
+                    className="bg-destructive text-destructive-foreground absolute -top-2 -right-2 z-20 grid size-7 place-items-center rounded-full shadow-md hover:scale-110 lg:-top-1.5 lg:-right-1.5 lg:size-5"
                     aria-label="Remover do slot"
                 >
                     <X className="size-4 lg:size-3" />

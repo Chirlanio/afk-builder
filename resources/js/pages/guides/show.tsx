@@ -1,5 +1,3 @@
-import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowLeft, BookOpen, ExternalLink } from 'lucide-react';
 import { MarkdownContent } from '@/components/markdown-content';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { localized } from '@/lib/afk';
 import type { BreadcrumbItem, Locale, SharedData } from '@/types';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { ArrowLeft, BookOpen, ExternalLink } from 'lucide-react';
 
 interface Guide {
     id: number;
@@ -67,7 +67,7 @@ export default function GuideShow({ guide, categoryLabel }: PageProps) {
                             href={guide.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
                         >
                             <ExternalLink className="size-3" />
                             Fonte: Fandom Wiki
@@ -76,11 +76,11 @@ export default function GuideShow({ guide, categoryLabel }: PageProps) {
                 </div>
 
                 {content ? (
-                    <article className="rounded-xl border bg-card p-5">
+                    <article className="bg-card rounded-xl border p-5">
                         <MarkdownContent>{content}</MarkdownContent>
                     </article>
                 ) : (
-                    <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                    <div className="text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
                         {locale === 'pt' && guide.content
                             ? 'Tradução ainda não disponível para este guia.'
                             : 'Conteúdo ainda não importado para este guia.'}

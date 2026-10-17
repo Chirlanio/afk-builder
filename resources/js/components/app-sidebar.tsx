@@ -6,7 +6,26 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BarChart3, BookOpen, Compass, Folder, Gauge, Gem, Hammer, LayoutGrid, Library, ListChecks, Package, PawPrint, RefreshCw, Scale, ShieldCheck, Sparkles, Swords, Users } from 'lucide-react';
+import {
+    BarChart3,
+    BookOpen,
+    Compass,
+    Folder,
+    Gauge,
+    Gem,
+    Hammer,
+    LayoutGrid,
+    Library,
+    ListChecks,
+    Package,
+    PawPrint,
+    RefreshCw,
+    Scale,
+    ShieldCheck,
+    Sparkles,
+    Swords,
+    Users,
+} from 'lucide-react';
 import AppLogo from './app-logo';
 
 const baseNavItems: NavItem[] = [
@@ -114,9 +133,7 @@ export function AppSidebar() {
 
     // Decorar item "Aprovar heróis" com badge dinâmico baseado em shared data
     const decoratedAdminItems = adminNavItems.map((item) =>
-        item.url === '/admin/heroes/pending'
-            ? { ...item, badgeCount: pendingCount, badgeTone: 'rose' as const }
-            : item,
+        item.url === '/admin/heroes/pending' ? { ...item, badgeCount: pendingCount, badgeTone: 'rose' as const } : item,
     );
 
     const mainNavItems = auth.user?.is_admin ? [...baseNavItems, ...decoratedAdminItems] : baseNavItems;

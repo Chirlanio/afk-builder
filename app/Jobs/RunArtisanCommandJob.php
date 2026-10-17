@@ -88,6 +88,6 @@ class RunArtisanCommandJob implements ShouldQueue
 
         $truncated = substr($text, 0, CommandRun::OUTPUT_MAX_BYTES - 200);
 
-        return $truncated."\n\n[...output truncado em ".CommandRun::OUTPUT_MAX_BYTES." bytes]";
+        return $truncated."\n\n[...output truncado em ".CommandRun::OUTPUT_MAX_BYTES.' bytes]';
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Faction;
+use App\Models\GameAccount;
 use App\Models\HeroClass;
 use App\Models\Tier;
 use App\Models\UserHero;
@@ -25,7 +26,9 @@ class RosterAnalyticsController extends Controller
 
     /** Considera um hero "investido" se atinge esses thresholds (qualquer um). */
     private const INVESTED_ASCENSION_VALUE = 10;   // Mythic+ (Ascended)
+
     private const INVESTED_SI = 30;
+
     private const INVESTED_FURNITURE = 9;
 
     public function index(Request $request, PowerCalculator $power): Response
@@ -79,7 +82,7 @@ class RosterAnalyticsController extends Controller
      * @param  iterable<UserHero>  $userHeroes
      * @return array<string, mixed>
      */
-    private function pentagramSummary(iterable $userHeroes, \App\Models\GameAccount $account): array
+    private function pentagramSummary(iterable $userHeroes, GameAccount $account): array
     {
         $sorted = collect($userHeroes)
             ->sortByDesc('level')

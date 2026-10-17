@@ -1,16 +1,16 @@
+import { ResourceEditorDialog, type UserResources } from '@/components/resource-editor-dialog';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import AppLayout from '@/layouts/app-layout';
+import { CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
+import { cn } from '@/lib/utils';
+import type { BreadcrumbItem } from '@/types';
+import type { ClassCode, FactionCode, TierCode } from '@/types/afk';
 import { Head, Link, router } from '@inertiajs/react';
 import axios from 'axios';
 import { AlertTriangle, ChevronRight, Crown, Edit3, Gem, Hammer, Info, Loader2, Settings2, Sparkles, Users } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { ResourceEditorDialog, type UserResources } from '@/components/resource-editor-dialog';
-import AppLayout from '@/layouts/app-layout';
-import { FACTION_THEME, TIER_THEME, CLASS_LABEL } from '@/lib/afk';
-import { cn } from '@/lib/utils';
-import type { BreadcrumbItem } from '@/types';
-import type { ClassCode, FactionCode, TierCode } from '@/types/afk';
 
 interface PentagramHero {
     hero_id: number;
@@ -59,9 +59,7 @@ interface PageProps {
     resources: UserResources;
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Cristal Ressonante', href: '/crystal' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Cristal Ressonante', href: '/crystal' }];
 
 function formatNumber(n: number): string {
     return n.toLocaleString('pt-BR');
@@ -125,9 +123,7 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
         }
     };
 
-    const progressPct = crystal.is_upgraded
-        ? (crystal.strengthen_progress / crystal.strengthens_per_level) * 100
-        : 0;
+    const progressPct = crystal.is_upgraded ? (crystal.strengthen_progress / crystal.strengthens_per_level) * 100 : 0;
 
     const fifthHighestLevel = pentagram[4]?.level ?? 0;
     const allTop5At240 = pentagram.length === 5 && fifthHighestLevel >= 240;
@@ -157,7 +153,7 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                 {/* Status do cristal */}
                 <section className="grid gap-3 lg:grid-cols-3">
                     <div className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-4">
-                        <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-amber-100/50">
+                        <div className="mb-2 flex items-center gap-1.5 text-[10px] tracking-wider text-amber-100/50 uppercase">
                             <Gem className="size-3.5" />
                             Nível efetivo
                         </div>
@@ -166,13 +162,13 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                             {crystal.is_upgraded
                                 ? 'Cristal upgradado — controle direto'
                                 : allTop5At240
-                                    ? 'Pronto pra destravar upgrade no jogo'
-                                    : '5º maior do pentagrama'}
+                                  ? 'Pronto pra destravar upgrade no jogo'
+                                  : '5º maior do pentagrama'}
                         </div>
                     </div>
 
                     <div className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-4">
-                        <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-amber-100/50">
+                        <div className="mb-2 flex items-center gap-1.5 text-[10px] tracking-wider text-amber-100/50 uppercase">
                             <Crown className="size-3.5" />
                             Teto destravado
                         </div>
@@ -180,20 +176,16 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                             {crystal.level_cap}
                             <span className="ml-1 text-xs font-normal text-amber-100/40">/ {crystal.max_absolute}</span>
                         </div>
-                        <div className="mt-0.5 text-[10px] text-amber-100/40">
-                            240 + 5 × heros Ascendidos (sem Dimensionais)
-                        </div>
+                        <div className="mt-0.5 text-[10px] text-amber-100/40">240 + 5 × heros Ascendidos (sem Dimensionais)</div>
                     </div>
 
                     <div className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-4">
-                        <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-amber-100/50">
+                        <div className="mb-2 flex items-center gap-1.5 text-[10px] tracking-wider text-amber-100/50 uppercase">
                             <Users className="size-3.5" />
                             Slots desbloqueados
                         </div>
                         <div className="font-mono text-2xl font-bold text-amber-100">{crystal.slots_unlocked}</div>
-                        <div className="mt-0.5 text-[10px] text-amber-100/40">
-                            5 iniciais (pentagrama) + Essências Revigorantes
-                        </div>
+                        <div className="mt-0.5 text-[10px] text-amber-100/40">5 iniciais (pentagrama) + Essências Revigorantes</div>
                     </div>
                 </section>
 
@@ -208,9 +200,7 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                     </header>
 
                     {pentagram.length === 0 ? (
-                        <p className="text-xs text-amber-100/50">
-                            Roster vazio — adicione heróis para ver o pentagrama.
-                        </p>
+                        <p className="text-xs text-amber-100/50">Roster vazio — adicione heróis para ver o pentagrama.</p>
                     ) : (
                         <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                             {pentagram.map((h, idx) => (
@@ -246,16 +236,10 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                                     <div className="flex items-center justify-between text-[10px]">
                                         <span className="font-mono font-semibold text-amber-200">Nv {h.level}</span>
                                         {h.tier_code === 'ascended' && (
-                                            <span className={cn('rounded px-1 py-0.5 text-[9px]', TIER_THEME.ascended?.badge)}>
-                                                Ascended
-                                            </span>
+                                            <span className={cn('rounded px-1 py-0.5 text-[9px]', TIER_THEME.ascended?.badge)}>Ascended</span>
                                         )}
                                     </div>
-                                    {idx === 4 && (
-                                        <span className="text-[9px] text-amber-300/80">
-                                            ↑ Define nível compartilhado
-                                        </span>
-                                    )}
+                                    {idx === 4 && <span className="text-[9px] text-amber-300/80">↑ Define nível compartilhado</span>}
                                 </li>
                             ))}
                         </ol>
@@ -287,39 +271,57 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                                             style={{ width: `${progressPct}%` }}
                                         />
                                     </div>
-                                    <span className="font-mono text-xs tabular-nums text-amber-200">
+                                    <span className="font-mono text-xs text-amber-200 tabular-nums">
                                         {crystal.strengthen_progress}/{crystal.strengthens_per_level}
                                     </span>
                                 </div>
 
                                 <div className="grid gap-2 text-xs sm:grid-cols-3">
                                     <div className="rounded-md border border-amber-400/15 bg-black/20 p-2">
-                                        <div className="text-[10px] uppercase text-amber-100/40">Ouro / fortalecer</div>
-                                        <div className={cn('font-mono font-bold', currentResources.gold >= strengthenCost.gold ? 'text-emerald-300' : 'text-rose-300')}>
+                                        <div className="text-[10px] text-amber-100/40 uppercase">Ouro / fortalecer</div>
+                                        <div
+                                            className={cn(
+                                                'font-mono font-bold',
+                                                currentResources.gold >= strengthenCost.gold ? 'text-emerald-300' : 'text-rose-300',
+                                            )}
+                                        >
                                             {formatCompact(strengthenCost.gold)}
                                             <span className="ml-1 text-[10px] text-amber-100/40">/ {formatCompact(currentResources.gold)}</span>
                                         </div>
                                     </div>
                                     <div className="rounded-md border border-amber-400/15 bg-black/20 p-2">
-                                        <div className="text-[10px] uppercase text-amber-100/40">EXP / fortalecer</div>
-                                        <div className={cn('font-mono font-bold', currentResources.hero_exp >= strengthenCost.hero_exp ? 'text-emerald-300' : 'text-rose-300')}>
+                                        <div className="text-[10px] text-amber-100/40 uppercase">EXP / fortalecer</div>
+                                        <div
+                                            className={cn(
+                                                'font-mono font-bold',
+                                                currentResources.hero_exp >= strengthenCost.hero_exp ? 'text-emerald-300' : 'text-rose-300',
+                                            )}
+                                        >
                                             {formatCompact(strengthenCost.hero_exp)}
                                             <span className="ml-1 text-[10px] text-amber-100/40">/ {formatCompact(currentResources.hero_exp)}</span>
                                         </div>
                                     </div>
                                     <div className="rounded-md border border-amber-400/15 bg-black/20 p-2">
-                                        <div className="text-[10px] uppercase text-amber-100/40">
+                                        <div className="text-[10px] text-amber-100/40 uppercase">
                                             Essência {strengthenCost.is_last_in_cycle ? '(último!)' : '(0)'}
                                         </div>
-                                        <div className={cn('font-mono font-bold', currentResources.hero_essence >= strengthenCost.hero_essence ? 'text-emerald-300' : 'text-rose-300')}>
+                                        <div
+                                            className={cn(
+                                                'font-mono font-bold',
+                                                currentResources.hero_essence >= strengthenCost.hero_essence ? 'text-emerald-300' : 'text-rose-300',
+                                            )}
+                                        >
                                             {formatNumber(strengthenCost.hero_essence)}
-                                            <span className="ml-1 text-[10px] text-amber-100/40">/ {formatNumber(currentResources.hero_essence)}</span>
+                                            <span className="ml-1 text-[10px] text-amber-100/40">
+                                                / {formatNumber(currentResources.hero_essence)}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="mt-3 text-[10px] text-amber-100/40">
-                                    Custo total do ciclo (10 fortalecimentos): {formatNumber(nextLevelCost.gold_cost)} ouro · {formatNumber(nextLevelCost.hero_exp_cost)} EXP · {formatNumber(nextLevelCost.dust_cost)} essência
+                                    Custo total do ciclo (10 fortalecimentos): {formatNumber(nextLevelCost.gold_cost)} ouro ·{' '}
+                                    {formatNumber(nextLevelCost.hero_exp_cost)} EXP · {formatNumber(nextLevelCost.dust_cost)} essência
                                 </div>
 
                                 {strengthenError && (
@@ -351,8 +353,9 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                             <h2 className="text-sm font-semibold text-amber-100">Modo Pentagrama (pré-upgrade)</h2>
                         </header>
                         <p className="text-xs text-amber-100/60">
-                            O cristal usa o nível do 5º herói mais alto ({pentagram[4]?.level ?? '—'}) como referência. Quando seus 5 melhores
-                            heroes chegarem ao nível 240, você poderá destravar o upgrade no jogo e usar esta página pra controlar o nível do cristal manualmente.
+                            O cristal usa o nível do 5º herói mais alto ({pentagram[4]?.level ?? '—'}) como referência. Quando seus 5 melhores heroes
+                            chegarem ao nível 240, você poderá destravar o upgrade no jogo e usar esta página pra controlar o nível do cristal
+                            manualmente.
                         </p>
                     </section>
                 )}
@@ -363,25 +366,23 @@ export default function CristalIndex({ crystal, pentagram, nextLevelCost, streng
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
                             <span className="flex items-center gap-1">
                                 <span className="text-amber-100/50">Ouro:</span>
-                                <span className="font-mono font-semibold tabular-nums text-amber-100">
-                                    {formatCompact(currentResources.gold)}
-                                </span>
+                                <span className="font-mono font-semibold text-amber-100 tabular-nums">{formatCompact(currentResources.gold)}</span>
                             </span>
                             <span className="flex items-center gap-1">
                                 <span className="text-amber-100/50">EXP:</span>
-                                <span className="font-mono font-semibold tabular-nums text-amber-100">
+                                <span className="font-mono font-semibold text-amber-100 tabular-nums">
                                     {formatCompact(currentResources.hero_exp)}
                                 </span>
                             </span>
                             <span className="flex items-center gap-1">
                                 <span className="text-amber-100/50">Essência:</span>
-                                <span className="font-mono font-semibold tabular-nums text-amber-100">
+                                <span className="font-mono font-semibold text-amber-100 tabular-nums">
                                     {formatNumber(currentResources.hero_essence)}
                                 </span>
                             </span>
                             <span className="flex items-center gap-1">
                                 <span className="text-amber-100/50">Essências Revig.:</span>
-                                <span className="font-mono font-semibold tabular-nums text-amber-100">
+                                <span className="font-mono font-semibold text-amber-100 tabular-nums">
                                     {formatNumber(currentResources.revigorating_essences)}
                                 </span>
                             </span>

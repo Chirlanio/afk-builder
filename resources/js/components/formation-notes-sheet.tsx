@@ -1,8 +1,8 @@
-import { FileText } from 'lucide-react';
-import { useState } from 'react';
 import { MarkdownEditor } from '@/components/markdown-editor';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { FileText } from 'lucide-react';
+import { useState } from 'react';
 
 interface Props {
     value: string;
@@ -30,14 +30,7 @@ Counter de comp Wilders top arena.
  * Sheet pra editar notas em markdown da formação. Lateral à direita.
  * Reusa MarkdownEditor (Fase 40) — antes tinha lógica duplicada de edit/preview.
  */
-export function FormationNotesSheet({
-    value,
-    maxLength = 2000,
-    onChange,
-    open: openProp,
-    onOpenChange,
-    hideTrigger,
-}: Props) {
+export function FormationNotesSheet({ value, maxLength = 2000, onChange, open: openProp, onOpenChange, hideTrigger }: Props) {
     const [internalOpen, setInternalOpen] = useState(false);
     const open = openProp ?? internalOpen;
     const setOpen = onOpenChange ?? setInternalOpen;
@@ -61,22 +54,18 @@ export function FormationNotesSheet({
                         Notas da formação
                     </SheetTitle>
                     <SheetDescription>
-                        Anote estratégia, contras, quando usar. Aceita markdown ({maxLength.toLocaleString('pt-BR')} caracteres). Visível na página pública quando você compartilhar.
+                        Anote estratégia, contras, quando usar. Aceita markdown ({maxLength.toLocaleString('pt-BR')} caracteres). Visível na página
+                        pública quando você compartilhar.
                     </SheetDescription>
                 </SheetHeader>
 
-                <MarkdownEditor
-                    value={value}
-                    onChange={onChange}
-                    maxLength={maxLength}
-                    placeholder={PLACEHOLDER}
-                    fillHeight
-                    textSize="sm"
-                />
+                <MarkdownEditor value={value} onChange={onChange} maxLength={maxLength} placeholder={PLACEHOLDER} fillHeight textSize="sm" />
 
                 <SheetFooter className="mt-2">
                     <SheetClose asChild>
-                        <Button variant="default" size="sm">Fechar</Button>
+                        <Button variant="default" size="sm">
+                            Fechar
+                        </Button>
                     </SheetClose>
                 </SheetFooter>
             </SheetContent>

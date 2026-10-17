@@ -9,7 +9,6 @@ use App\Models\Tier;
 use App\Models\User;
 use App\Models\UserTierList;
 use App\Models\UserTierListItem;
-use App\Models\UserTierListRow;
 use Database\Seeders\FactionSeeder;
 use Database\Seeders\HeroClassSeeder;
 use Database\Seeders\SignatureItemCostsSeeder;

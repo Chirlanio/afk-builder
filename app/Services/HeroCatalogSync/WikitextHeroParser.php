@@ -132,6 +132,7 @@ class WikitextHeroParser
             if ($two === '{{') {
                 $braceDepth++;
                 $i += 2;
+
                 continue;
             }
 
@@ -141,18 +142,21 @@ class WikitextHeroParser
                     return substr($wikitext, $start, $i - $start);
                 }
                 $i += 2;
+
                 continue;
             }
 
             if ($two === '[[') {
                 $linkDepth++;
                 $i += 2;
+
                 continue;
             }
 
             if ($two === ']]' && $linkDepth > 0) {
                 $linkDepth--;
                 $i += 2;
+
                 continue;
             }
 
@@ -184,6 +188,7 @@ class WikitextHeroParser
                 $braceDepth++;
                 $current .= $two;
                 $i += 2;
+
                 continue;
             }
 
@@ -191,6 +196,7 @@ class WikitextHeroParser
                 $braceDepth--;
                 $current .= $two;
                 $i += 2;
+
                 continue;
             }
 
@@ -198,6 +204,7 @@ class WikitextHeroParser
                 $linkDepth++;
                 $current .= $two;
                 $i += 2;
+
                 continue;
             }
 
@@ -205,6 +212,7 @@ class WikitextHeroParser
                 $linkDepth--;
                 $current .= $two;
                 $i += 2;
+
                 continue;
             }
 
@@ -214,6 +222,7 @@ class WikitextHeroParser
                 $segments[] = $current;
                 $current = '';
                 $i++;
+
                 continue;
             }
 
@@ -443,7 +452,7 @@ class WikitextHeroParser
                 }
                 $current = ltrim($m[2]);
             } elseif ($current !== null) {
-                $current .= "\n" . $line;
+                $current .= "\n".$line;
             }
         }
         if ($current !== null) {
@@ -478,7 +487,7 @@ class WikitextHeroParser
         // Converte tabelas wikitable → markdown ANTES de outras transformações
         $text = preg_replace_callback(
             '/\{\|[^\n]*\n(.*?)\n\|\}/s',
-            fn ($m) => "\n" . $this->wikitableToMarkdown($m[1]) . "\n",
+            fn ($m) => "\n".$this->wikitableToMarkdown($m[1])."\n",
             $text,
         ) ?? $text;
 
@@ -487,7 +496,8 @@ class WikitextHeroParser
             '/^(={2,6})\s*(.+?)\s*\1\s*$/m',
             function ($m) {
                 $level = strlen($m[1]);
-                return str_repeat('#', $level) . ' ' . trim($m[2]);
+
+                return str_repeat('#', $level).' '.trim($m[2]);
             },
             $text,
         ) ?? $text;
@@ -512,7 +522,7 @@ class WikitextHeroParser
         // Listas: ** ou * no início da linha
         $text = preg_replace_callback(
             '/^(\*+)\s*(.+)$/m',
-            fn ($m) => str_repeat('  ', strlen($m[1]) - 1) . '- ' . trim($m[2]),
+            fn ($m) => str_repeat('  ', strlen($m[1]) - 1).'- '.trim($m[2]),
             $text,
         ) ?? $text;
 
@@ -583,15 +593,15 @@ class WikitextHeroParser
             $headers[] = '';
         }
 
-        $md = '| ' . implode(' | ', array_slice($headers, 0, $maxCols)) . ' |' . "\n";
-        $md .= '|' . str_repeat(' --- |', $maxCols) . "\n";
+        $md = '| '.implode(' | ', array_slice($headers, 0, $maxCols)).' |'."\n";
+        $md .= '|'.str_repeat(' --- |', $maxCols)."\n";
 
         for ($i = 1; $i < count($parsedRows); $i++) {
             $row = $parsedRows[$i];
             while (count($row) < $maxCols) {
                 $row[] = '';
             }
-            $md .= '| ' . implode(' | ', array_slice($row, 0, $maxCols)) . ' |' . "\n";
+            $md .= '| '.implode(' | ', array_slice($row, 0, $maxCols)).' |'."\n";
         }
 
         return $md;
@@ -704,6 +714,7 @@ class WikitextHeroParser
         if (! preg_match_all('/<div[^>]*>(.*?)<\/div>/is', $cell, $matches)) {
             // Sem divs: trata o cell inteiro como uma única linha
             $clean = trim($this->stripWikitextLight($cell));
+
             return $clean === '' ? [] : array_filter([$mapper($clean)]);
         }
 
@@ -828,6 +839,7 @@ class WikitextHeroParser
         $value = preg_replace("/'''(.+?)'''/s", '**$1**', $value) ?? $value;
         $value = preg_replace("/''(.+?)''/s", '*$1*', $value) ?? $value;
         $value = preg_replace('/<[^>]+>/', '', $value) ?? $value;
+
         return trim($value);
     }
 

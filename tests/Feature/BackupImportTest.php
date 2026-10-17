@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Settings\BackupController;
 use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroClass;

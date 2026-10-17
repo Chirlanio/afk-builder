@@ -1,12 +1,12 @@
-import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, BarChart3, ChevronRight, Crown, Flame, Gem, Scale, Sparkles, Target, TrendingUp, Users } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { EngravingBadge } from '@/components/engraving-badge';
 import AppLayout from '@/layouts/app-layout';
 import { CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { ClassCode, FactionCode, TierCode } from '@/types/afk';
-import { EngravingBadge } from '@/components/engraving-badge';
+import { Head, Link } from '@inertiajs/react';
+import { AlertTriangle, BarChart3, ChevronRight, Crown, Flame, Gem, Scale, Sparkles, Target, TrendingUp, Users } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface Summary {
     total_power: number;
@@ -159,7 +159,12 @@ export default function RosterAnalytics({ rosterSize, summary, byFaction, byClas
                 {/* KPIs */}
                 <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <KpiCard icon={Users} label="Heróis no roster" value={formatNumber(rosterSize)} hint={`${summary.invested_count} investido(s)`} />
-                    <KpiCard icon={TrendingUp} label="Power total" value={formatNumber(summary.total_power)} hint={`Média: ${formatNumber(summary.avg_power)}`} />
+                    <KpiCard
+                        icon={TrendingUp}
+                        label="Power total"
+                        value={formatNumber(summary.total_power)}
+                        hint={`Média: ${formatNumber(summary.avg_power)}`}
+                    />
                     <KpiCard icon={Crown} label="Maior power" value={formatNumber(summary.max_power)} hint={top10[0]?.name ?? '—'} />
                     <KpiCard
                         icon={Sparkles}
@@ -176,16 +181,14 @@ export default function RosterAnalytics({ rosterSize, summary, byFaction, byClas
                         <Gem className="size-4 text-amber-300" />
                         <h2 className="text-sm font-semibold text-amber-100">Pentagrama (Cristal Ressonante)</h2>
                         {pentagram.shared_level !== null && (
-                            <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-mono text-amber-200">
+                            <span className="rounded-full bg-amber-400/15 px-2 py-0.5 font-mono text-[10px] text-amber-200">
                                 Nível compartilhado: {pentagram.shared_level}
                             </span>
                         )}
                         {pentagram.is_at_240 && (
-                            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-300">
-                                Pronto pra upgrade
-                            </span>
+                            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-300">Pronto pra upgrade</span>
                         )}
-                        <Link href="/crystal" className="ml-auto text-[10px] text-amber-200/70 hover:text-amber-200 underline">
+                        <Link href="/crystal" className="ml-auto text-[10px] text-amber-200/70 underline hover:text-amber-200">
                             Detalhes →
                         </Link>
                     </header>
@@ -245,10 +248,7 @@ export default function RosterAnalytics({ rosterSize, summary, byFaction, byClas
                         </header>
                         <div className="grid gap-2 sm:grid-cols-2">
                             {gaps.map((gap, idx) => (
-                                <div
-                                    key={`${gap.type}-${idx}`}
-                                    className={cn('rounded-lg border px-3 py-2 text-xs', severityColor(gap.severity))}
-                                >
+                                <div key={`${gap.type}-${idx}`} className={cn('rounded-lg border px-3 py-2 text-xs', severityColor(gap.severity))}>
                                     <p className="font-medium">{gap.label}</p>
                                     <p className="mt-0.5 text-[11px] opacity-70">{gap.hint}</p>
                                 </div>
@@ -267,7 +267,15 @@ export default function RosterAnalytics({ rosterSize, summary, byFaction, byClas
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={byFaction} margin={{ top: 4, right: 10, left: 0, bottom: 4 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                                <XAxis dataKey="name_pt" stroke="#71717a" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={60} />
+                                <XAxis
+                                    dataKey="name_pt"
+                                    stroke="#71717a"
+                                    tick={{ fontSize: 10 }}
+                                    interval={0}
+                                    angle={-20}
+                                    textAnchor="end"
+                                    height={60}
+                                />
                                 <YAxis stroke="#71717a" tick={{ fontSize: 10 }} tickFormatter={(v: number) => formatCompact(v)} width={50} />
                                 <Tooltip
                                     contentStyle={{ background: '#09090b', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12 }}
@@ -336,7 +344,7 @@ export default function RosterAnalytics({ rosterSize, summary, byFaction, byClas
                                 return (
                                     <li key={row.code} className="flex flex-col gap-1">
                                         <div className="flex items-center justify-between">
-                                            <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide', themeBadge)}>
+                                            <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase', themeBadge)}>
                                                 {row.name_pt}
                                             </span>
                                             <span className="font-mono text-[10px] text-amber-100/70">
@@ -360,7 +368,10 @@ export default function RosterAnalytics({ rosterSize, summary, byFaction, byClas
                         <h2 className="text-sm font-semibold text-amber-100">Top 10 por power</h2>
                         {top10.length >= 2 && (
                             <Link
-                                href={`/roster/compare?${top10.slice(0, 4).map((h) => `heroes[]=${h.slug}`).join('&')}`}
+                                href={`/roster/compare?${top10
+                                    .slice(0, 4)
+                                    .map((h) => `heroes[]=${h.slug}`)
+                                    .join('&')}`}
                                 className="ml-auto inline-flex items-center gap-1 rounded-md border border-amber-400/30 px-2 py-1 text-[10px] text-amber-200 hover:bg-amber-500/15"
                             >
                                 <Scale className="size-3" />
@@ -374,10 +385,7 @@ export default function RosterAnalytics({ rosterSize, summary, byFaction, byClas
                                 <span className="grid size-6 flex-shrink-0 place-items-center rounded-full bg-amber-400/15 font-mono text-[10px] font-bold text-amber-200">
                                     {idx + 1}
                                 </span>
-                                <Link
-                                    href={`/heroes/${hero.slug}`}
-                                    className="flex flex-1 items-center gap-2 hover:bg-amber-500/5"
-                                >
+                                <Link href={`/heroes/${hero.slug}`} className="flex flex-1 items-center gap-2 hover:bg-amber-500/5">
                                     {hero.portrait_url ? (
                                         <img
                                             src={hero.portrait_url}
@@ -401,7 +409,7 @@ export default function RosterAnalytics({ rosterSize, summary, byFaction, byClas
                                     </div>
                                 </Link>
                                 <EngravingBadge engraving={hero.engraving} size="xs" />
-                                <span className="ml-auto rounded bg-amber-500/15 px-2 py-1 font-mono text-xs tabular-nums text-amber-200">
+                                <span className="ml-auto rounded bg-amber-500/15 px-2 py-1 font-mono text-xs text-amber-200 tabular-nums">
                                     {formatNumber(hero.power)}
                                 </span>
                             </li>
@@ -424,7 +432,7 @@ interface KpiCardProps {
 function KpiCard({ icon: Icon, label, value, hint, valueClass }: KpiCardProps) {
     return (
         <div className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-4">
-            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-amber-100/50">
+            <div className="mb-2 flex items-center gap-1.5 text-[10px] tracking-wider text-amber-100/50 uppercase">
                 <Icon className="size-3.5" />
                 {label}
             </div>

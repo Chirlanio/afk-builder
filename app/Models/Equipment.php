@@ -11,8 +11,11 @@ class Equipment extends Model
     protected $table = 'equipments';
 
     public const SLOT_BOOTS = 'boots';
+
     public const SLOT_CHEST = 'chest';
+
     public const SLOT_HELMET = 'helmet';
+
     public const SLOT_WEAPON = 'weapon';
 
     public const SLOTS = [
@@ -23,20 +26,31 @@ class Equipment extends Model
     ];
 
     public const MATERIAL_PLATE = 'plate';
+
     public const MATERIAL_LEATHER = 'leather';
+
     public const MATERIAL_PADDED = 'padded';
+
     public const MATERIAL_HEAVY_WEAPON = 'heavy_weapon';
+
     public const MATERIAL_LIGHT_WEAPON = 'light_weapon';
+
     public const MATERIAL_MAGIC_STAFF = 'magic_staff';
 
     public const HERO_TYPE_STRENGTH = 'strength';
+
     public const HERO_TYPE_AGILITY = 'agility';
+
     public const HERO_TYPE_INTELLIGENCE = 'intelligence';
 
     public const QUALITY_MYTHIC = 'mythic';
+
     public const QUALITY_MYTHIC_T1 = 'mythic_t1';
+
     public const QUALITY_MYTHIC_T2 = 'mythic_t2';
+
     public const QUALITY_MYTHIC_T3 = 'mythic_t3';
+
     public const QUALITY_MYTHIC_T4 = 'mythic_t4';
 
     public const QUALITIES = [

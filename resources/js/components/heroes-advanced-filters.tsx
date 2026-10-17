@@ -1,8 +1,8 @@
-import { ChevronDown, ChevronRight, Sliders } from 'lucide-react';
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Tier } from '@/types/afk';
+import { ChevronDown, ChevronRight, Sliders } from 'lucide-react';
+import { useState } from 'react';
 
 export interface AdvancedFiltersState {
     siMin: number; // 0..40
@@ -62,8 +62,8 @@ interface SegmentProps<T> {
 function Segment<T extends number | string>({ label, options, value, formatter, onChange }: SegmentProps<T>) {
     return (
         <div className="flex flex-wrap items-center gap-1.5">
-            <span className="min-w-[60px] text-xs font-medium text-muted-foreground">{label}:</span>
-            <div className="inline-flex flex-wrap rounded-md border bg-muted/30 p-0.5">
+            <span className="text-muted-foreground min-w-[60px] text-xs font-medium">{label}:</span>
+            <div className="bg-muted/30 inline-flex flex-wrap rounded-md border p-0.5">
                 {options.map((opt) => {
                     const active = opt === value;
                     return (
@@ -100,8 +100,8 @@ function Tristate({ label, value, onChange }: TristateProps) {
     ];
     return (
         <div className="flex flex-wrap items-center gap-1.5">
-            <span className="min-w-[60px] text-xs font-medium text-muted-foreground">{label}:</span>
-            <div className="inline-flex rounded-md border bg-muted/30 p-0.5">
+            <span className="text-muted-foreground min-w-[60px] text-xs font-medium">{label}:</span>
+            <div className="bg-muted/30 inline-flex rounded-md border p-0.5">
                 {options.map((opt) => {
                     const active = opt.v === value;
                     return (
@@ -135,11 +135,11 @@ export function HeroesAdvancedFilters({ state, tiers, onChange, onReset, isActiv
     };
 
     return (
-        <div className="rounded-lg border bg-muted/20">
+        <div className="bg-muted/20 rounded-lg border">
             <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-medium hover:bg-muted/40"
+                className="hover:bg-muted/40 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-medium"
                 aria-expanded={open}
             >
                 <span className="flex items-center gap-1.5">
@@ -147,9 +147,7 @@ export function HeroesAdvancedFilters({ state, tiers, onChange, onReset, isActiv
                     <Sliders className="size-3.5" />
                     Filtros avançados
                     {isActive && (
-                        <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-600 dark:text-amber-400">
-                            ativos
-                        </span>
+                        <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-600 dark:text-amber-400">ativos</span>
                     )}
                 </span>
                 {isActive && open && (
@@ -166,7 +164,7 @@ export function HeroesAdvancedFilters({ state, tiers, onChange, onReset, isActiv
                                 onReset();
                             }
                         }}
-                        className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground cursor-pointer text-[11px]"
                     >
                         Limpar avançados
                     </span>
@@ -175,44 +173,16 @@ export function HeroesAdvancedFilters({ state, tiers, onChange, onReset, isActiv
 
             {open && (
                 <div className="flex flex-col gap-2 border-t p-3">
-                    <Segment
-                        label="SI"
-                        options={SI_THRESHOLDS}
-                        value={state.siMin}
-                        onChange={(v) => onChange({ ...state, siMin: v })}
-                    />
-                    <Segment
-                        label="Móveis"
-                        options={F_THRESHOLDS}
-                        value={state.fMin}
-                        onChange={(v) => onChange({ ...state, fMin: v })}
-                    />
-                    <Segment
-                        label="Inscrição"
-                        options={ENG_THRESHOLDS}
-                        value={state.engMin}
-                        onChange={(v) => onChange({ ...state, engMin: v })}
-                    />
-                    <Segment
-                        label="Nível"
-                        options={LEVEL_THRESHOLDS}
-                        value={state.levelMin}
-                        onChange={(v) => onChange({ ...state, levelMin: v })}
-                    />
+                    <Segment label="SI" options={SI_THRESHOLDS} value={state.siMin} onChange={(v) => onChange({ ...state, siMin: v })} />
+                    <Segment label="Móveis" options={F_THRESHOLDS} value={state.fMin} onChange={(v) => onChange({ ...state, fMin: v })} />
+                    <Segment label="Inscrição" options={ENG_THRESHOLDS} value={state.engMin} onChange={(v) => onChange({ ...state, engMin: v })} />
+                    <Segment label="Nível" options={LEVEL_THRESHOLDS} value={state.levelMin} onChange={(v) => onChange({ ...state, levelMin: v })} />
 
-                    <Tristate
-                        label="Artefato"
-                        value={state.hasArtifact}
-                        onChange={(v) => onChange({ ...state, hasArtifact: v })}
-                    />
-                    <Tristate
-                        label="Coleção"
-                        value={state.hasCollection}
-                        onChange={(v) => onChange({ ...state, hasCollection: v })}
-                    />
+                    <Tristate label="Artefato" value={state.hasArtifact} onChange={(v) => onChange({ ...state, hasArtifact: v })} />
+                    <Tristate label="Coleção" value={state.hasCollection} onChange={(v) => onChange({ ...state, hasCollection: v })} />
 
                     <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="min-w-[60px] text-xs font-medium text-muted-foreground">Tier:</span>
+                        <span className="text-muted-foreground min-w-[60px] text-xs font-medium">Tier:</span>
                         {tiers.map((tier) => {
                             const active = state.tierIds.has(tier.id);
                             return (
@@ -234,7 +204,7 @@ export function HeroesAdvancedFilters({ state, tiers, onChange, onReset, isActiv
                         })}
                     </div>
 
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-muted-foreground text-[10px]">
                         Filtros de investimento e equipamento aplicam-se apenas a heróis do seu roster.
                     </p>
 
@@ -250,4 +220,3 @@ export function HeroesAdvancedFilters({ state, tiers, onChange, onReset, isActiv
         </div>
     );
 }
-

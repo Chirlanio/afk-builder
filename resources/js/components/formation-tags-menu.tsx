@@ -1,6 +1,3 @@
-import axios from 'axios';
-import { ChevronDown, Loader2, Plus, Tag, Trash2 } from 'lucide-react';
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -11,6 +8,9 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import axios from 'axios';
+import { ChevronDown, Loader2, Plus, Tag, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 export interface FormationTagPayload {
     id: number;
@@ -19,7 +19,7 @@ export interface FormationTagPayload {
 }
 
 const TAG_COLORS = ['amber', 'sky', 'emerald', 'rose', 'violet', 'orange', 'fuchsia', 'slate'] as const;
-type TagColor = typeof TAG_COLORS[number];
+type TagColor = (typeof TAG_COLORS)[number];
 
 const COLOR_CLASSES: Record<TagColor, { bg: string; text: string; border: string; dot: string }> = {
     amber: { bg: 'bg-amber-500/15', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-500/40', dot: 'bg-amber-400' },
@@ -107,22 +107,16 @@ export function FormationTagsMenu({ availableTags, selectedTagIds, onSelectionCh
                     <Tag className="size-3.5" />
                     Tags
                     {selectedCount > 0 && (
-                        <span className="ml-1 rounded-full bg-primary/15 px-1.5 text-[10px] font-semibold text-primary">
-                            {selectedCount}
-                        </span>
+                        <span className="bg-primary/15 text-primary ml-1 rounded-full px-1.5 text-[10px] font-semibold">{selectedCount}</span>
                     )}
                     <ChevronDown className="size-3" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-72">
-                <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Tags da formação
-                </DropdownMenuLabel>
+                <DropdownMenuLabel className="text-muted-foreground text-xs tracking-wide uppercase">Tags da formação</DropdownMenuLabel>
 
                 {availableTags.length === 0 && !creating ? (
-                    <p className="px-2 py-3 text-xs text-muted-foreground">
-                        Nenhuma tag criada ainda.
-                    </p>
+                    <p className="text-muted-foreground px-2 py-3 text-xs">Nenhuma tag criada ainda.</p>
                 ) : (
                     availableTags.map((tag) => {
                         const c = tagColorClasses(tag.color);
@@ -143,7 +137,7 @@ export function FormationTagsMenu({ availableTags, selectedTagIds, onSelectionCh
                                         e.preventDefault();
                                         handleDelete(tag);
                                     }}
-                                    className="rounded p-1 text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+                                    className="text-muted-foreground hover:bg-destructive hover:text-destructive-foreground rounded p-1"
                                     aria-label={`Excluir ${tag.name}`}
                                 >
                                     <Trash2 className="size-3" />
@@ -162,7 +156,7 @@ export function FormationTagsMenu({ availableTags, selectedTagIds, onSelectionCh
                             setCreating(true);
                             setError(null);
                         }}
-                        className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent"
+                        className="hover:bg-accent flex w-full items-center gap-2 px-2 py-1.5 text-sm"
                     >
                         <Plus className="size-3.5" />
                         Criar nova tag
@@ -186,7 +180,7 @@ export function FormationTagsMenu({ availableTags, selectedTagIds, onSelectionCh
                                     setError(null);
                                 }
                             }}
-                            className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                            className="border-input bg-background focus:ring-ring h-8 rounded-md border px-2 text-xs focus:ring-2 focus:outline-none"
                         />
                         <div className="flex flex-wrap gap-1">
                             {TAG_COLORS.map((color) => {
@@ -200,7 +194,9 @@ export function FormationTagsMenu({ availableTags, selectedTagIds, onSelectionCh
                                         className={cn(
                                             'size-5 rounded-full transition-all',
                                             c.dot,
-                                            active ? 'scale-110 ring-2 ring-foreground ring-offset-1 ring-offset-background' : 'opacity-60 hover:opacity-100',
+                                            active
+                                                ? 'ring-foreground ring-offset-background scale-110 ring-2 ring-offset-1'
+                                                : 'opacity-60 hover:opacity-100',
                                         )}
                                         aria-label={`Cor ${color}`}
                                         aria-pressed={active}
@@ -208,7 +204,7 @@ export function FormationTagsMenu({ availableTags, selectedTagIds, onSelectionCh
                                 );
                             })}
                         </div>
-                        {error && <p className="text-[11px] text-destructive">{error}</p>}
+                        {error && <p className="text-destructive text-[11px]">{error}</p>}
                         <div className="flex items-center justify-end gap-1.5">
                             <Button
                                 variant="ghost"

@@ -20,10 +20,7 @@ export default function Appearance() {
 
             <SettingsLayout>
                 <div className="space-y-6">
-                    <HeadingSmall
-                        title="Aparência"
-                        description="O AFK Builder usa um tema escuro fixo, inspirado nas noites de Esperia."
-                    />
+                    <HeadingSmall title="Aparência" description="O AFK Builder usa um tema escuro fixo, inspirado nas noites de Esperia." />
 
                     <div className="flex items-center gap-3 rounded-lg border border-amber-400/20 bg-gradient-to-br from-amber-500/10 to-purple-500/5 p-4">
                         <div className="flex size-10 items-center justify-center rounded-md bg-amber-500/15 text-amber-300">

@@ -1,7 +1,7 @@
-import { Flame } from 'lucide-react';
 import { CLASS_ICON, FACTION_THEME, TIER_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { ClassCode, FactionCode, Hero, TierCode } from '@/types/afk';
+import { Flame } from 'lucide-react';
 
 interface HeroChipProps {
     hero: Hero;
@@ -35,20 +35,13 @@ export function HeroChip({ hero, factionCode, classCode, tierCode, size = 'md', 
                 'relative flex flex-col overflow-hidden rounded-lg border-2 transition-opacity',
                 sizeClasses,
                 factionTheme.cardGradient,
-                awakened
-                    ? 'border-amber-400/90 shadow-[0_0_10px_-2px_rgba(251,191,36,0.55)]'
-                    : factionTheme.cardBorder,
+                awakened ? 'border-amber-400/90 shadow-[0_0_10px_-2px_rgba(251,191,36,0.55)]' : factionTheme.cardBorder,
                 dimmed && 'opacity-30 grayscale',
                 className,
             )}
             title={`${hero.name}${hero.title ? ` — ${hero.title}` : ''}`}
         >
-            <div
-                className={cn(
-                    'absolute top-0.5 right-0.5 z-10 rounded-full bg-background/80 p-0.5',
-                    factionTheme.accent,
-                )}
-            >
+            <div className={cn('bg-background/80 absolute top-0.5 right-0.5 z-10 rounded-full p-0.5', factionTheme.accent)}>
                 <ClassIconComponent className="size-2.5" />
             </div>
 
@@ -60,9 +53,7 @@ export function HeroChip({ hero, factionCode, classCode, tierCode, size = 'md', 
 
             {!awakened && (
                 <div className="absolute top-0.5 left-0.5 z-10">
-                    <span className={cn('rounded px-1 py-px text-[8px] font-bold uppercase', tierTheme.badge)}>
-                        {tierTheme.label.slice(0, 3)}
-                    </span>
+                    <span className={cn('rounded px-1 py-px text-[8px] font-bold uppercase', tierTheme.badge)}>{tierTheme.label.slice(0, 3)}</span>
                 </div>
             )}
 
@@ -81,9 +72,7 @@ export function HeroChip({ hero, factionCode, classCode, tierCode, size = 'md', 
                 ) : null}
             </div>
 
-            <div className="truncate bg-background/70 px-0.5 text-center font-medium leading-tight">
-                {hero.name}
-            </div>
+            <div className="bg-background/70 truncate px-0.5 text-center leading-tight font-medium">{hero.name}</div>
         </div>
     );
 }

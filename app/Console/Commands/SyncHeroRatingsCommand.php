@@ -46,6 +46,7 @@ class SyncHeroRatingsCommand extends Command
                 ->body();
         } catch (\Throwable $e) {
             $this->error("Falha ao buscar página: {$e->getMessage()}");
+
             return self::FAILURE;
         }
 
@@ -58,6 +59,7 @@ class SyncHeroRatingsCommand extends Command
         $tables = $xpath->query("//table[contains(@class, 'ninja_footable')]");
         if (! $tables || $tables->length === 0) {
             $this->error('Nenhuma tabela ninja_footable encontrada na página.');
+
             return self::FAILURE;
         }
 
@@ -69,7 +71,7 @@ class SyncHeroRatingsCommand extends Command
             /** @var DOMElement $table */
             $stage = $this->stageFromTable($xpath, $table, $tableIndex);
             $this->newLine();
-            $this->line("<fg=cyan>Tabela ".($tableIndex + 1)."</> → stage <fg=yellow>{$stage}</>");
+            $this->line('<fg=cyan>Tabela '.($tableIndex + 1)."</> → stage <fg=yellow>{$stage}</>");
 
             $headers = $this->extractHeaders($xpath, $table);
             $modeColumns = [];
@@ -81,6 +83,7 @@ class SyncHeroRatingsCommand extends Command
             }
             if ($modeColumns === []) {
                 $this->warn('  → nenhuma coluna de rating reconhecida, pulando tabela.');
+
                 continue;
             }
 
@@ -93,6 +96,7 @@ class SyncHeroRatingsCommand extends Command
             }
             if ($heroNameColumn === null) {
                 $this->warn('  → coluna "Hero" não encontrada, pulando tabela.');
+
                 continue;
             }
 
@@ -109,6 +113,7 @@ class SyncHeroRatingsCommand extends Command
                 $heroName = $this->normalizeName($heroNameRaw);
                 if ($heroName === '') {
                     $totals['skipped']++;
+
                     continue;
                 }
 
@@ -116,6 +121,7 @@ class SyncHeroRatingsCommand extends Command
                 if (! $hero) {
                     $totals['skipped']++;
                     $unmatched[$heroName] = ($unmatched[$heroName] ?? 0) + 1;
+
                     continue;
                 }
                 $totals['matched']++;
@@ -132,6 +138,7 @@ class SyncHeroRatingsCommand extends Command
 
                     if ($this->option('dry-run')) {
                         $this->line("  <fg=gray>[dry]</> {$hero->slug} · {$mode}/{$stage} = {$tier}");
+
                         continue;
                     }
 
@@ -195,12 +202,14 @@ class SyncHeroRatingsCommand extends Command
         foreach ($ths as $idx => $th) {
             $headers[$idx] = trim($th->textContent);
         }
+
         return $headers;
     }
 
     private function normalizeName(string $raw): string
     {
         $clean = preg_replace('/\s+/', ' ', html_entity_decode($raw, ENT_QUOTES, 'UTF-8')) ?? $raw;
+
         return trim($clean);
     }
 
@@ -211,6 +220,7 @@ class SyncHeroRatingsCommand extends Command
             return null;
         }
         $upper = str_replace(['＋', '➕'], '+', $upper);
+
         return in_array($upper, HeroRating::TIERS, true) ? $upper : null;
     }
 

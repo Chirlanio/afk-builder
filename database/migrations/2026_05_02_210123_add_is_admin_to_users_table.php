@@ -13,7 +13,7 @@ return new class extends Migration
         });
 
         // Primeiro user existente vira admin (owner do app).
-        \DB::table('users')->orderBy('id')->limit(1)->update(['is_admin' => true]);
+        DB::table('users')->orderBy('id')->limit(1)->update(['is_admin' => true]);
     }
 
     public function down(): void

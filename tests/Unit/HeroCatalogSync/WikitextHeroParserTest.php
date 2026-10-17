@@ -54,8 +54,8 @@ TEXT;
 
     public function test_extrai_type_intelligence_e_agility(): void
     {
-        $wt1 = "{{Hero|name=A|faction=Mauler|class=Mage|rarity=Ascended|type=Intelligence}}";
-        $wt2 = "{{Hero|name=B|faction=Mauler|class=Ranger|rarity=Ascended|type=Agility}}";
+        $wt1 = '{{Hero|name=A|faction=Mauler|class=Mage|rarity=Ascended|type=Intelligence}}';
+        $wt2 = '{{Hero|name=B|faction=Mauler|class=Ranger|rarity=Ascended|type=Agility}}';
 
         $this->assertSame('intelligence', $this->parser->parse($wt1)['type']);
         $this->assertSame('agility', $this->parser->parse($wt2)['type']);
@@ -63,7 +63,7 @@ TEXT;
 
     public function test_type_ausente_retorna_null(): void
     {
-        $wt = "{{Hero|name=X|faction=Mauler|class=Tank|rarity=Ascended}}";
+        $wt = '{{Hero|name=X|faction=Mauler|class=Tank|rarity=Ascended}}';
         $parsed = $this->parser->parse($wt);
 
         $this->assertNotNull($parsed);
@@ -355,7 +355,7 @@ TEXT;
 
     public function test_wikitext_to_markdown_remove_files_e_refs(): void
     {
-        $wt = "Hero shown [[File:hero.png|thumb|caption]] in battle.<ref>citation</ref><ref name=\"x\">other</ref>";
+        $wt = 'Hero shown [[File:hero.png|thumb|caption]] in battle.<ref>citation</ref><ref name="x">other</ref>';
         $md = $this->parser->wikitextToMarkdown($wt);
 
         $this->assertStringNotContainsString('File:', $md);
@@ -516,7 +516,7 @@ TEXT;
         $this->assertSame(1, $grace['powers'][0]['stars']);
         $this->assertSame(2, $grace['powers'][1]['stars']);
         $this->assertSame(5, $grace['powers'][2]['stars']);
-        $this->assertStringContainsString("Ranhorn", $grace['obtained_in']);
+        $this->assertStringContainsString('Ranhorn', $grace['obtained_in']);
 
         // Dura's Eye (com apóstrofe no nome)
         $eye = $result['dura'][1];

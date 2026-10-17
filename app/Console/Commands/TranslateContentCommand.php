@@ -22,6 +22,7 @@ class TranslateContentCommand extends Command
     protected $description = 'Traduz conteúdo de heróis e guias EN→PT-BR via Google Translate (sem API key).';
 
     private const FROM = 'en';
+
     private const TO = 'pt';
 
     private GoogleTranslate $translator;
@@ -84,7 +85,7 @@ class TranslateContentCommand extends Command
             if ($translated !== null) {
                 $hero->update(['lore_pt' => $translated]);
                 $count++;
-                $this->line("  <fg=green>+</> [{$i}/" . count($heroes) . "] lore: {$hero->slug}");
+                $this->line("  <fg=green>+</> [{$i}/".count($heroes)."] lore: {$hero->slug}");
             }
         }
 
@@ -112,7 +113,7 @@ class TranslateContentCommand extends Command
         foreach ($abilities as $i => $a) {
             $updates = [];
             if ($force || $a->name_pt === null) {
-                $name = $this->safeTranslate($a->name, "ability.name");
+                $name = $this->safeTranslate($a->name, 'ability.name');
                 if ($name !== null) {
                     $updates['name_pt'] = $name;
                 }
@@ -127,7 +128,7 @@ class TranslateContentCommand extends Command
                 $a->update($updates);
                 $count++;
                 $heroSlug = $a->hero?->slug ?? "h{$a->hero_id}";
-                $this->line("  <fg=green>+</> [{$i}/" . count($abilities) . "] ability: {$heroSlug} » {$a->name}");
+                $this->line("  <fg=green>+</> [{$i}/".count($abilities)."] ability: {$heroSlug} » {$a->name}");
             }
         }
 
@@ -154,19 +155,19 @@ class TranslateContentCommand extends Command
         foreach ($items as $i => $item) {
             $updates = [];
             if ($force || $item->name_pt === null) {
-                $n = $this->safeTranslate($item->name, "furniture.name");
+                $n = $this->safeTranslate($item->name, 'furniture.name');
                 if ($n !== null) {
                     $updates['name_pt'] = $n;
                 }
             }
             if ($item->f3_description && ($force || $item->f3_description_pt === null)) {
-                $d = $this->safeTranslate($item->f3_description, "furniture.f3");
+                $d = $this->safeTranslate($item->f3_description, 'furniture.f3');
                 if ($d !== null) {
                     $updates['f3_description_pt'] = $d;
                 }
             }
             if ($item->f9_description && ($force || $item->f9_description_pt === null)) {
-                $d = $this->safeTranslate($item->f9_description, "furniture.f9");
+                $d = $this->safeTranslate($item->f9_description, 'furniture.f9');
                 if ($d !== null) {
                     $updates['f9_description_pt'] = $d;
                 }
@@ -175,7 +176,7 @@ class TranslateContentCommand extends Command
                 $item->update($updates);
                 $count++;
                 $heroSlug = $item->hero?->slug ?? "h{$item->hero_id}";
-                $this->line("  <fg=green>+</> [{$i}/" . count($items) . "] furniture: {$heroSlug}");
+                $this->line("  <fg=green>+</> [{$i}/".count($items)."] furniture: {$heroSlug}");
             }
         }
 
@@ -202,13 +203,13 @@ class TranslateContentCommand extends Command
         foreach ($guides as $i => $g) {
             $updates = [];
             if ($force || $g->title_pt === null) {
-                $t = $this->safeTranslate($g->title, "guide.title");
+                $t = $this->safeTranslate($g->title, 'guide.title');
                 if ($t !== null) {
                     $updates['title_pt'] = $t;
                 }
             }
             if ($g->summary && ($force || $g->summary_pt === null)) {
-                $s = $this->safeTranslate($g->summary, "guide.summary");
+                $s = $this->safeTranslate($g->summary, 'guide.summary');
                 if ($s !== null) {
                     $updates['summary_pt'] = $s;
                 }
@@ -222,7 +223,7 @@ class TranslateContentCommand extends Command
             if (! empty($updates)) {
                 $g->update($updates);
                 $count++;
-                $this->line("  <fg=green>+</> [{$i}/" . count($guides) . "] guide: {$g->slug}");
+                $this->line("  <fg=green>+</> [{$i}/".count($guides)."] guide: {$g->slug}");
             }
         }
 
@@ -238,9 +239,11 @@ class TranslateContentCommand extends Command
         try {
             $result = $this->translator->translate($input);
             usleep(200_000); // throttle 200ms entre calls
+
             return $result;
         } catch (Throwable $e) {
             $this->line("  <fg=red>!</> falha {$contextLabel}: {$e->getMessage()}");
+
             return null;
         }
     }

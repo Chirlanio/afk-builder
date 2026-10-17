@@ -1,13 +1,7 @@
+import { cn } from '@/lib/utils';
+import type { Beast, Faction, Hero, HeroClass, Tier } from '@/types/afk';
 import { PawPrint, Users } from 'lucide-react';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import type {
-    Beast,
-    Faction,
-    Hero,
-    HeroClass,
-    Tier,
-} from '@/types/afk';
 import { BeastPool } from './beast-pool';
 import { HeroPool } from './hero-pool';
 
@@ -44,15 +38,13 @@ export function EditorPool({
 
     return (
         <div className="flex h-full flex-col gap-2">
-            <div className="flex shrink-0 rounded-lg border bg-card p-0.5">
+            <div className="bg-card flex shrink-0 rounded-lg border p-0.5">
                 <button
                     type="button"
                     onClick={() => setTab('heroes')}
                     className={cn(
                         'flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
-                        tab === 'heroes'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-muted',
+                        tab === 'heroes' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
                     )}
                 >
                     <Users className="size-3.5" />
@@ -63,14 +55,12 @@ export function EditorPool({
                     onClick={() => setTab('beasts')}
                     className={cn(
                         'flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
-                        tab === 'beasts'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-muted',
+                        tab === 'beasts' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
                     )}
                 >
                     <PawPrint className="size-3.5" />
                     Bestas
-                    <span className="ml-1 rounded-full bg-muted/60 px-1.5 py-0.5 text-[9px] tabular-nums">{beasts.length}</span>
+                    <span className="bg-muted/60 ml-1 rounded-full px-1.5 py-0.5 text-[9px] tabular-nums">{beasts.length}</span>
                 </button>
             </div>
 

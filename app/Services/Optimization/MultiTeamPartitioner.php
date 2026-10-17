@@ -13,8 +13,7 @@ class MultiTeamPartitioner
     public function __construct(
         private readonly TeamScorer $scorer,
         private readonly SingleTeamOptimizer $singleOptimizer,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<int, Hero>  $heroPoolById

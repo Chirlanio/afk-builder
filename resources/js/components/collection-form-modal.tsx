@@ -1,11 +1,11 @@
-import axios from 'axios';
-import { Loader2, Package, Save } from 'lucide-react';
-import { type FormEvent, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Collection } from '@/types/afk';
+import axios from 'axios';
+import { Loader2, Package, Save } from 'lucide-react';
+import { type FormEvent, useEffect, useState } from 'react';
 
 interface Props {
     open: boolean;
@@ -115,11 +115,11 @@ export function CollectionFormModal({ open, onOpenChange, collection, onSaved }:
             <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
                 <DialogTitle asChild>
                     <div className="flex flex-col items-center gap-1 text-center">
-                        <span className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        <span className="text-muted-foreground flex items-center gap-2 text-[10px] tracking-wider uppercase">
                             <Package className="size-3" />
                             Galeria Tenebrosa
                         </span>
-                        <h2 className="text-xl font-bold leading-tight">{isEditing ? 'Editar coleção' : 'Nova coleção'}</h2>
+                        <h2 className="text-xl leading-tight font-bold">{isEditing ? 'Editar coleção' : 'Nova coleção'}</h2>
                     </div>
                 </DialogTitle>
                 <DialogDescription className="text-center">
@@ -138,8 +138,8 @@ export function CollectionFormModal({ open, onOpenChange, collection, onSaved }:
                                 pattern="[a-z0-9-]+"
                                 disabled={isEditing}
                             />
-                            <p className="text-[10px] text-muted-foreground">Apenas minúsculas, números e hífens.</p>
-                            {errors.slug && <p className="text-xs text-destructive">{errors.slug}</p>}
+                            <p className="text-muted-foreground text-[10px]">Apenas minúsculas, números e hífens.</p>
+                            {errors.slug && <p className="text-destructive text-xs">{errors.slug}</p>}
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="c-name">Nome *</Label>
@@ -149,7 +149,7 @@ export function CollectionFormModal({ open, onOpenChange, collection, onSaved }:
                                 onChange={(e) => setData((s) => ({ ...s, name: e.target.value }))}
                                 placeholder="Reaper's Talon"
                             />
-                            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+                            {errors.name && <p className="text-destructive text-xs">{errors.name}</p>}
                         </div>
                     </div>
 
@@ -159,7 +159,7 @@ export function CollectionFormModal({ open, onOpenChange, collection, onSaved }:
                             id="c-desc"
                             value={data.description}
                             onChange={(e) => setData((s) => ({ ...s, description: e.target.value }))}
-                            className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            className="border-input bg-background flex min-h-[60px] w-full rounded-md border px-3 py-2 text-sm"
                             rows={3}
                             maxLength={5000}
                             placeholder="Efeito da coleção quando equipada..."
@@ -169,18 +169,36 @@ export function CollectionFormModal({ open, onOpenChange, collection, onSaved }:
                     <div className="grid grid-cols-3 gap-3">
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="c-hp">HP base +</Label>
-                            <Input id="c-hp" type="number" min={0} value={data.hp_bonus} onChange={(e) => setData((s) => ({ ...s, hp_bonus: e.target.value }))} />
-                            {errors.hp_bonus && <p className="text-[10px] text-destructive">{errors.hp_bonus}</p>}
+                            <Input
+                                id="c-hp"
+                                type="number"
+                                min={0}
+                                value={data.hp_bonus}
+                                onChange={(e) => setData((s) => ({ ...s, hp_bonus: e.target.value }))}
+                            />
+                            {errors.hp_bonus && <p className="text-destructive text-[10px]">{errors.hp_bonus}</p>}
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="c-atk">ATK base +</Label>
-                            <Input id="c-atk" type="number" min={0} value={data.attack_bonus} onChange={(e) => setData((s) => ({ ...s, attack_bonus: e.target.value }))} />
-                            {errors.attack_bonus && <p className="text-[10px] text-destructive">{errors.attack_bonus}</p>}
+                            <Input
+                                id="c-atk"
+                                type="number"
+                                min={0}
+                                value={data.attack_bonus}
+                                onChange={(e) => setData((s) => ({ ...s, attack_bonus: e.target.value }))}
+                            />
+                            {errors.attack_bonus && <p className="text-destructive text-[10px]">{errors.attack_bonus}</p>}
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="c-def">DEF base +</Label>
-                            <Input id="c-def" type="number" min={0} value={data.defense_bonus} onChange={(e) => setData((s) => ({ ...s, defense_bonus: e.target.value }))} />
-                            {errors.defense_bonus && <p className="text-[10px] text-destructive">{errors.defense_bonus}</p>}
+                            <Input
+                                id="c-def"
+                                type="number"
+                                min={0}
+                                value={data.defense_bonus}
+                                onChange={(e) => setData((s) => ({ ...s, defense_bonus: e.target.value }))}
+                            />
+                            {errors.defense_bonus && <p className="text-destructive text-[10px]">{errors.defense_bonus}</p>}
                         </div>
                     </div>
 
@@ -194,7 +212,7 @@ export function CollectionFormModal({ open, onOpenChange, collection, onSaved }:
                                 onChange={(e) => setData((s) => ({ ...s, portrait_url: e.target.value }))}
                                 placeholder="https://..."
                             />
-                            {errors.portrait_url && <p className="text-[10px] text-destructive">{errors.portrait_url}</p>}
+                            {errors.portrait_url && <p className="text-destructive text-[10px]">{errors.portrait_url}</p>}
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="c-source">URL fonte (Fandom)</Label>
@@ -205,7 +223,7 @@ export function CollectionFormModal({ open, onOpenChange, collection, onSaved }:
                                 onChange={(e) => setData((s) => ({ ...s, source_url: e.target.value }))}
                                 placeholder="https://afk-arena.fandom.com/wiki/..."
                             />
-                            {errors.source_url && <p className="text-[10px] text-destructive">{errors.source_url}</p>}
+                            {errors.source_url && <p className="text-destructive text-[10px]">{errors.source_url}</p>}
                         </div>
                     </div>
 
@@ -214,7 +232,7 @@ export function CollectionFormModal({ open, onOpenChange, collection, onSaved }:
                             type="checkbox"
                             checked={data.is_active}
                             onChange={(e) => setData((s) => ({ ...s, is_active: e.target.checked }))}
-                            className="size-4 rounded border-input"
+                            className="border-input size-4 rounded"
                         />
                         Ativa (visível para equipar nos heróis)
                     </label>

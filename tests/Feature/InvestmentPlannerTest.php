@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ChallengeType;
 use App\Models\Faction;
 use App\Models\Formation;
 use App\Models\Hero;
@@ -118,7 +119,7 @@ class InvestmentPlannerTest extends TestCase
         }
 
         // Cria formation com h1 dentro
-        $challengeType = \App\Models\ChallengeType::where('code', 'campaign')->first();
+        $challengeType = ChallengeType::where('code', 'campaign')->first();
         $formation = $user->defaultGameAccount->formations()->create([
             'name' => 'Test',
             'mode' => 'real',

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Artifact extends Model
 {
     public const KIND_DURA = 'dura';
+
     public const KIND_CLASS = 'class';
 
     protected $fillable = [

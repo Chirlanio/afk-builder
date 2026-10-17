@@ -1,6 +1,6 @@
+import { cn } from '@/lib/utils';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { cn } from '@/lib/utils';
 
 interface SlotCardProps {
     icon: LucideIcon;
@@ -24,7 +24,18 @@ interface SlotCardProps {
  *
  * Tamanho típico: ~96-112px (configurado pelo container).
  */
-export function HeroSlotCard({ icon: Icon, label, empty = false, imageUrl, valueText, detail, accentClass, onClick, className, children }: SlotCardProps) {
+export function HeroSlotCard({
+    icon: Icon,
+    label,
+    empty = false,
+    imageUrl,
+    valueText,
+    detail,
+    accentClass,
+    onClick,
+    className,
+    children,
+}: SlotCardProps) {
     const Wrapper = onClick ? 'button' : 'div';
 
     return (
@@ -33,17 +44,15 @@ export function HeroSlotCard({ icon: Icon, label, empty = false, imageUrl, value
             onClick={onClick}
             title={label}
             className={cn(
-                'group relative flex aspect-square w-full flex-col items-center justify-center overflow-hidden rounded-md border-2 bg-card text-center transition-all',
-                empty
-                    ? 'border-dashed border-muted-foreground/30 bg-muted/20 text-muted-foreground'
-                    : 'border-foreground/15 shadow-sm',
-                onClick && 'cursor-pointer hover:scale-[1.03] hover:border-foreground/50',
+                'group bg-card relative flex aspect-square w-full flex-col items-center justify-center overflow-hidden rounded-md border-2 text-center transition-all',
+                empty ? 'border-muted-foreground/30 bg-muted/20 text-muted-foreground border-dashed' : 'border-foreground/15 shadow-sm',
+                onClick && 'hover:border-foreground/50 cursor-pointer hover:scale-[1.03]',
                 accentClass,
                 className,
             )}
         >
             {/* Ícone discreto no canto superior esquerdo */}
-            <Icon className="absolute left-0.5 top-0.5 size-3 text-muted-foreground/70" />
+            <Icon className="text-muted-foreground/70 absolute top-0.5 left-0.5 size-3" />
 
             {/* Conteúdo central */}
             {empty ? (
@@ -57,9 +66,7 @@ export function HeroSlotCard({ icon: Icon, label, empty = false, imageUrl, value
                 <div className="flex size-full flex-col items-center justify-center p-1">{children}</div>
             ) : (
                 <div className="flex flex-col items-center justify-center gap-0.5 p-1">
-                    {valueText !== undefined && (
-                        <div className="text-base font-bold leading-none tabular-nums">{valueText}</div>
-                    )}
+                    {valueText !== undefined && <div className="text-base leading-none font-bold tabular-nums">{valueText}</div>}
                     {detail && <div className="text-[9px] leading-tight">{detail}</div>}
                 </div>
             )}

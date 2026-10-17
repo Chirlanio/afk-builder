@@ -32,9 +32,7 @@ interface PageProps {
     schema_version: number;
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Backup', href: '/settings/backup' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Backup', href: '/settings/backup' }];
 
 export default function BackupPage({ accounts, schema_version }: PageProps) {
     const flash = (usePage().props.flash ?? {}) as FlashProps;
@@ -93,15 +91,15 @@ export default function BackupPage({ accounts, schema_version }: PageProps) {
                         description="Baixe um arquivo JSON com o conteúdo de TODAS as suas contas do jogo. Ideal para portabilidade ou backup pessoal."
                     />
 
-                    <div className="rounded-lg border bg-card p-4">
+                    <div className="bg-card rounded-lg border p-4">
                         <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                            <Database className="size-4 text-muted-foreground" />
-                            O que está incluído · {accounts.length} conta{accounts.length !== 1 ? 's' : ''}
+                            <Database className="text-muted-foreground size-4" />O que está incluído · {accounts.length} conta
+                            {accounts.length !== 1 ? 's' : ''}
                         </div>
 
                         <div className="space-y-3">
                             {accounts.map((account) => (
-                                <div key={account.id} className="rounded-md border bg-muted/20 p-3">
+                                <div key={account.id} className="bg-muted/20 rounded-md border p-3">
                                     <div className="mb-2 flex items-center gap-2">
                                         <span className="font-medium">{account.name}</span>
                                         {account.is_default && (
@@ -122,14 +120,15 @@ export default function BackupPage({ accounts, schema_version }: PageProps) {
                             ))}
                         </div>
 
-                        <p className="mt-3 text-[11px] text-muted-foreground">
+                        <p className="text-muted-foreground mt-3 text-[11px]">
                             Inclui stats personalizadas, equipamento, anotações por hero e por formação, beasts, artifacts/coleções.
                         </p>
                     </div>
 
-                    <div className="rounded-lg border bg-card p-4">
-                        <p className="mb-3 text-xs text-muted-foreground">
-                            Schema versão <span className="font-mono font-semibold">v{schema_version}</span> (multi-conta). Arquivos v1 antigos ainda são aceitos no import (retro-compat).
+                    <div className="bg-card rounded-lg border p-4">
+                        <p className="text-muted-foreground mb-3 text-xs">
+                            Schema versão <span className="font-mono font-semibold">v{schema_version}</span> (multi-conta). Arquivos v1 antigos ainda
+                            são aceitos no import (retro-compat).
                         </p>
                         <Button asChild>
                             <a href={route('backup.download')} download>
@@ -152,13 +151,13 @@ export default function BackupPage({ accounts, schema_version }: PageProps) {
                     )}
 
                     {errors.file && (
-                        <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                        <div className="border-destructive/40 bg-destructive/10 text-destructive flex items-start gap-2 rounded-lg border p-3 text-xs">
                             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                             <p>{errors.file}</p>
                         </div>
                     )}
 
-                    <form onSubmit={onSubmit} className="space-y-4 rounded-lg border bg-card p-4">
+                    <form onSubmit={onSubmit} className="bg-card space-y-4 rounded-lg border p-4">
                         <div className="space-y-2">
                             <p className="text-xs font-medium">Estratégia</p>
                             <div className="flex flex-col gap-2 sm:flex-row">
@@ -189,10 +188,12 @@ export default function BackupPage({ accounts, schema_version }: PageProps) {
                                 type="file"
                                 accept="application/json,.json"
                                 onChange={onFileChange}
-                                className="block w-full cursor-pointer rounded-md border bg-background text-xs file:mr-3 file:cursor-pointer file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-muted/80"
+                                className="bg-background file:bg-muted hover:file:bg-muted/80 block w-full cursor-pointer rounded-md border text-xs file:mr-3 file:cursor-pointer file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-medium"
                             />
                             {filename && (
-                                <p className="text-[11px] text-muted-foreground">Selecionado: <span className="font-mono">{filename}</span></p>
+                                <p className="text-muted-foreground text-[11px]">
+                                    Selecionado: <span className="font-mono">{filename}</span>
+                                </p>
                             )}
                         </div>
 
@@ -200,7 +201,9 @@ export default function BackupPage({ accounts, schema_version }: PageProps) {
                             <div className="flex items-start gap-2 rounded-md border border-rose-500/40 bg-rose-500/5 p-2.5 text-[11px] text-rose-700 dark:text-rose-300">
                                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
                                 <p>
-                                    <strong>Modo replace</strong>: TODAS as {accounts.length} conta{accounts.length !== 1 ? 's' : ''} atuais, com seus {totals.roster} heroes, {totals.formations} formações, {totals.tier_lists} tier lists, {totals.formation_tags} tags e {totals.favorites} favoritos, serão <strong>apagadas</strong> antes do import.
+                                    <strong>Modo replace</strong>: TODAS as {accounts.length} conta{accounts.length !== 1 ? 's' : ''} atuais, com seus{' '}
+                                    {totals.roster} heroes, {totals.formations} formações, {totals.tier_lists} tier lists, {totals.formation_tags}{' '}
+                                    tags e {totals.favorites} favoritos, serão <strong>apagadas</strong> antes do import.
                                 </p>
                             </div>
                         )}
@@ -225,9 +228,10 @@ interface StrategyOptionProps {
 }
 
 function StrategyOption({ active, onClick, title, description, tone }: StrategyOptionProps) {
-    const toneClass = tone === 'emerald'
-        ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300'
-        : 'border-rose-500/40 bg-rose-500/5 text-rose-700 dark:text-rose-300';
+    const toneClass =
+        tone === 'emerald'
+            ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300'
+            : 'border-rose-500/40 bg-rose-500/5 text-rose-700 dark:text-rose-300';
     return (
         <button
             type="button"
@@ -252,8 +256,8 @@ interface SummaryRowProps {
 
 function SummaryRow({ icon: Icon, label, count }: SummaryRowProps) {
     return (
-        <div className="flex items-center gap-2 rounded-md bg-muted/30 px-3 py-2 text-xs">
-            <Icon className="size-3.5 text-muted-foreground" />
+        <div className="bg-muted/30 flex items-center gap-2 rounded-md px-3 py-2 text-xs">
+            <Icon className="text-muted-foreground size-3.5" />
             <span className="flex-1">{label}</span>
             <span className="font-mono font-semibold tabular-nums">{count}</span>
         </div>

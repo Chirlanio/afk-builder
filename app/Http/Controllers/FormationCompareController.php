@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Beast;
 use App\Models\Faction;
 use App\Models\Formation;
 use App\Models\Hero;
@@ -132,7 +133,7 @@ class FormationCompareController extends Controller
                 ->filter()
                 ->all();
 
-            $score = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $team->beast, $ctx, $team->beast_level ?? \App\Models\Beast::MAX_LEVEL);
+            $score = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $team->beast, $ctx, $team->beast_level ?? Beast::MAX_LEVEL);
             $totalScore += $score->total;
 
             $teams[] = [

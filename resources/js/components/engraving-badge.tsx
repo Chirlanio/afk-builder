@@ -23,7 +23,7 @@ export function EngravingBadge({ engraving, size = 'sm', showLabel = true, class
     return (
         <span
             className={cn(
-                'inline-flex items-center rounded-md border font-bold uppercase tracking-wide',
+                'inline-flex items-center rounded-md border font-bold tracking-wide uppercase',
                 sizeClasses[size],
                 ENGRAVING_MILESTONE_BADGE[milestone],
                 className,

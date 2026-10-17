@@ -43,6 +43,7 @@ class HeroStatsAdminController extends Controller
 
         if ($allNull) {
             HeroStat::where('hero_id', $hero->id)->delete();
+
             return response()->json(['ok' => true, 'cleared' => true]);
         }
 

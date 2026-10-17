@@ -12,9 +12,7 @@ class SingleTeamOptimizer
 
     private const HILL_CLIMB_ITERATIONS = 100;
 
-    public function __construct(private readonly TeamScorer $scorer)
-    {
-    }
+    public function __construct(private readonly TeamScorer $scorer) {}
 
     /**
      * @param  array<int, Hero>  $heroPoolById

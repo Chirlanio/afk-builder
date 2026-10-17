@@ -26,16 +26,17 @@ class SyncFurnitureCommand extends Command
             $this->warn('[dry-run] Nenhuma alteração será persistida.');
         }
 
-        $this->info('Buscando "' . self::WIKI_PAGE . '" da Fandom...');
+        $this->info('Buscando "'.self::WIKI_PAGE.'" da Fandom...');
         $wikitext = $client->fetchWikitext(self::WIKI_PAGE);
 
         if ($wikitext === null) {
             $this->error('Página não encontrada.');
+
             return self::FAILURE;
         }
 
         $entries = $parser->parseFurnitureAbilitiesIndex($wikitext);
-        $this->info(count($entries) . ' habilidades de móvel extraídas da página.');
+        $this->info(count($entries).' habilidades de móvel extraídas da página.');
 
         $allHeroes = Hero::query()
             ->where('is_active', true)
@@ -59,11 +60,13 @@ class SyncFurnitureCommand extends Command
 
             if (! $hero) {
                 $missing[] = $entry['hero_name'];
+
                 continue;
             }
 
             if ($dryRun) {
                 $this->line("  <fg=cyan>~</> {$entry['hero_name']} → {$entry['ability_name']}");
+
                 continue;
             }
 
@@ -87,17 +90,17 @@ class SyncFurnitureCommand extends Command
         }
 
         $this->newLine();
-        $this->info("Concluído: {$created} criadas, {$updated} atualizadas, " . count($missing) . ' sem match.');
+        $this->info("Concluído: {$created} criadas, {$updated} atualizadas, ".count($missing).' sem match.');
 
         if (! empty($missing) && count($missing) <= 20) {
             $this->newLine();
             $this->comment('Heróis da wiki sem match no DB (até 20):');
             foreach (array_slice($missing, 0, 20) as $name) {
-                $this->line('  · ' . $name);
+                $this->line('  · '.$name);
             }
         } elseif (count($missing) > 20) {
             $this->newLine();
-            $this->comment('Heróis sem match: ' . count($missing) . ' (use --dry-run pra ver todos).');
+            $this->comment('Heróis sem match: '.count($missing).' (use --dry-run pra ver todos).');
         }
 
         return self::SUCCESS;

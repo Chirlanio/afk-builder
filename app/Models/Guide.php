@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Guide extends Model
 {
     public const CATEGORY_MECANICAS = 'mecanicas';
+
     public const CATEGORY_MODOS = 'modos';
+
     public const CATEGORY_EVENTOS = 'eventos';
 
     public const CATEGORY_LABELS = [

@@ -1,10 +1,10 @@
-import axios from 'axios';
-import { BookmarkPlus, Check, ChevronDown, Loader2, RotateCcw, Save, Sliders, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import axios from 'axios';
+import { BookmarkPlus, Check, ChevronDown, Loader2, RotateCcw, Save, Sliders, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export interface WeightPreset {
     id: number;
@@ -72,16 +72,7 @@ function mergeWithDefaults(partial: Partial<WeightOverrides> | null | undefined,
     return { ...defaults, ...(partial ?? {}) };
 }
 
-export function WeightTunerSheet({
-    formationId,
-    challengeTypeId,
-    defaults,
-    savedOverrides,
-    presets = [],
-    onChange,
-    onSave,
-    onPresetsChange,
-}: Props) {
+export function WeightTunerSheet({ formationId, challengeTypeId, defaults, savedOverrides, presets = [], onChange, onSave, onPresetsChange }: Props) {
     // Estado "persistido": prioriza saved no DB; se ausente, defaults.
     const persistedWeights: WeightOverrides = mergeWithDefaults(savedOverrides, defaults);
 
@@ -138,9 +129,7 @@ export function WeightTunerSheet({
             setNewPresetScope('global');
         } catch (err: unknown) {
             const error = err as { response?: { data?: { errors?: { name?: string[] }; message?: string } } };
-            const message = error.response?.data?.errors?.name?.[0]
-                ?? error.response?.data?.message
-                ?? 'Falha ao salvar preset.';
+            const message = error.response?.data?.errors?.name?.[0] ?? error.response?.data?.message ?? 'Falha ao salvar preset.';
             setPresetError(message);
         } finally {
             setIsPresetSaving(false);
@@ -207,15 +196,13 @@ export function WeightTunerSheet({
                     </SheetDescription>
                 </SheetHeader>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-2">
+                <div className="bg-muted/30 mt-4 flex flex-wrap items-center gap-2 rounded-lg border p-2">
                     <DropdownMenu open={presetMenuOpen} onOpenChange={setPresetMenuOpen}>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="sm" className="gap-1.5">
                                 <ChevronDown className="size-3.5" />
                                 Presets
-                                {presets.length > 0 && (
-                                    <span className="ml-1 rounded bg-muted px-1.5 text-[10px]">{presets.length}</span>
-                                )}
+                                {presets.length > 0 && <span className="bg-muted ml-1 rounded px-1.5 text-[10px]">{presets.length}</span>}
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-64">
@@ -235,7 +222,7 @@ export function WeightTunerSheet({
                                     >
                                         <div className="flex min-w-0 flex-col">
                                             <span className="truncate text-sm">{preset.name}</span>
-                                            <span className="text-[10px] text-muted-foreground">
+                                            <span className="text-muted-foreground text-[10px]">
                                                 {preset.challenge_type_id === null ? 'Global' : 'Específico do desafio'}
                                             </span>
                                         </div>
@@ -246,7 +233,7 @@ export function WeightTunerSheet({
                                                 e.preventDefault();
                                                 deletePreset(preset);
                                             }}
-                                            className="rounded p-1 text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+                                            className="text-muted-foreground hover:bg-destructive hover:text-destructive-foreground rounded p-1"
                                             aria-label={`Excluir ${preset.name}`}
                                         >
                                             <Trash2 className="size-3" />
@@ -270,9 +257,7 @@ export function WeightTunerSheet({
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <span className="text-[11px] text-muted-foreground">
-                        Reutiliza pesos custom em outras formações.
-                    </span>
+                    <span className="text-muted-foreground text-[11px]">Reutiliza pesos custom em outras formações.</span>
                 </div>
 
                 {savePresetMode && (
@@ -285,7 +270,7 @@ export function WeightTunerSheet({
                             placeholder='ex: "PvP agressivo"'
                             maxLength={60}
                             autoFocus
-                            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            className="border-input bg-background focus:ring-ring h-9 rounded-md border px-3 text-sm focus:ring-2 focus:outline-none"
                         />
 
                         <div className="flex flex-wrap gap-2">
@@ -315,7 +300,7 @@ export function WeightTunerSheet({
                             </button>
                         </div>
 
-                        {presetError && <p className="text-[11px] text-destructive">{presetError}</p>}
+                        {presetError && <p className="text-destructive text-[11px]">{presetError}</p>}
 
                         <div className="flex items-center justify-end gap-2">
                             <Button
@@ -351,7 +336,7 @@ export function WeightTunerSheet({
                                             <button
                                                 type="button"
                                                 onClick={() => updateWeight(key, defaultValue)}
-                                                className="text-[10px] text-muted-foreground hover:text-foreground"
+                                                className="text-muted-foreground hover:text-foreground text-[10px]"
                                                 title={`Reset para ${defaultValue.toFixed(1)}`}
                                             >
                                                 <RotateCcw className="size-3" />
@@ -359,7 +344,7 @@ export function WeightTunerSheet({
                                         )}
                                         <span className={cn('font-mono text-xs tabular-nums', isChanged && 'font-semibold text-amber-400')}>
                                             {value.toFixed(1)}
-                                            {isChanged && <span className="ml-1 text-muted-foreground">({defaultValue.toFixed(1)})</span>}
+                                            {isChanged && <span className="text-muted-foreground ml-1">({defaultValue.toFixed(1)})</span>}
                                         </span>
                                     </div>
                                 </div>
@@ -371,11 +356,11 @@ export function WeightTunerSheet({
                                     value={value}
                                     onChange={(e) => updateWeight(key, Number(e.target.value))}
                                     className={cn(
-                                        'h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary',
+                                        'bg-muted accent-primary h-1.5 w-full cursor-pointer appearance-none rounded-full',
                                         isChanged && 'accent-amber-500',
                                     )}
                                 />
-                                <p className="text-[11px] text-muted-foreground">{description}</p>
+                                <p className="text-muted-foreground text-[11px]">{description}</p>
                             </div>
                         );
                     })}
@@ -389,12 +374,20 @@ export function WeightTunerSheet({
                     <div className="flex items-center gap-2">
                         {onSave && (
                             <Button size="sm" onClick={save} disabled={isSaving || !hasUnsavedChanges} className="gap-1.5">
-                                {isSaving ? <Loader2 className="size-3.5 animate-spin" /> : isSaved ? <Check className="size-3.5" /> : <Save className="size-3.5" />}
+                                {isSaving ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                ) : isSaved ? (
+                                    <Check className="size-3.5" />
+                                ) : (
+                                    <Save className="size-3.5" />
+                                )}
                                 {isSaved ? 'Salvo' : 'Salvar como padrão'}
                             </Button>
                         )}
                         <SheetClose asChild>
-                            <Button variant="ghost" size="sm">Fechar</Button>
+                            <Button variant="ghost" size="sm">
+                                Fechar
+                            </Button>
                         </SheetClose>
                     </div>
                 </SheetFooter>

@@ -1,6 +1,6 @@
-import { Keyboard } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SHORTCUTS, type ShortcutBinding } from '@/hooks/use-global-shortcuts';
+import { Keyboard } from 'lucide-react';
 
 interface Props {
     open: boolean;
@@ -25,9 +25,7 @@ export function KeyboardShortcutsHelp({ open, onOpenChange }: Props) {
                         <Keyboard className="size-4" />
                         Atalhos de teclado
                     </DialogTitle>
-                    <DialogDescription>
-                        Pressione as teclas em sequência (não simultaneamente). `G` é a leader key.
-                    </DialogDescription>
+                    <DialogDescription>Pressione as teclas em sequência (não simultaneamente). `G` é a leader key.</DialogDescription>
                 </DialogHeader>
 
                 <div className="flex flex-col gap-4">
@@ -43,9 +41,7 @@ export function KeyboardShortcutsHelp({ open, onOpenChange }: Props) {
                     />
                 </div>
 
-                <p className="text-[11px] text-muted-foreground">
-                    Atalhos são desativados enquanto você está digitando em um campo de texto.
-                </p>
+                <p className="text-muted-foreground text-[11px]">Atalhos são desativados enquanto você está digitando em um campo de texto.</p>
             </DialogContent>
         </Dialog>
     );
@@ -54,8 +50,8 @@ export function KeyboardShortcutsHelp({ open, onOpenChange }: Props) {
 function ShortcutGroup({ title, items }: { title: string; items: ShortcutBinding[] }) {
     return (
         <div>
-            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
-            <div className="flex flex-col divide-y rounded-lg border bg-card">
+            <h3 className="text-muted-foreground mb-2 text-[11px] font-semibold tracking-wide uppercase">{title}</h3>
+            <div className="bg-card flex flex-col divide-y rounded-lg border">
                 {items.map((item) => (
                     <div key={item.combo} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
                         <span>{item.description}</span>
@@ -74,8 +70,8 @@ function ComboKbd({ combo }: { combo: string }) {
         <span className="flex items-center gap-1">
             {keys.map((key, i) => (
                 <span key={i} className="flex items-center gap-1">
-                    {i > 0 && <span className="text-[10px] text-muted-foreground">depois</span>}
-                    <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase">{key}</kbd>
+                    {i > 0 && <span className="text-muted-foreground text-[10px]">depois</span>}
+                    <kbd className="bg-muted rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase">{key}</kbd>
                 </span>
             ))}
         </span>

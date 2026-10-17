@@ -95,6 +95,7 @@ class FandomSyncService
                 if ($wikitext === null) {
                     $skipped[] = "{$title}: no wikitext";
                     $this->reportProgress($options, $seen, $total, $title, 'skipped');
+
                     continue;
                 }
 
@@ -103,6 +104,7 @@ class FandomSyncService
                 if ($parsed === null) {
                     $skipped[] = "{$title}: not a hero page";
                     $this->reportProgress($options, $seen, $total, $title, 'skipped');
+
                     continue;
                 }
 
@@ -112,11 +114,18 @@ class FandomSyncService
 
                 if (! $factionId || ! $classId || ! $tierId) {
                     $missing = [];
-                    if (! $factionId) $missing[] = "faction='{$parsed['faction_code']}'";
-                    if (! $classId) $missing[] = "class='{$parsed['class_code']}'";
-                    if (! $tierId) $missing[] = "tier='{$parsed['tier_code']}'";
+                    if (! $factionId) {
+                        $missing[] = "faction='{$parsed['faction_code']}'";
+                    }
+                    if (! $classId) {
+                        $missing[] = "class='{$parsed['class_code']}'";
+                    }
+                    if (! $tierId) {
+                        $missing[] = "tier='{$parsed['tier_code']}'";
+                    }
                     $skipped[] = "{$title}: missing mapping for ".implode(', ', $missing);
                     $this->reportProgress($options, $seen, $total, $title, 'skipped');
+
                     continue;
                 }
 
@@ -131,6 +140,7 @@ class FandomSyncService
                 if ($slug === '') {
                     $skipped[] = "{$title}: could not derive slug";
                     $this->reportProgress($options, $seen, $total, $title, 'skipped');
+
                     continue;
                 }
 

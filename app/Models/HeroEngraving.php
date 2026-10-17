@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class HeroEngraving extends Model
 {
     public const LEVEL_E30 = 'e30';
+
     public const LEVEL_E60 = 'e60';
 
     protected $fillable = [

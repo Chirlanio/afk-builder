@@ -20,11 +20,12 @@ class SyncArtifactsCommand extends Command
 
     public function handle(FandomWikiClient $client, WikitextHeroParser $parser): int
     {
-        $this->info("Buscando wikitext de '" . self::PAGE_TITLE . "'...");
+        $this->info("Buscando wikitext de '".self::PAGE_TITLE."'...");
 
         $wikitext = $client->fetchWikitext(self::PAGE_TITLE);
         if (! $wikitext) {
             $this->error('Não foi possível obter wikitext da página.');
+
             return self::FAILURE;
         }
 
@@ -35,6 +36,7 @@ class SyncArtifactsCommand extends Command
 
         if ($duraCount === 0 && $classCount === 0) {
             $this->error('Nenhum artefato encontrado — verificar parser ou estrutura da wiki.');
+
             return self::FAILURE;
         }
 
@@ -49,6 +51,7 @@ class SyncArtifactsCommand extends Command
                 $slug = Str::slug($a['name']);
                 if ($slug === '') {
                     $skipped++;
+
                     continue;
                 }
 
@@ -57,16 +60,17 @@ class SyncArtifactsCommand extends Command
                     if (! $a['class_code'] || ! isset($classMap[$a['class_code']])) {
                         $this->line("  <fg=yellow>?</> {$a['name']} (classe inválida: {$a['class_code']})");
                         $skipped++;
+
                         continue;
                     }
                     $heroClassId = $classMap[$a['class_code']];
                 }
 
                 $portraitUrl = $a['image_filename']
-                    ? 'https://afk-arena.fandom.com/wiki/Special:Filepath/' . rawurlencode($a['image_filename'])
+                    ? 'https://afk-arena.fandom.com/wiki/Special:Filepath/'.rawurlencode($a['image_filename'])
                     : null;
 
-                $sourceUrl = 'https://afk-arena.fandom.com/wiki/Artifacts#' . rawurlencode(str_replace(' ', '_', $a['name']));
+                $sourceUrl = 'https://afk-arena.fandom.com/wiki/Artifacts#'.rawurlencode(str_replace(' ', '_', $a['name']));
 
                 $payload = [
                     'name' => $a['name'],
@@ -85,7 +89,8 @@ class SyncArtifactsCommand extends Command
 
                 if ($this->option('dry-run')) {
                     $existing = Artifact::where('slug', $slug)->exists();
-                    $this->line("  [dry] " . ($existing ? '~' : '+') . " {$slug} ({$kind})");
+                    $this->line('  [dry] '.($existing ? '~' : '+')." {$slug} ({$kind})");
+
                     continue;
                 }
 

@@ -21,7 +21,8 @@ export function RosterPowerChart({ history }: Props) {
             <div className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-5 md:p-6">
                 <h2 className="mb-2 text-sm font-semibold text-amber-100">Evolução do power</h2>
                 <p className="text-xs text-amber-100/40">
-                    Snapshots diários ainda não foram coletados. Rode <code className="rounded bg-zinc-900 px-1 py-0.5 font-mono text-[10px]">php artisan roster:snapshot</code> ou aguarde 24h.
+                    Snapshots diários ainda não foram coletados. Rode{' '}
+                    <code className="rounded bg-zinc-900 px-1 py-0.5 font-mono text-[10px]">php artisan roster:snapshot</code> ou aguarde 24h.
                 </p>
             </div>
         );
@@ -68,12 +69,7 @@ export function RosterPowerChart({ history }: Props) {
                             }}
                             minTickGap={20}
                         />
-                        <YAxis
-                            stroke="#71717a"
-                            tick={{ fontSize: 10 }}
-                            tickFormatter={(v: number) => formatCompact(v)}
-                            width={50}
-                        />
+                        <YAxis stroke="#71717a" tick={{ fontSize: 10 }} tickFormatter={(v: number) => formatCompact(v)} width={50} />
                         <Tooltip
                             contentStyle={{
                                 background: '#09090b',
@@ -96,14 +92,7 @@ export function RosterPowerChart({ history }: Props) {
                                 return [num, name];
                             }}
                         />
-                        <Line
-                            type="monotone"
-                            dataKey="total_power"
-                            stroke="#fbbf24"
-                            strokeWidth={2}
-                            dot={false}
-                            activeDot={{ r: 4 }}
-                        />
+                        <Line type="monotone" dataKey="total_power" stroke="#fbbf24" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
                     </LineChart>
                 </ResponsiveContainer>
             </div>

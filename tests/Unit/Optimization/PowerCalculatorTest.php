@@ -532,7 +532,7 @@ class PowerCalculatorTest extends TestCase
         $this->assertLessThan(2000.0, $power);
     }
 
-    public function test_for_user_hero_cai_para_heroStat_quando_sem_real_stats(): void
+    public function test_for_user_hero_cai_para_hero_stat_quando_sem_real_stats(): void
     {
         // UserHero SEM stats reais (hp=0)
         $uh = $this->makeUserHero([

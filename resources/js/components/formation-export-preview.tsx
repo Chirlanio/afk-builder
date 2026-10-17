@@ -1,17 +1,6 @@
-import { forwardRef } from 'react';
 import { CLASS_ICON, TIER_THEME } from '@/lib/afk';
-import type {
-    ChallengeType,
-    ClassCode,
-    Faction,
-    FactionCode,
-    Formation,
-    FormationTeam,
-    Hero,
-    HeroClass,
-    Tier,
-    TierCode,
-} from '@/types/afk';
+import type { ChallengeType, ClassCode, Faction, FactionCode, Formation, FormationTeam, Hero, HeroClass, Tier, TierCode } from '@/types/afk';
+import { forwardRef } from 'react';
 
 // Mapa local de cores RGB por facção — html-to-image não inlina @apply Tailwind
 // pra gradients, então cores precisam ser hex/rgb explícitas.
@@ -90,21 +79,14 @@ export const FormationExportPreview = forwardRef<HTMLDivElement, Props>(function
                         >
                             {formation.name}
                         </h1>
-                        <span style={{ marginLeft: 'auto', fontSize: '14px', color: '#9ca3af' }}>
-                            afk-builder
-                        </span>
+                        <span style={{ marginLeft: 'auto', fontSize: '14px', color: '#9ca3af' }}>afk-builder</span>
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px', alignItems: 'center' }}>
                         <BadgeExport label={formation.challenge_type.name_pt} tone="primary" />
                         {formation.mode === 'target' && <BadgeExport label="Modo Alvo" tone="muted" />}
                         {formation.challenge_type.is_pvp && <BadgeExport label="PvP" tone="rose" />}
-                        <BadgeExport
-                            label={`${formation.teams_count} ${formation.teams_count === 1 ? 'equipe' : 'equipes'}`}
-                            tone="muted"
-                        />
-                        {formation.tags?.map((tag) => (
-                            <BadgeExport key={tag.id} label={tag.name} tone="amber" />
-                        ))}
+                        <BadgeExport label={`${formation.teams_count} ${formation.teams_count === 1 ? 'equipe' : 'equipes'}`} tone="muted" />
+                        {formation.tags?.map((tag) => <BadgeExport key={tag.id} label={tag.name} tone="amber" />)}
                     </div>
                 </div>
 
@@ -159,9 +141,7 @@ export const FormationExportPreview = forwardRef<HTMLDivElement, Props>(function
                                     {Array.from({ length: 5 }, (_, i) => {
                                         const hero = heroes[i];
                                         if (!hero) {
-                                            return (
-                                                <EmptySlot key={i} />
-                                            );
+                                            return <EmptySlot key={i} />;
                                         }
                                         const faction = factionById[hero.faction_id];
                                         const klass = classById[hero.hero_class_id];
@@ -247,17 +227,7 @@ function EmptySlot() {
     );
 }
 
-function HeroSlot({
-    hero,
-    factionCode,
-    classCode,
-    tierCode,
-}: {
-    hero: Hero;
-    factionCode: FactionCode;
-    classCode: ClassCode;
-    tierCode: TierCode;
-}) {
+function HeroSlot({ hero, factionCode, classCode, tierCode }: { hero: Hero; factionCode: FactionCode; classCode: ClassCode; tierCode: TierCode }) {
     const tierTheme = TIER_THEME[tierCode];
     const ClassIcon = CLASS_ICON[classCode];
     const factionColor = FACTION_COLOR_HEX[factionCode];
@@ -358,7 +328,7 @@ function HeroSlot({
     );
 }
 
-function tierBgFromTheme(theme: typeof TIER_THEME[TierCode]): string {
+function tierBgFromTheme(theme: (typeof TIER_THEME)[TierCode]): string {
     // Mapeia o badge Tailwind para gradient inline já que html-to-image precisa
     // de CSS computado em RGB — algumas variants Tailwind via @apply podem falhar.
     if (theme.label === 'Ascended') return 'linear-gradient(90deg, #fb923c, #facc15)';
@@ -366,4 +336,3 @@ function tierBgFromTheme(theme: typeof TIER_THEME[TierCode]): string {
     if (theme.label === 'Common' || theme.label === 'Rare') return '#3b82f6';
     return '#52525b';
 }
-

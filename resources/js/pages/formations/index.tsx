@@ -1,6 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { FileText, Filter, GitCompareArrows, PawPrint, Plus, Search, Share2, Swords, Tag, Target, Trash2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { tagColorClasses, type FormationTagPayload } from '@/components/formation-tags-menu';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,8 +8,10 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
-import { tagColorClasses, type FormationTagPayload } from '@/components/formation-tags-menu';
 import type { ChallengeType, Formation, FormationMode } from '@/types/afk';
+import { Head, Link, router } from '@inertiajs/react';
+import { FileText, Filter, GitCompareArrows, PawPrint, Plus, Search, Share2, Swords, Tag, Target, Trash2, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 interface FormationListItem extends Formation {
     challenge_type: ChallengeType;
@@ -83,13 +83,14 @@ export default function FormationsIndex({ formations, availableChallengeTypes, a
         });
     }, [formations, filters]);
 
-    const hasActiveFilters = filters.search !== ''
-        || filters.challengeTypeIds.size > 0
-        || filters.tagIds.size > 0
-        || filters.mode !== 'all'
-        || filters.hasBeast !== 'all'
-        || filters.hasShare !== 'all'
-        || filters.hasNotes !== 'all';
+    const hasActiveFilters =
+        filters.search !== '' ||
+        filters.challengeTypeIds.size > 0 ||
+        filters.tagIds.size > 0 ||
+        filters.mode !== 'all' ||
+        filters.hasBeast !== 'all' ||
+        filters.hasShare !== 'all' ||
+        filters.hasNotes !== 'all';
 
     const remove = async (formation: FormationListItem) => {
         const ok = await confirm({
@@ -160,8 +161,8 @@ export default function FormationsIndex({ formations, availableChallengeTypes, a
                     formations.length === 0
                         ? 'Você ainda não criou nenhuma formação.'
                         : hasActiveFilters
-                            ? `${filtered.length} de ${formations.length} formações`
-                            : `${formations.length} ${formations.length === 1 ? 'formação' : 'formações'}.`
+                          ? `${filtered.length} de ${formations.length} formações`
+                          : `${formations.length} ${formations.length === 1 ? 'formação' : 'formações'}.`
                 }
                 actions={
                     <>
@@ -196,7 +197,7 @@ export default function FormationsIndex({ formations, availableChallengeTypes, a
                 )}
 
                 {selected.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                         {selected.length === 1
                             ? '1 formação selecionada — selecione outra para comparar.'
                             : `${selected.length} formações selecionadas. Clique "Comparar selecionadas".`}
@@ -205,10 +206,8 @@ export default function FormationsIndex({ formations, availableChallengeTypes, a
 
                 {formations.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
-                        <Swords className="size-10 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                            Crie sua primeira formação para começar a montar equipes.
-                        </p>
+                        <Swords className="text-muted-foreground size-10" />
+                        <p className="text-muted-foreground text-sm">Crie sua primeira formação para começar a montar equipes.</p>
                         <Button asChild>
                             <Link href="/formations/create">
                                 <Plus className="size-4" />
@@ -218,10 +217,8 @@ export default function FormationsIndex({ formations, availableChallengeTypes, a
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
-                        <Filter className="size-10 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                            Nenhuma formação casa com os filtros atuais.
-                        </p>
+                        <Filter className="text-muted-foreground size-10" />
+                        <p className="text-muted-foreground text-sm">Nenhuma formação casa com os filtros atuais.</p>
                         <Button variant="outline" onClick={resetFilters}>
                             <X className="size-4" />
                             Limpar filtros
@@ -235,8 +232,8 @@ export default function FormationsIndex({ formations, availableChallengeTypes, a
                                 <div
                                     key={formation.id}
                                     className={cn(
-                                        'group flex flex-col gap-2 rounded-xl border bg-card p-4 transition-colors',
-                                        isSelected ? 'border-primary ring-1 ring-primary' : 'hover:border-foreground/20',
+                                        'group bg-card flex flex-col gap-2 rounded-xl border p-4 transition-colors',
+                                        isSelected ? 'border-primary ring-primary ring-1' : 'hover:border-foreground/20',
                                     )}
                                 >
                                     <div className="flex items-start justify-between gap-2">
@@ -309,11 +306,7 @@ export default function FormationsIndex({ formations, availableChallengeTypes, a
                                             {formation.tags.map((tag) => {
                                                 const c = tagColorClasses(tag.color);
                                                 return (
-                                                    <Badge
-                                                        key={tag.id}
-                                                        variant="outline"
-                                                        className={cn('gap-1 text-[10px]', c.bg, c.text, c.border)}
-                                                    >
+                                                    <Badge key={tag.id} variant="outline" className={cn('gap-1 text-[10px]', c.bg, c.text, c.border)}>
                                                         <span className={cn('size-1.5 rounded-full', c.dot)} aria-hidden />
                                                         {tag.name}
                                                     </Badge>
@@ -322,7 +315,7 @@ export default function FormationsIndex({ formations, availableChallengeTypes, a
                                         </div>
                                     )}
 
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-muted-foreground text-xs">
                                         Atualizada {new Date(formation.updated_at).toLocaleDateString('pt-BR')}
                                     </p>
                                 </div>
@@ -362,10 +355,10 @@ function FilterBar({
     onReset,
 }: FilterBarProps) {
     return (
-        <div className="flex flex-col gap-3 rounded-xl border bg-card p-3">
+        <div className="bg-card flex flex-col gap-3 rounded-xl border p-3">
             <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                    <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
                     <Input
                         value={filters.search}
                         onChange={(e) => onSearchChange(e.target.value)}
@@ -383,7 +376,7 @@ function FilterBar({
 
             {availableChallengeTypes.length > 1 && (
                 <div className="flex flex-wrap gap-1">
-                    <span className="self-center px-1 text-[11px] uppercase tracking-wide text-muted-foreground">Desafio:</span>
+                    <span className="text-muted-foreground self-center px-1 text-[11px] tracking-wide uppercase">Desafio:</span>
                     {availableChallengeTypes.map((ct) => {
                         const active = filters.challengeTypeIds.has(ct.id);
                         return (
@@ -408,7 +401,7 @@ function FilterBar({
 
             {availableTags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                    <span className="self-center px-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <span className="text-muted-foreground self-center px-1 text-[11px] tracking-wide uppercase">
                         <Tag className="-mt-0.5 mr-1 inline size-2.5" />
                         Tags:
                     </span>
@@ -440,9 +433,7 @@ function FilterBar({
                 <CycleButton
                     icon={Target}
                     label="Modo"
-                    state={
-                        filters.mode === 'all' ? 'Todos' : filters.mode === 'target' ? 'Alvo' : 'Real'
-                    }
+                    state={filters.mode === 'all' ? 'Todos' : filters.mode === 'target' ? 'Alvo' : 'Real'}
                     active={filters.mode !== 'all'}
                     onClick={onCycleMode}
                 />
@@ -487,9 +478,7 @@ function CycleButton({ icon: Icon, label, state, active, onClick }: CycleButtonP
             onClick={onClick}
             className={cn(
                 'flex min-h-7 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
-                active
-                    ? 'border-primary bg-primary/15 text-primary'
-                    : 'border-border text-muted-foreground hover:border-foreground/30',
+                active ? 'border-primary bg-primary/15 text-primary' : 'border-border text-muted-foreground hover:border-foreground/30',
             )}
             aria-pressed={active}
             aria-label={`Filtro ${label}: ${state}`}

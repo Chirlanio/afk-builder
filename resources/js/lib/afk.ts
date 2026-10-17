@@ -247,11 +247,7 @@ export function ascendedStars(ascensionValue: number | null | undefined): { fill
  * tendo index signature de string automaticamente. Internamente fazemos cast pontual
  * pra ler propriedades dinâmicas com segurança.
  */
-export function localized<T extends object>(
-    item: T | null | undefined,
-    field: string,
-    locale: 'en' | 'pt' | undefined,
-): string | null {
+export function localized<T extends object>(item: T | null | undefined, field: string, locale: 'en' | 'pt' | undefined): string | null {
     if (!item) return null;
     const record = item as Record<string, unknown>;
     if (locale === 'pt') {

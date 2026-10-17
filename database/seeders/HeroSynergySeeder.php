@@ -182,6 +182,7 @@ class HeroSynergySeeder extends Seeder
 
             if ($idA === null || $idB === null) {
                 $this->command?->warn("Synergia ignorada: {$slugA} + {$slugB} (slug não encontrado)");
+
                 continue;
             }
 

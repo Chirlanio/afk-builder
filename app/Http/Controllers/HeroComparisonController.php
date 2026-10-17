@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GameAccount;
 use App\Models\UserHero;
 use App\Models\UserResource;
 use App\Services\ActiveGameAccount;
@@ -14,6 +15,7 @@ use Inertia\Response;
 class HeroComparisonController extends Controller
 {
     public const MIN_HEROES = 2;
+
     public const MAX_HEROES = 4;
 
     public function __construct(private readonly ActiveGameAccount $active) {}
@@ -93,7 +95,7 @@ class HeroComparisonController extends Controller
      * @return array<string, mixed>
      */
     private function buildHeroPayload(
-        \App\Models\GameAccount $account,
+        GameAccount $account,
         UserHero $uh,
         PowerCalculator $power,
         InvestmentPlanner $planner,

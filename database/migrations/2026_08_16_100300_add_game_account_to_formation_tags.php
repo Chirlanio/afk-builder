@@ -17,14 +17,14 @@ return new class extends Migration
                 ->cascadeOnDelete();
         });
 
-        DB::statement("
+        DB::statement('
             UPDATE formation_tags
             SET game_account_id = (
                 SELECT id FROM game_accounts
                 WHERE game_accounts.user_id = formation_tags.user_id
                   AND game_accounts.is_default = 1
             )
-        ");
+        ');
     }
 
     public function down(): void

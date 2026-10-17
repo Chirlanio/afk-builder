@@ -17,14 +17,14 @@ return new class extends Migration
                 ->cascadeOnDelete();
         });
 
-        DB::statement("
+        DB::statement('
             UPDATE scoring_weight_presets
             SET game_account_id = (
                 SELECT id FROM game_accounts
                 WHERE game_accounts.user_id = scoring_weight_presets.user_id
                   AND game_accounts.is_default = 1
             )
-        ");
+        ');
     }
 
     public function down(): void

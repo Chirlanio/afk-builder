@@ -1,6 +1,6 @@
+import type { WeightOverrides } from '@/components/weight-tuner-sheet';
 import { cn } from '@/lib/utils';
 import type { ScoreBreakdownPayload } from '@/types/afk';
-import type { WeightOverrides } from '@/components/weight-tuner-sheet';
 
 interface Props {
     score: ScoreBreakdownPayload;
@@ -86,13 +86,13 @@ export function ScoreBreakdownCard({ score, className, compact = false, weights 
     const hasCustomWeights = customTotal !== null;
 
     return (
-        <div className={cn('rounded-lg border bg-card/50 text-sm', className)}>
+        <div className={cn('bg-card/50 rounded-lg border text-sm', className)}>
             {!compact && (
                 <div className="border-b px-3 py-2">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Detalhamento do score</h4>
+                    <h4 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">Detalhamento do score</h4>
                 </div>
             )}
-            <div className="divide-y divide-border/40">
+            <div className="divide-border/40 divide-y">
                 {COMPONENTS.map(({ key, weightKey, label, tooltip, scale }) => {
                     const value = (score[key] as number | undefined) ?? 0;
                     const weight = weights?.[weightKey];
@@ -106,21 +106,19 @@ export function ScoreBreakdownCard({ score, className, compact = false, weights 
                             <span>{label}</span>
                             <span className="font-mono tabular-nums">
                                 {formatValue(value, scale)}
-                                {weight !== undefined && (
-                                    <span className="ml-1.5 text-[10px] text-muted-foreground">×{weight.toFixed(1)}</span>
-                                )}
+                                {weight !== undefined && <span className="text-muted-foreground ml-1.5 text-[10px]">×{weight.toFixed(1)}</span>}
                             </span>
                         </div>
                     );
                 })}
-                <div className="flex items-center justify-between bg-muted/30 px-3 py-2">
-                    <span className="text-xs font-semibold uppercase tracking-wide">Total{hasCustomWeights && ' (custom)'}</span>
+                <div className="bg-muted/30 flex items-center justify-between px-3 py-2">
+                    <span className="text-xs font-semibold tracking-wide uppercase">Total{hasCustomWeights && ' (custom)'}</span>
                     <span className="flex items-baseline gap-2">
                         <span className={cn('font-mono text-base font-bold tabular-nums', hasCustomWeights && 'text-amber-400')}>
                             {(customTotal ?? score.total).toFixed(2)}
                         </span>
                         {hasCustomWeights && (
-                            <span className="font-mono text-[10px] text-muted-foreground line-through">{score.total.toFixed(2)}</span>
+                            <span className="text-muted-foreground font-mono text-[10px] line-through">{score.total.toFixed(2)}</span>
                         )}
                     </span>
                 </div>

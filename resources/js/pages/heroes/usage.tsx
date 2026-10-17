@@ -74,10 +74,7 @@ function HeroAvatar({ hero, size = 'md' }: { hero: HeroPayload; size?: 'sm' | 'm
 
 function HeroLink({ hero, children }: { hero: HeroPayload; children: React.ReactNode }) {
     return (
-        <Link
-            href={`${route('heroes.index')}?open=${hero.slug}`}
-            className="block transition-all hover:scale-[1.02]"
-        >
+        <Link href={`${route('heroes.index')}?open=${hero.slug}`} className="block transition-all hover:scale-[1.02]">
             {children}
         </Link>
     );
@@ -102,14 +99,7 @@ function EmptyState({ title, description, icon: Icon }: { title: string; descrip
     );
 }
 
-export default function HeroUsageIndex({
-    stats,
-    topUsed,
-    neverUsed,
-    neverUsedShownLimit,
-    investedForgotten,
-    usageByChallengeType,
-}: PageProps) {
+export default function HeroUsageIndex({ stats, topUsed, neverUsed, neverUsedShownLimit, investedForgotten, usageByChallengeType }: PageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Uso de heróis" />
@@ -129,8 +119,18 @@ export default function HeroUsageIndex({
                 <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
                     <StatCard label="Heróis utilizados" value={stats.total_used} hint="distintos em formações" />
                     <StatCard label="Roster total" value={stats.total_in_roster} hint="heróis cadastrados" />
-                    <StatCard label="Nunca usados" value={stats.never_used_total} hint="no roster, fora de formações" tone={stats.never_used_total > 0 ? 'warning' : undefined} />
-                    <StatCard label="Investidos + esquecidos" value={stats.invested_forgotten_total} hint="SI≥20 ou F≥3 ou Eng≥60" tone={stats.invested_forgotten_total > 0 ? 'danger' : undefined} />
+                    <StatCard
+                        label="Nunca usados"
+                        value={stats.never_used_total}
+                        hint="no roster, fora de formações"
+                        tone={stats.never_used_total > 0 ? 'warning' : undefined}
+                    />
+                    <StatCard
+                        label="Investidos + esquecidos"
+                        value={stats.invested_forgotten_total}
+                        hint="SI≥20 ou F≥3 ou Eng≥60"
+                        tone={stats.invested_forgotten_total > 0 ? 'danger' : undefined}
+                    />
                 </section>
 
                 {/* Top 10 usados */}
@@ -168,13 +168,12 @@ export default function HeroUsageIndex({
                                                     {ClassIcon && <ClassIcon className="size-3 shrink-0 text-amber-100/50" />}
                                                 </div>
                                                 <div className="text-[11px] text-amber-100/50">
-                                                    {hero.team_count} {hero.team_count === 1 ? 'time' : 'times'} em {hero.formation_count} {hero.formation_count === 1 ? 'formação' : 'formações'}
-                                                    {hero.challenge_types_count > 1 && (
-                                                        <> · {hero.challenge_types_count} desafios</>
-                                                    )}
+                                                    {hero.team_count} {hero.team_count === 1 ? 'time' : 'times'} em {hero.formation_count}{' '}
+                                                    {hero.formation_count === 1 ? 'formação' : 'formações'}
+                                                    {hero.challenge_types_count > 1 && <> · {hero.challenge_types_count} desafios</>}
                                                 </div>
                                             </div>
-                                            <div className="font-mono text-lg font-bold tabular-nums text-amber-300">{hero.team_count}</div>
+                                            <div className="font-mono text-lg font-bold text-amber-300 tabular-nums">{hero.team_count}</div>
                                         </div>
                                     </HeroLink>
                                 );
@@ -191,7 +190,8 @@ export default function HeroUsageIndex({
                             <div>
                                 <h2 className="text-lg font-semibold text-rose-100">Investidos mas esquecidos</h2>
                                 <p className="text-xs text-rose-100/60">
-                                    Heróis com SI ≥ 20, móveis ≥ 3 ou inscrições ≥ 60 que nunca entraram em uma formação. Vale revisar se ainda fazem sentido no seu projeto.
+                                    Heróis com SI ≥ 20, móveis ≥ 3 ou inscrições ≥ 60 que nunca entraram em uma formação. Vale revisar se ainda fazem
+                                    sentido no seu projeto.
                                 </p>
                             </div>
                         </header>
@@ -239,7 +239,7 @@ export default function HeroUsageIndex({
                                                     </span>
                                                     <HeroAvatar hero={hero} size="sm" />
                                                     <span className="min-w-0 flex-1 truncate text-xs text-amber-100">{hero.name}</span>
-                                                    <span className="font-mono text-xs tabular-nums text-amber-300">{hero.team_count}×</span>
+                                                    <span className="font-mono text-xs text-amber-300 tabular-nums">{hero.team_count}×</span>
                                                 </div>
                                             </HeroLink>
                                         ))}
@@ -258,7 +258,9 @@ export default function HeroUsageIndex({
                             <p className="text-xs text-amber-100/50">
                                 Heróis que você cadastrou mas nunca colocou em uma formação.{' '}
                                 {stats.never_used_total > neverUsedShownLimit && (
-                                    <span>Mostrando os {neverUsedShownLimit} primeiros de {stats.never_used_total}.</span>
+                                    <span>
+                                        Mostrando os {neverUsedShownLimit} primeiros de {stats.never_used_total}.
+                                    </span>
                                 )}
                             </p>
                         </div>
@@ -267,7 +269,11 @@ export default function HeroUsageIndex({
                         <EmptyState
                             icon={Trophy}
                             title={stats.total_in_roster === 0 ? 'Roster vazio' : 'Todo seu roster está em uso'}
-                            description={stats.total_in_roster === 0 ? 'Cadastre heróis no /heroes para começar.' : 'Você usa todos os heróis que cadastrou — bom planejamento!'}
+                            description={
+                                stats.total_in_roster === 0
+                                    ? 'Cadastre heróis no /heroes para começar.'
+                                    : 'Você usa todos os heróis que cadastrou — bom planejamento!'
+                            }
                         />
                     ) : (
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
@@ -309,15 +315,16 @@ interface StatCardProps {
 }
 
 function StatCard({ label, value, hint, tone }: StatCardProps) {
-    const toneClasses = tone === 'danger'
-        ? 'border-rose-400/30 bg-rose-950/30 text-rose-100'
-        : tone === 'warning'
-            ? 'border-amber-500/40 bg-amber-950/30 text-amber-100'
-            : 'border-amber-400/15 bg-zinc-950/60 text-amber-100';
+    const toneClasses =
+        tone === 'danger'
+            ? 'border-rose-400/30 bg-rose-950/30 text-rose-100'
+            : tone === 'warning'
+              ? 'border-amber-500/40 bg-amber-950/30 text-amber-100'
+              : 'border-amber-400/15 bg-zinc-950/60 text-amber-100';
 
     return (
         <div className={cn('rounded-xl border p-4', toneClasses)}>
-            <div className="text-xs uppercase tracking-wide opacity-60">{label}</div>
+            <div className="text-xs tracking-wide uppercase opacity-60">{label}</div>
             <div className="mt-1 text-2xl font-bold tabular-nums">{value}</div>
             {hint && <div className="mt-0.5 text-[10px] opacity-50">{hint}</div>}
         </div>

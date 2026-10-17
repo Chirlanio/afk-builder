@@ -1,14 +1,9 @@
-import { router, usePage } from '@inertiajs/react';
-import { Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import type { Locale, SharedData } from '@/types';
+import { router, usePage } from '@inertiajs/react';
+import { Languages } from 'lucide-react';
 
 const LABELS: Record<Locale, string> = {
     en: 'English',
@@ -26,11 +21,7 @@ export function LocaleSwitcher() {
 
     const setLocale = (locale: Locale) => {
         if (locale === currentLocale) return;
-        router.patch(
-            '/settings/locale',
-            { locale },
-            { preserveScroll: true, preserveState: false },
-        );
+        router.patch('/settings/locale', { locale }, { preserveScroll: true, preserveState: false });
     };
 
     return (
@@ -45,16 +36,11 @@ export function LocaleSwitcher() {
                     <DropdownMenuItem
                         key={locale}
                         onClick={() => setLocale(locale)}
-                        className={cn(
-                            'flex cursor-pointer items-center gap-2',
-                            locale === currentLocale && 'font-semibold',
-                        )}
+                        className={cn('flex cursor-pointer items-center gap-2', locale === currentLocale && 'font-semibold')}
                     >
                         <span className="text-base">{FLAGS[locale]}</span>
                         <span>{LABELS[locale]}</span>
-                        {locale === currentLocale && (
-                            <span className="ml-auto text-xs text-muted-foreground">atual</span>
-                        )}
+                        {locale === currentLocale && <span className="text-muted-foreground ml-auto text-xs">atual</span>}
                     </DropdownMenuItem>
                 ))}
             </DropdownMenuContent>

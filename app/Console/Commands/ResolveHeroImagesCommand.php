@@ -34,6 +34,7 @@ class ResolveHeroImagesCommand extends Command
 
         if ($heroes->isEmpty()) {
             $this->info('Nada a fazer — todos os heróis ativos já têm thumbnail CDN.');
+
             return self::SUCCESS;
         }
 
@@ -49,6 +50,7 @@ class ResolveHeroImagesCommand extends Command
 
         if (empty($titlesByHeroId)) {
             $this->error('Não foi possível extrair page titles das source_url.');
+
             return self::FAILURE;
         }
 
@@ -67,6 +69,7 @@ class ResolveHeroImagesCommand extends Command
 
             if ($url === null) {
                 $missing[] = $title;
+
                 continue;
             }
 

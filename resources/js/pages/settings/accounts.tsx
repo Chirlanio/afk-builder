@@ -32,9 +32,7 @@ interface Props {
     heroes: HeroLite[];
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Contas', href: '/settings/accounts' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Contas', href: '/settings/accounts' }];
 
 export default function AccountsSettings({ accounts, heroes }: Props) {
     const { confirm, dialog } = useConfirm();
@@ -42,7 +40,8 @@ export default function AccountsSettings({ accounts, heroes }: Props) {
     const handleDelete = async (id: number) => {
         const ok = await confirm({
             title: 'Remover conta?',
-            description: 'Todos os dados vinculados (roster, formações, tier lists, recursos) serão apagados permanentemente. Esta ação não pode ser desfeita.',
+            description:
+                'Todos os dados vinculados (roster, formações, tier lists, recursos) serão apagados permanentemente. Esta ação não pode ser desfeita.',
             confirmLabel: 'Remover',
             variant: 'destructive',
         });
@@ -121,15 +120,10 @@ function AccountCard({
 
     if (editing) {
         return (
-            <form onSubmit={submit} className="rounded-lg border p-4 space-y-3">
+            <form onSubmit={submit} className="space-y-3 rounded-lg border p-4">
                 <div className="grid gap-2">
                     <Label htmlFor={`name-${account.id}`}>Nome</Label>
-                    <Input
-                        id={`name-${account.id}`}
-                        value={data.name}
-                        onChange={(e) => setData('name', e.target.value)}
-                        required
-                    />
+                    <Input id={`name-${account.id}`} value={data.name} onChange={(e) => setData('name', e.target.value)} required />
                     <InputError message={errors.name} />
                 </div>
                 <div className="grid gap-2">
@@ -147,8 +141,17 @@ function AccountCard({
                     onChange={(v) => setData('avatar_hero_id', v ?? '')}
                 />
                 <div className="flex gap-2">
-                    <Button type="submit" disabled={processing}>Salvar</Button>
-                    <Button type="button" variant="ghost" onClick={() => { reset(); setEditing(false); }}>
+                    <Button type="submit" disabled={processing}>
+                        Salvar
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                            reset();
+                            setEditing(false);
+                        }}
+                    >
                         Cancelar
                     </Button>
                 </div>
@@ -158,23 +161,23 @@ function AccountCard({
 
     return (
         <div className="flex items-center gap-3 rounded-lg border p-3">
-            <div className="flex size-10 items-center justify-center overflow-hidden rounded-md bg-muted">
+            <div className="bg-muted flex size-10 items-center justify-center overflow-hidden rounded-md">
                 {account.avatar?.portrait_url ? (
                     <img src={account.avatar.portrait_url} alt="" className="size-full object-cover" />
                 ) : (
-                    <span className="text-xs text-muted-foreground">?</span>
+                    <span className="text-muted-foreground text-xs">?</span>
                 )}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                    <span className="font-medium truncate">{account.name}</span>
+                    <span className="truncate font-medium">{account.name}</span>
                     {account.is_default && (
                         <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                             <Star className="size-3" /> Padrão
                         </span>
                     )}
                 </div>
-                {account.server && <span className="text-xs text-muted-foreground">{account.server}</span>}
+                {account.server && <span className="text-muted-foreground text-xs">{account.server}</span>}
             </div>
             <div className="flex gap-1">
                 {!account.is_default && (
@@ -182,10 +185,12 @@ function AccountCard({
                         <Star className="size-4" />
                     </Button>
                 )}
-                <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Editar</Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+                    Editar
+                </Button>
                 {canDelete && (
                     <Button size="sm" variant="ghost" onClick={onDelete} title="Remover">
-                        <Trash2 className="size-4 text-destructive" />
+                        <Trash2 className="text-destructive size-4" />
                     </Button>
                 )}
             </div>
@@ -223,36 +228,23 @@ function CreateForm({ heroes }: { heroes: HeroLite[] }) {
             </div>
             <div className="grid gap-2">
                 <Label htmlFor="new-server">Servidor (opcional)</Label>
-                <Input
-                    id="new-server"
-                    value={data.server}
-                    onChange={(e) => setData('server', e.target.value)}
-                    placeholder="Ex: S123"
-                />
+                <Input id="new-server" value={data.server} onChange={(e) => setData('server', e.target.value)} placeholder="Ex: S123" />
             </div>
             <HeroPicker
                 heroes={heroes}
                 value={data.avatar_hero_id ? Number(data.avatar_hero_id) : null}
                 onChange={(v) => setData('avatar_hero_id', v ?? '')}
             />
-            <Button type="submit" disabled={processing}>Criar conta</Button>
+            <Button type="submit" disabled={processing}>
+                Criar conta
+            </Button>
         </form>
     );
 }
 
-function HeroPicker({
-    heroes,
-    value,
-    onChange,
-}: {
-    heroes: HeroLite[];
-    value: number | null;
-    onChange: (v: number | null) => void;
-}) {
+function HeroPicker({ heroes, value, onChange }: { heroes: HeroLite[]; value: number | null; onChange: (v: number | null) => void }) {
     const [search, setSearch] = useState('');
-    const filtered = search
-        ? heroes.filter((h) => h.name.toLowerCase().includes(search.toLowerCase()))
-        : heroes.slice(0, 12);
+    const filtered = search ? heroes.filter((h) => h.name.toLowerCase().includes(search.toLowerCase())) : heroes.slice(0, 12);
     const selected = heroes.find((h) => h.id === value);
 
     return (
@@ -262,22 +254,23 @@ function HeroPicker({
                 <div className="flex items-center gap-2 rounded-md border p-2">
                     <img src={selected.portrait_url ?? ''} alt="" className="size-8 rounded object-cover" />
                     <span className="flex-1 text-sm">{selected.name}</span>
-                    <Button size="sm" variant="ghost" onClick={() => onChange(null)}>Remover</Button>
+                    <Button size="sm" variant="ghost" onClick={() => onChange(null)}>
+                        Remover
+                    </Button>
                 </div>
             ) : (
                 <>
-                    <Input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Buscar herói..."
-                    />
-                    <div className="grid grid-cols-6 gap-1 max-h-40 overflow-y-auto">
+                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar herói..." />
+                    <div className="grid max-h-40 grid-cols-6 gap-1 overflow-y-auto">
                         {filtered.map((hero) => (
                             <button
                                 key={hero.id}
                                 type="button"
-                                onClick={() => { onChange(hero.id); setSearch(''); }}
-                                className="relative aspect-square overflow-hidden rounded border hover:ring-2 hover:ring-primary"
+                                onClick={() => {
+                                    onChange(hero.id);
+                                    setSearch('');
+                                }}
+                                className="hover:ring-primary relative aspect-square overflow-hidden rounded border hover:ring-2"
                                 title={hero.name}
                             >
                                 {hero.portrait_url && <img src={hero.portrait_url} alt={hero.name} className="size-full object-cover" />}

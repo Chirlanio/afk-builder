@@ -1,10 +1,10 @@
-import { router } from '@inertiajs/react';
-import { AlertTriangle, Loader2, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { router } from '@inertiajs/react';
+import { AlertTriangle, Loader2, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Props {
     open: boolean;
@@ -74,8 +74,8 @@ export function TeamsCountDialog({ open, onOpenChange, formationId, currentCount
                         <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
                             <AlertTriangle className="size-4 shrink-0" />
                             <div>
-                                <strong>Atenção:</strong> reduzir vai apagar as equipes das posições {value + 1}–{currentCount} (heróis posicionados e beasts).
-                                A versão atual será salva no histórico antes da mudança.
+                                <strong>Atenção:</strong> reduzir vai apagar as equipes das posições {value + 1}–{currentCount} (heróis posicionados e
+                                beasts). A versão atual será salva no histórico antes da mudança.
                             </div>
                         </div>
                     )}

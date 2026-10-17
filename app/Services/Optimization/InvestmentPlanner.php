@@ -7,6 +7,8 @@ use App\Models\GameAccount;
 use App\Models\SignatureItemCost;
 use App\Models\UserHero;
 use App\Models\UserResource;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * Gera sugestões priorizadas de "próximo investimento" no roster do user.
@@ -19,8 +21,11 @@ use App\Models\UserResource;
 class InvestmentPlanner
 {
     public const KIND_SIGNATURE_ITEM = 'signature_item';
+
     public const KIND_FURNITURE = 'furniture';
+
     public const KIND_ENGRAVING = 'engraving';
+
     public const KIND_ASCENSION = 'ascension';
 
     /**
@@ -41,10 +46,15 @@ class InvestmentPlanner
      * Valores absolutos não importam — só a razão entre eles.
      */
     private const FURNITURE_COST_PER_PIECE_BELOW_3 = 250;
+
     private const FURNITURE_COST_PER_PIECE_3_TO_9 = 300;
+
     private const ENGRAVING_COST_PER_LEVEL_BELOW_30 = 30;
+
     private const ENGRAVING_COST_PER_LEVEL_30_TO_60 = 70;
+
     private const ENGRAVING_COST_PER_LEVEL_60_TO_80 = 150;
+
     private const ASCENSION_COST_PER_STEP = 400;
 
     /** Multiplicador aplicado a heros em facções sub-investidas no roster. */
@@ -445,10 +455,10 @@ class InvestmentPlanner
      * - IDs dos heros pertencentes à formation selecionada (IN_FORMATION_MULTIPLIER alvo)
      * - IDs do top 5 do roster por nível (IN_PENTAGRAM_MULTIPLIER alvo)
      *
-     * @param  \Illuminate\Support\Collection<int, UserHero>  $userHeroes
+     * @param  Collection<int, UserHero>  $userHeroes
      * @return array{gap_factions: array<int, string>, formation_hero_ids: array<int, int>, pentagram_hero_ids: array<int, int>}
      */
-    private function buildContext(\Illuminate\Support\Collection $userHeroes, ?Formation $formation): array
+    private function buildContext(Collection $userHeroes, ?Formation $formation): array
     {
         $investedByFaction = [];
         foreach ($userHeroes as $uh) {
@@ -507,7 +517,8 @@ class InvestmentPlanner
         if ($name === null || $slug === null) {
             return false;
         }
+
         // Mesma regra de HeroController: slug != slug(name) → desperto
-        return \Illuminate\Support\Str::slug($name) !== $slug;
+        return Str::slug($name) !== $slug;
     }
 }

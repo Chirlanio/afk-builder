@@ -1,19 +1,11 @@
+import { Input } from '@/components/ui/input';
+import { CLASS_ICON, FACTION_THEME } from '@/lib/afk';
+import { cn } from '@/lib/utils';
+import type { ClassCode, Faction, FactionCode, Hero, HeroClass, Tier, TierCode } from '@/types/afk';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { CLASS_ICON, FACTION_THEME } from '@/lib/afk';
-import { cn } from '@/lib/utils';
-import type {
-    ClassCode,
-    Faction,
-    FactionCode,
-    Hero,
-    HeroClass,
-    Tier,
-    TierCode,
-} from '@/types/afk';
 import { HeroChip } from './hero-chip';
 
 interface HeroPoolProps {
@@ -58,21 +50,14 @@ function DraggableChip({ hero, factionCode, classCode, tierCode, disabled, onTap
             style={transform ? { transform: CSS.Translate.toString(transform) } : undefined}
             className={cn(
                 'touch-none',
-                onTap && !disabled ? 'cursor-pointer active:scale-95 transition-transform' : 'cursor-grab active:cursor-grabbing',
+                onTap && !disabled ? 'cursor-pointer transition-transform active:scale-95' : 'cursor-grab active:cursor-grabbing',
                 isDragging && 'z-50 opacity-50',
                 disabled && 'cursor-not-allowed',
             )}
             aria-label={onTap ? `Adicionar ${hero.name} ao próximo slot` : undefined}
             role={onTap ? 'button' : undefined}
         >
-            <HeroChip
-                hero={hero}
-                factionCode={factionCode}
-                classCode={classCode}
-                tierCode={tierCode}
-                size="sm"
-                dimmed={disabled}
-            />
+            <HeroChip hero={hero} factionCode={factionCode} classCode={classCode} tierCode={tierCode} size="sm" dimmed={disabled} />
         </div>
     );
 }
@@ -113,20 +98,17 @@ export function HeroPool({
     };
 
     return (
-        <div className="flex h-full flex-col gap-2 rounded-xl border bg-card p-3">
+        <div className="bg-card flex h-full flex-col gap-2 rounded-xl border p-3">
             <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Heróis disponíveis</h3>
-                <span className="text-xs text-muted-foreground">{filtered.length} / {heroes.length}</span>
+                <span className="text-muted-foreground text-xs">
+                    {filtered.length} / {heroes.length}
+                </span>
             </div>
 
             <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Buscar..."
-                    className="h-8 pl-8 text-sm"
-                />
+                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." className="h-8 pl-8 text-sm" />
             </div>
 
             <div className="flex flex-wrap gap-1">

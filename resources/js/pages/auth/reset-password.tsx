@@ -41,10 +41,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
     };
 
     return (
-        <AuthLayout
-            title="Redefinir senha"
-            description="Escolha uma nova senha para sua conta"
-        >
+        <AuthLayout title="Redefinir senha" description="Escolha uma nova senha para sua conta">
             <Head title="Redefinir senha" />
 
             <form onSubmit={submit} className="flex flex-col gap-5">
@@ -106,11 +103,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                         className="mt-2 w-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 font-semibold text-zinc-900 shadow-[0_0_20px_-5px_rgba(251,191,36,0.6)] transition-all hover:from-amber-400 hover:to-yellow-300 hover:shadow-[0_0_25px_-5px_rgba(251,191,36,0.85)]"
                         disabled={processing}
                     >
-                        {processing ? (
-                            <LoaderCircle className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <ShieldCheck className="h-4 w-4" />
-                        )}
+                        {processing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                         Redefinir senha
                     </Button>
                 </div>

@@ -1,12 +1,4 @@
-export type FactionCode =
-    | 'lightbearer'
-    | 'mauler'
-    | 'wilder'
-    | 'graveborn'
-    | 'celestial'
-    | 'hypogean'
-    | 'dimensional'
-    | 'draconis';
+export type FactionCode = 'lightbearer' | 'mauler' | 'wilder' | 'graveborn' | 'celestial' | 'hypogean' | 'dimensional' | 'draconis';
 
 export type ClassCode = 'tank' | 'warrior' | 'ranger' | 'mage' | 'support';
 
@@ -118,13 +110,7 @@ export interface HeroEngraving {
     source_url: string | null;
 }
 
-export type HeroFeatureTag =
-    | 'early_carry'
-    | 'early_support'
-    | 'early_tank'
-    | 'early_utility'
-    | 'pvp_top'
-    | 'twisted_realm_top';
+export type HeroFeatureTag = 'early_carry' | 'early_support' | 'early_tank' | 'early_utility' | 'pvp_top' | 'twisted_realm_top';
 
 export interface HeroFeature {
     id: number;

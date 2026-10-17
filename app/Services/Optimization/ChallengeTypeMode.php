@@ -30,6 +30,7 @@ class ChallengeTypeMode
         if ($code === null) {
             return HeroRating::MODE_PVE;
         }
+
         return self::MAPPING[$code] ?? HeroRating::MODE_PVE;
     }
 

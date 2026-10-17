@@ -25,7 +25,16 @@ interface Props {
     onSaved?: () => void | Promise<void>;
 }
 
-export function RosterEditModal({ open, onOpenChange, hero, userHero, availableArtifacts, availableCollections, availableEquipments = [], onSaved }: Props) {
+export function RosterEditModal({
+    open,
+    onOpenChange,
+    hero,
+    userHero,
+    availableArtifacts,
+    availableCollections,
+    availableEquipments = [],
+    onSaved,
+}: Props) {
     const tierCode = (hero?.tier?.code ?? 'common') as TierCode;
     const tierTheme = TIER_THEME[tierCode];
     const validStages = ascensionStagesForTier(tierTheme.maxLevel);
@@ -462,7 +471,7 @@ function tierShortLabel(quality: string): string {
 }
 
 function MythicSlotEdit({ slot, available, selectedId, level, onChange }: MythicSlotEditProps) {
-    const selected = selectedId ? available.find((e) => e.id === selectedId) ?? null : null;
+    const selected = selectedId ? (available.find((e) => e.id === selectedId) ?? null) : null;
     const max = selected?.max_upgrade_level ?? 0;
     const hasOptions = available.length > 0;
 
@@ -472,9 +481,7 @@ function MythicSlotEdit({ slot, available, selectedId, level, onChange }: Mythic
                 {MYTHIC_SLOT_ICON[slot]}
                 <span className="truncate">{MYTHIC_SLOT_LABEL[slot]}</span>
                 {selected?.faction_matches && (
-                    <span className="ml-auto rounded bg-amber-500/20 px-1 py-0.5 text-[8px] font-bold text-amber-300">
-                        +30%
-                    </span>
+                    <span className="ml-auto rounded bg-amber-500/20 px-1 py-0.5 text-[8px] font-bold text-amber-300">+30%</span>
                 )}
             </div>
             {hasOptions ? (
@@ -492,7 +499,7 @@ function MythicSlotEdit({ slot, available, selectedId, level, onChange }: Mythic
                         <SelectValue placeholder="—">
                             {selected && (
                                 <span className="flex items-center gap-1 truncate">
-                                    <span className="text-amber-300 font-bold">{tierShortLabel(selected.quality_tier)}</span>
+                                    <span className="font-bold text-amber-300">{tierShortLabel(selected.quality_tier)}</span>
                                     <span className="truncate">{selected.name_pt.replace(/ (T\d|M)$/, '')}</span>
                                 </span>
                             )}
@@ -529,9 +536,7 @@ function MythicSlotEdit({ slot, available, selectedId, level, onChange }: Mythic
                     <span className="text-muted-foreground text-[9px]">/{max}</span>
                 </div>
             )}
-            {selected && max === 0 && (
-                <span className="text-muted-foreground text-[9px]">Sem upgrades</span>
-            )}
+            {selected && max === 0 && <span className="text-muted-foreground text-[9px]">Sem upgrades</span>}
         </div>
     );
 }

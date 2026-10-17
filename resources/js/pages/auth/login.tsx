@@ -39,10 +39,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
     };
 
     return (
-        <AuthLayout
-            title="Entre na sua conta"
-            description="Acesse seu roster e suas formações"
-        >
+        <AuthLayout title="Entre na sua conta" description="Acesse seu roster e suas formações">
             <Head title="Entrar" />
 
             <form className="flex flex-col gap-5" onSubmit={submit}>
@@ -115,22 +112,14 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                         tabIndex={4}
                         disabled={processing}
                     >
-                        {processing ? (
-                            <LoaderCircle className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <Sparkles className="h-4 w-4" />
-                        )}
+                        {processing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                         Entrar
                     </Button>
                 </div>
 
                 <div className="text-center text-sm text-amber-100/60">
                     Ainda não tem conta?{' '}
-                    <TextLink
-                        href={route('register')}
-                        tabIndex={5}
-                        className="font-semibold text-amber-300 hover:text-amber-200"
-                    >
+                    <TextLink href={route('register')} tabIndex={5} className="font-semibold text-amber-300 hover:text-amber-200">
                         Crie a sua
                     </TextLink>
                 </div>

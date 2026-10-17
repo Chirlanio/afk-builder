@@ -17,7 +17,7 @@ import type { BreadcrumbItem } from '@/types';
 import type { ClassCode, Faction, FactionCode, Hero, HeroClass, HeroFeatureTag, RosterByHeroId, Tier, TierCode } from '@/types/afk';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { CheckSquare, Heart, HeartOff, Loader2, MinusCircle, PlusCircle, Search, Users, X, Upload } from 'lucide-react';
+import { CheckSquare, Heart, HeartOff, Loader2, MinusCircle, PlusCircle, Search, Upload, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 interface PageProps {
@@ -85,10 +85,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
         return () => window.removeEventListener('keydown', handler);
     }, [selectionMode]);
 
-    const runBulkAction = async (
-        endpoint: 'favorites' | 'roster',
-        action: 'add' | 'remove',
-    ) => {
+    const runBulkAction = async (endpoint: 'favorites' | 'roster', action: 'add' | 'remove') => {
         if (selectedIds.size === 0 || bulkProcessing) return;
         setBulkProcessing(true);
         try {
@@ -204,13 +201,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
     };
 
     const filtersActive =
-        search.length > 0 ||
-        factionFilter.size > 0 ||
-        classFilter.size > 0 ||
-        featureFilter.size > 0 ||
-        onlyOwned ||
-        onlyFavorites ||
-        advancedActive;
+        search.length > 0 || factionFilter.size > 0 || classFilter.size > 0 || featureFilter.size > 0 || onlyOwned || onlyFavorites || advancedActive;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -420,7 +411,7 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
             {/* Fase 45: barra flutuante de ações em lote */}
             {selectionMode && selectedIds.size > 0 && (
                 <div
-                    className="fixed bottom-4 left-1/2 z-40 w-[calc(100vw-2rem)] max-w-3xl -translate-x-1/2 rounded-2xl border bg-card shadow-2xl backdrop-blur"
+                    className="bg-card fixed bottom-4 left-1/2 z-40 w-[calc(100vw-2rem)] max-w-3xl -translate-x-1/2 rounded-2xl border shadow-2xl backdrop-blur"
                     role="toolbar"
                     aria-label="Ações em lote"
                 >
@@ -475,8 +466,8 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                             </Button>
                         </div>
                     </div>
-                    <p className="border-t px-3 py-1.5 text-[10px] text-muted-foreground">
-                        Pressione <kbd className="rounded border bg-muted px-1 font-mono">Esc</kbd> para cancelar.
+                    <p className="text-muted-foreground border-t px-3 py-1.5 text-[10px]">
+                        Pressione <kbd className="bg-muted rounded border px-1 font-mono">Esc</kbd> para cancelar.
                     </p>
                 </div>
             )}

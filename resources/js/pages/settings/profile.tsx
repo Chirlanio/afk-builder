@@ -77,7 +77,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
                         {mustVerifyEmail && auth.user.email_verified_at === null && (
                             <div>
-                                <p className="mt-2 text-sm text-muted-foreground">
+                                <p className="text-muted-foreground mt-2 text-sm">
                                     Seu e-mail ainda não foi verificado.
                                     <Link
                                         href={route('verification.send')}

@@ -1,12 +1,12 @@
-import { useForm } from '@inertiajs/react';
-import { Loader2, Plus } from 'lucide-react';
-import { type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Faction, HeroClass, Tier } from '@/types/afk';
+import { useForm } from '@inertiajs/react';
+import { Loader2, Plus } from 'lucide-react';
+import { type FormEvent, useEffect } from 'react';
 
 interface Props {
     open: boolean;
@@ -68,12 +68,13 @@ export function CreateHeroModal({ open, onOpenChange, factions, heroClasses, tie
                 <DialogHeader>
                     <DialogTitle asChild>
                         <div className="flex flex-col items-center gap-1 text-center">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Cadastro manual</span>
-                            <h2 className="text-xl font-bold leading-tight">Adicionar herói</h2>
+                            <span className="text-muted-foreground text-[10px] tracking-wider uppercase">Cadastro manual</span>
+                            <h2 className="text-xl leading-tight font-bold">Adicionar herói</h2>
                         </div>
                     </DialogTitle>
                     <DialogDescription className="text-center">
-                        Para heróis que o sync automático não conseguiu capturar (Saveas, Daimon, etc.). Fica ativo e visível no catálogo imediatamente.
+                        Para heróis que o sync automático não conseguiu capturar (Saveas, Daimon, etc.). Fica ativo e visível no catálogo
+                        imediatamente.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -88,30 +89,20 @@ export function CreateHeroModal({ open, onOpenChange, factions, heroClasses, tie
                                 placeholder="saveas"
                                 pattern="[a-z0-9-]+"
                             />
-                            <p className="text-xs text-muted-foreground">Apenas minúsculas, números e hífens.</p>
-                            {errors.slug && <p className="text-xs text-destructive">{errors.slug}</p>}
+                            <p className="text-muted-foreground text-xs">Apenas minúsculas, números e hífens.</p>
+                            {errors.slug && <p className="text-destructive text-xs">{errors.slug}</p>}
                         </div>
 
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="name">Nome *</Label>
-                            <Input
-                                id="name"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                placeholder="Saveas"
-                            />
-                            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+                            <Input id="name" value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder="Saveas" />
+                            {errors.name && <p className="text-destructive text-xs">{errors.name}</p>}
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                         <Label htmlFor="title">Título</Label>
-                        <Input
-                            id="title"
-                            value={data.title}
-                            onChange={(e) => setData('title', e.target.value)}
-                            placeholder="Slayer of Souls"
-                        />
+                        <Input id="title" value={data.title} onChange={(e) => setData('title', e.target.value)} placeholder="Slayer of Souls" />
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -123,11 +114,13 @@ export function CreateHeroModal({ open, onOpenChange, factions, heroClasses, tie
                                 </SelectTrigger>
                                 <SelectContent>
                                     {factions.map((f) => (
-                                        <SelectItem key={f.id} value={String(f.id)}>{f.name_pt}</SelectItem>
+                                        <SelectItem key={f.id} value={String(f.id)}>
+                                            {f.name_pt}
+                                        </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {errors.faction_id && <p className="text-xs text-destructive">{errors.faction_id}</p>}
+                            {errors.faction_id && <p className="text-destructive text-xs">{errors.faction_id}</p>}
                         </div>
 
                         <div className="flex flex-col gap-1.5">
@@ -138,11 +131,13 @@ export function CreateHeroModal({ open, onOpenChange, factions, heroClasses, tie
                                 </SelectTrigger>
                                 <SelectContent>
                                     {heroClasses.map((c) => (
-                                        <SelectItem key={c.id} value={String(c.id)}>{c.name_pt}</SelectItem>
+                                        <SelectItem key={c.id} value={String(c.id)}>
+                                            {c.name_pt}
+                                        </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {errors.hero_class_id && <p className="text-xs text-destructive">{errors.hero_class_id}</p>}
+                            {errors.hero_class_id && <p className="text-destructive text-xs">{errors.hero_class_id}</p>}
                         </div>
 
                         <div className="flex flex-col gap-1.5">
@@ -153,18 +148,23 @@ export function CreateHeroModal({ open, onOpenChange, factions, heroClasses, tie
                                 </SelectTrigger>
                                 <SelectContent>
                                     {tiers.map((t) => (
-                                        <SelectItem key={t.id} value={String(t.id)}>{t.name_pt}</SelectItem>
+                                        <SelectItem key={t.id} value={String(t.id)}>
+                                            {t.name_pt}
+                                        </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {errors.tier_id && <p className="text-xs text-destructive">{errors.tier_id}</p>}
+                            {errors.tier_id && <p className="text-destructive text-xs">{errors.tier_id}</p>}
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="flex flex-col gap-1.5">
                             <Label>Gênero</Label>
-                            <Select value={data.gender || 'unset'} onValueChange={(v) => setData('gender', v === 'unset' ? '' : (v as FormShape['gender']))}>
+                            <Select
+                                value={data.gender || 'unset'}
+                                onValueChange={(v) => setData('gender', v === 'unset' ? '' : (v as FormShape['gender']))}
+                            >
                                 <SelectTrigger>
                                     <SelectValue placeholder="—" />
                                 </SelectTrigger>
@@ -198,7 +198,7 @@ export function CreateHeroModal({ open, onOpenChange, factions, heroClasses, tie
                                 onChange={(e) => setData('portrait_url', e.target.value)}
                                 placeholder="https://static.wikia.nocookie.net/..."
                             />
-                            {errors.portrait_url && <p className="text-xs text-destructive">{errors.portrait_url}</p>}
+                            {errors.portrait_url && <p className="text-destructive text-xs">{errors.portrait_url}</p>}
                         </div>
 
                         <div className="flex flex-col gap-1.5">
@@ -210,7 +210,7 @@ export function CreateHeroModal({ open, onOpenChange, factions, heroClasses, tie
                                 onChange={(e) => setData('source_url', e.target.value)}
                                 placeholder="https://afk-arena.fandom.com/wiki/Saveas"
                             />
-                            {errors.source_url && <p className="text-xs text-destructive">{errors.source_url}</p>}
+                            {errors.source_url && <p className="text-destructive text-xs">{errors.source_url}</p>}
                         </div>
                     </div>
 

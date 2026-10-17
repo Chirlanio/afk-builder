@@ -28,6 +28,7 @@ class HeroEngravingsSeeder extends Seeder
             $hero = Hero::where('slug', $slug)->first();
             if (! $hero) {
                 $missing[] = $slug;
+
                 continue;
             }
             foreach ($levels as $level => $data) {
@@ -250,7 +251,7 @@ class HeroEngravingsSeeder extends Seeder
             ],
             'lyca' => [
                 'e30' => ['label' => 'Awe', 'description' => 'Haste +10s duração.'],
-                'e60' => ["label" => "Foe's Fragility", 'description' => 'Crit Block Rate -20%.'],
+                'e60' => ['label' => "Foe's Fragility", 'description' => 'Crit Block Rate -20%.'],
             ],
             'tasi' => [
                 'e30' => ['label' => 'Banishment', 'description' => 'Rouba 55% ATK do alvo banido.'],
@@ -262,7 +263,7 @@ class HeroEngravingsSeeder extends Seeder
             ],
             'raku' => [
                 'e30' => ['label' => 'Peckish', 'description' => 'Efeito dura 10s.'],
-                'e60' => ["label" => "Raku's Mark", 'description' => 'Ataca inimigos sob CC com ataque normal por 6s.'],
+                'e60' => ['label' => "Raku's Mark", 'description' => 'Ataca inimigos sob CC com ataque normal por 6s.'],
             ],
             'lorsan' => [
                 'e30' => ['label' => 'Gale Force', 'description' => 'Inimigo linkado stunnado 7s ao outro morrer.'],
@@ -290,18 +291,18 @@ class HeroEngravingsSeeder extends Seeder
             ],
             'solise' => [
                 'e30' => ['label' => 'Floral Specter', 'description' => 'Dano 110% ATK por passagem.'],
-                'e60' => ["label" => "Forest's Blessing", 'description' => '2 aliados mais feridos recebem bênção.'],
+                'e60' => ['label' => "Forest's Blessing", 'description' => '2 aliados mais feridos recebem bênção.'],
             ],
             'respen' => [
                 'e30' => ['label' => 'Winged Attack', 'description' => 'Dano 290%.'],
                 'e60' => ['label' => 'Winged Protection', 'description' => 'Escudo dura 8s.'],
             ],
             'seirus' => [
-                'e30' => ["label" => "Ocean's Blessing", 'description' => 'Ataque normal até 240%.'],
+                'e30' => ['label' => "Ocean's Blessing", 'description' => 'Ataque normal até 240%.'],
                 'e60' => ['label' => 'Free Flow', 'description' => 'Dano -65%.'],
             ],
             'ulmus' => [
-                'e30' => ["label" => "Forest's Oath", 'description' => 'Escudo = 240% ATK.'],
+                'e30' => ['label' => "Forest's Oath", 'description' => 'Escudo = 240% ATK.'],
                 'e60' => ['label' => 'Life Torrent', 'description' => '+6% HP perdido/s.'],
             ],
 
@@ -368,7 +369,7 @@ class HeroEngravingsSeeder extends Seeder
             ],
             'hodgkin' => [
                 'e30' => ['label' => 'Jolly Roger', 'description' => 'Dano 280%.'],
-                'e60' => ["label" => "Reviler's Defiance", 'description' => 'Sempre causa 20% HP máx inimigo.'],
+                'e60' => ['label' => "Reviler's Defiance", 'description' => 'Sempre causa 20% HP máx inimigo.'],
             ],
 
             // ============== Dimensionals ==============
@@ -377,7 +378,7 @@ class HeroEngravingsSeeder extends Seeder
                 'e60' => ['label' => 'Steady Preparations', 'description' => 'ATK +7%/s, DEF +12%/s.'],
             ],
             'arthur' => [
-                'e30' => ["label" => "King's Blessing", 'description' => 'Dano 240%.'],
+                'e30' => ['label' => "King's Blessing", 'description' => 'Dano 240%.'],
                 'e60' => ['label' => 'Shield of Honor', 'description' => 'Critical Strikes de frente -30% dano + retorna ao atacante.'],
             ],
             'merlin' => [

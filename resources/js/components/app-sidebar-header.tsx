@@ -1,7 +1,7 @@
-import { Keyboard, Search } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
+import { Keyboard, Search } from 'lucide-react';
 
 interface Props {
     breadcrumbs?: BreadcrumbItemType[];
@@ -22,21 +22,19 @@ export function AppSidebarHeader({ breadcrumbs = [], onOpenSearch, onOpenHelp }:
                 <button
                     type="button"
                     onClick={onOpenSearch}
-                    className="flex items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    className="bg-background text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs transition-colors"
                     aria-label="Abrir busca global (atalho ⌘K)"
                 >
                     <Search className="size-3.5" />
                     <span className="hidden sm:inline">Buscar…</span>
-                    <kbd className="hidden rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] md:inline">
-                        {isMac ? '⌘' : 'Ctrl'} K
-                    </kbd>
+                    <kbd className="bg-muted hidden rounded border px-1.5 py-0.5 font-mono text-[10px] md:inline">{isMac ? '⌘' : 'Ctrl'} K</kbd>
                 </button>
             )}
             {onOpenHelp && (
                 <button
                     type="button"
                     onClick={onOpenHelp}
-                    className="hidden items-center gap-1.5 rounded-md border bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:flex"
+                    className="bg-background text-muted-foreground hover:bg-accent hover:text-foreground hidden items-center gap-1.5 rounded-md border p-1.5 transition-colors md:flex"
                     aria-label="Atalhos de teclado (?)"
                     title="Atalhos de teclado (?)"
                 >

@@ -75,7 +75,7 @@ class EquipmentSeederTest extends TestCase
         $this->assertSame(1591806, $t4->set_bonuses['hp_flat']);
     }
 
-    public function test_tier_anterior_T2_tem_upgrades_mas_sem_set_bonus(): void
+    public function test_tier_anterior_t2_tem_upgrades_mas_sem_set_bonus(): void
     {
         $this->seed(EquipmentSeeder::class);
 
@@ -151,8 +151,8 @@ class EquipmentSeederTest extends TestCase
 
         // 12 templates × 8 factions × 5 tiers = 480
         $templates = ['gaius-grevas', 'gaius-couraca', 'gaius-elmo', 'gaius-mangual',
-                      'ancelot-perseveranca', 'ancelot-honra', 'ancelot-refugio', 'ancelot-lamina',
-                      'mystic-botas', 'mystic-casaco', 'mystic-chapeu', 'mystic-bastao'];
+            'ancelot-perseveranca', 'ancelot-honra', 'ancelot-refugio', 'ancelot-lamina',
+            'mystic-botas', 'mystic-casaco', 'mystic-chapeu', 'mystic-bastao'];
 
         foreach ($templates as $template) {
             $count = Equipment::where('slug', 'LIKE', "{$template}-%")->where('quality_tier', 'mythic')->count();

@@ -23,13 +23,7 @@ export default function AppLogoIcon(props: SVGAttributes<SVGElement>) {
                 strokeLinejoin="round"
             />
 
-            <path
-                d="M20 5 L33 12.5 L33 27.5 L20 35 L7 27.5 L7 12.5 Z"
-                fill="none"
-                stroke="#fbbf24"
-                strokeWidth="0.5"
-                strokeOpacity="0.35"
-            />
+            <path d="M20 5 L33 12.5 L33 27.5 L20 35 L7 27.5 L7 12.5 Z" fill="none" stroke="#fbbf24" strokeWidth="0.5" strokeOpacity="0.35" />
 
             <path
                 d="M13.5 28.5 L20 11 L26.5 28.5 M16.2 22.5 L23.8 22.5"

@@ -19,6 +19,7 @@ use App\Models\UserHero;
 class RosterStageInferrer
 {
     public const STAGE_EARLY_THRESHOLD = 5.0;
+
     public const STAGE_MID_THRESHOLD = 10.0;
 
     /**
@@ -44,6 +45,7 @@ class RosterStageInferrer
         if ($avg < self::STAGE_MID_THRESHOLD) {
             return HeroRating::STAGE_MID;
         }
+
         return HeroRating::STAGE_END;
     }
 }

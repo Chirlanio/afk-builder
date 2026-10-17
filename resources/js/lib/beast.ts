@@ -21,17 +21,27 @@ export type BeastScope = 'strength' | 'intelligence' | 'agility' | 'team';
 export function beastBuffsByScope(beast: Beast | null | undefined, scope: BeastScope): Record<string, number> {
     if (!beast) return {};
     switch (scope) {
-        case 'strength': return beast.buffs_strength ?? {};
-        case 'intelligence': return beast.buffs_intelligence ?? {};
-        case 'agility': return beast.buffs_agility ?? {};
-        case 'team': return beast.buffs_team ?? {};
+        case 'strength':
+            return beast.buffs_strength ?? {};
+        case 'intelligence':
+            return beast.buffs_intelligence ?? {};
+        case 'agility':
+            return beast.buffs_agility ?? {};
+        case 'team':
+            return beast.buffs_team ?? {};
     }
 }
 
 /**
  * Conta quantos stats não-zero existem em cada scope da besta.
  */
-export function beastStatCounts(beast: Beast | null | undefined): { strength: number; intelligence: number; agility: number; team: number; total: number } {
+export function beastStatCounts(beast: Beast | null | undefined): {
+    strength: number;
+    intelligence: number;
+    agility: number;
+    team: number;
+    total: number;
+} {
     const count = (obj: Record<string, number> | null | undefined) => {
         if (!obj) return 0;
         return Object.values(obj).filter((v) => Number(v) > 0).length;
@@ -64,9 +74,7 @@ export function summarizeScope(buffs: Record<string, number> | null | undefined,
         .sort((a, b) => Number(b[1]) - Number(a[1]))
         .slice(0, limit);
     if (entries.length === 0) return '';
-    return entries
-        .map(([key, value]) => `${STAT_LABELS[key] ?? key} +${Number(value).toFixed(0)}%`)
-        .join(' · ');
+    return entries.map(([key, value]) => `${STAT_LABELS[key] ?? key} +${Number(value).toFixed(0)}%`).join(' · ');
 }
 
 /**

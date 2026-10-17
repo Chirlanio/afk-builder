@@ -5,7 +5,6 @@ namespace App\Services\Optimization;
 use App\Models\Artifact;
 use App\Models\Beast;
 use App\Models\Collection;
-use App\Models\Equipment;
 use App\Models\Hero;
 use App\Models\HeroStat;
 use App\Models\SignatureItemCost;
@@ -47,7 +46,9 @@ class PowerCalculator
      *   Eng 80 → 80*0.5 + 50 + 100 + 50= 240
      */
     private const ENGRAVING_MILESTONE_E30 = 50.0;
+
     private const ENGRAVING_MILESTONE_E60 = 100.0;
+
     private const ENGRAVING_MILESTONE_E80 = 50.0;
 
     /**
@@ -87,11 +88,17 @@ class PowerCalculator
      *   Ivan:     ~912  → tank lightbearer (mais HP que warriors)
      */
     private const REAL_STAT_HP_FACTOR = 0.0005;
+
     private const REAL_STAT_ATK_FACTOR = 0.005;
+
     private const REAL_STAT_DEF_FACTOR = 0.005;
+
     private const REAL_STAT_CRIT_FACTOR = 0.3;
+
     private const REAL_STAT_ACC_FACTOR = 0.2;
+
     private const REAL_STAT_DODGE_FACTOR = 0.2;
+
     private const REAL_STAT_HASTE_FACTOR = 0.2;
 
     /** Limiar pra considerar que `UserHero->hp` tem valor REAL do jogo (não vazio). */

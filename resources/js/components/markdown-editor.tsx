@@ -1,7 +1,7 @@
-import { Eye, Pencil } from 'lucide-react';
-import { useState } from 'react';
 import { MarkdownContent } from '@/components/markdown-content';
 import { cn } from '@/lib/utils';
+import { Eye, Pencil } from 'lucide-react';
+import { useState } from 'react';
 
 interface Props {
     value: string;
@@ -48,7 +48,7 @@ export function MarkdownEditor({
         <div className={containerClass}>
             {label && <div className={cn('text-muted-foreground', textSizeClass)}>{label}</div>}
 
-            <div className="flex items-center gap-1 rounded-md border bg-muted/30 p-0.5">
+            <div className="bg-muted/30 flex items-center gap-1 rounded-md border p-0.5">
                 <button
                     type="button"
                     onClick={() => setMode('edit')}
@@ -82,7 +82,7 @@ export function MarkdownEditor({
                     placeholder={placeholder}
                     maxLength={maxLength + 200}
                     className={cn(
-                        'resize-none rounded-md border bg-background px-2 py-1.5 font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring',
+                        'bg-background focus:ring-ring resize-none rounded-md border px-2 py-1.5 font-mono leading-relaxed focus:ring-2 focus:outline-none',
                         textSizeClass,
                         fieldClass,
                         isOverLimit && 'border-destructive',
@@ -90,16 +90,9 @@ export function MarkdownEditor({
                     aria-invalid={isOverLimit}
                 />
             ) : (
-                <div
-                    className={cn(
-                        'overflow-y-auto rounded-md border bg-background px-2 py-1.5',
-                        fieldClass,
-                    )}
-                >
+                <div className={cn('bg-background overflow-y-auto rounded-md border px-2 py-1.5', fieldClass)}>
                     {value.trim().length === 0 ? (
-                        <p className={cn('italic text-muted-foreground', textSizeClass)}>
-                            Sem conteúdo. Volte para "Editar" para escrever.
-                        </p>
+                        <p className={cn('text-muted-foreground italic', textSizeClass)}>Sem conteúdo. Volte para "Editar" para escrever.</p>
                     ) : (
                         <MarkdownContent>{value}</MarkdownContent>
                     )}
@@ -111,7 +104,7 @@ export function MarkdownEditor({
                     className={cn(
                         'text-right tabular-nums',
                         textSize === 'sm' ? 'text-xs' : 'text-[10px]',
-                        isOverLimit ? 'font-semibold text-destructive' : 'text-muted-foreground',
+                        isOverLimit ? 'text-destructive font-semibold' : 'text-muted-foreground',
                     )}
                 >
                     {charCount.toLocaleString('pt-BR')} / {maxLength.toLocaleString('pt-BR')}

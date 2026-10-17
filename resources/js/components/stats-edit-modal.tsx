@@ -168,11 +168,11 @@ export function StatsEditModal({ open, onOpenChange, hero, stats, onSaved, endpo
             <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
                 <DialogTitle asChild>
                     <div className="flex flex-col items-center gap-1 text-center">
-                        <span className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        <span className="text-muted-foreground flex items-center gap-2 text-[10px] tracking-wider uppercase">
                             <BarChart3 className="size-3" />
                             {contextLabel ?? 'Estatísticas base'}
                         </span>
-                        <h2 className="text-xl font-bold leading-tight">{hero.name}</h2>
+                        <h2 className="text-xl leading-tight font-bold">{hero.name}</h2>
                     </div>
                 </DialogTitle>
                 <DialogDescription className="text-center">
@@ -182,9 +182,7 @@ export function StatsEditModal({ open, onOpenChange, hero, stats, onSaved, endpo
                 <form onSubmit={submit} className="flex flex-col gap-4 pt-2">
                     {SECTIONS.map((section) => (
                         <fieldset key={section.title} className="flex flex-col gap-2 rounded-lg border p-3">
-                            <legend className="px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                {section.title}
-                            </legend>
+                            <legend className="text-muted-foreground px-1 text-[10px] font-semibold tracking-wide uppercase">{section.title}</legend>
                             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                 {section.fields.map(({ key, label, max, step, help }) => (
                                     <div key={key} className="flex flex-col gap-1">
@@ -202,8 +200,8 @@ export function StatsEditModal({ open, onOpenChange, hero, stats, onSaved, endpo
                                             placeholder="—"
                                             className="h-8"
                                         />
-                                        {help && <p className="text-[10px] text-muted-foreground">{help}</p>}
-                                        {errors[key] && <p className="text-[10px] text-destructive">{errors[key]}</p>}
+                                        {help && <p className="text-muted-foreground text-[10px]">{help}</p>}
+                                        {errors[key] && <p className="text-destructive text-[10px]">{errors[key]}</p>}
                                     </div>
                                 ))}
                             </div>

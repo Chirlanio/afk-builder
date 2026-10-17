@@ -43,6 +43,7 @@ class EnrichHeroesCommand extends Command
 
         if ($total === 0) {
             $this->info('Nenhum herói para enriquecer.');
+
             return self::SUCCESS;
         }
 
@@ -60,6 +61,7 @@ class EnrichHeroesCommand extends Command
                 $wt = $client->fetchWikitext($title);
                 if (! $wt) {
                     $this->line("  <fg=yellow>?</> [{$i}/{$total}] {$hero->slug} (sem wikitext em '{$title}')");
+
                     continue;
                 }
 
@@ -95,7 +97,7 @@ class EnrichHeroesCommand extends Command
 
                 $marker = (! empty($updates) || ! empty($abilities)) ? '<fg=green>+</>' : '<fg=gray>=</>';
                 $typeLabel = $parsed['type'] ?? '?';
-                $this->line("  {$marker} [{$i}/{$total}] {$hero->slug} (lore: ".strlen($lore ?? '')." chars, abilities: ".count($abilities).", type: {$typeLabel})");
+                $this->line("  {$marker} [{$i}/{$total}] {$hero->slug} (lore: ".strlen($lore ?? '').' chars, abilities: '.count($abilities).", type: {$typeLabel})");
             } catch (Throwable $e) {
                 $errors++;
                 $this->line("  <fg=red>!</> [{$i}/{$total}] {$hero->slug}: {$e->getMessage()}");

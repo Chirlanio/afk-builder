@@ -44,8 +44,8 @@ export default function DeleteUser() {
                     <DialogContent>
                         <DialogTitle>Tem certeza que deseja apagar sua conta?</DialogTitle>
                         <DialogDescription>
-                            Ao confirmar, todos os seus dados (roster, formações, versões, compartilhamentos) serão permanentemente apagados.
-                            Digite sua senha para confirmar.
+                            Ao confirmar, todos os seus dados (roster, formações, versões, compartilhamentos) serão permanentemente apagados. Digite
+                            sua senha para confirmar.
                         </DialogDescription>
                         <form className="space-y-6" onSubmit={deleteUser}>
                             <div className="grid gap-2">

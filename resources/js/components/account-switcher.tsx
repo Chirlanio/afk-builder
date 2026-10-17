@@ -31,36 +31,29 @@ export function AccountSwitcher() {
         <SidebarMenuItem>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton
-                        size="lg"
-                        className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                    >
-                        <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                    <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                        <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                             <UserIcon className="size-4" />
                         </div>
                         <div className="grid flex-1 text-left text-sm leading-tight">
                             <span className="truncate font-semibold">{active.name}</span>
-                            {active.server && <span className="truncate text-xs text-muted-foreground">{active.server}</span>}
+                            {active.server && <span className="text-muted-foreground truncate text-xs">{active.server}</span>}
                         </div>
                         {hasMultiple && <ChevronsUpDown className="ml-auto size-4" />}
                     </SidebarMenuButton>
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="start" className="w-64" side="bottom">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Contas</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-muted-foreground text-xs">Contas</DropdownMenuLabel>
                     {accounts.map((account) => (
-                        <DropdownMenuItem
-                            key={account.id}
-                            onClick={() => handleSwitch(account.id)}
-                            className="cursor-pointer"
-                        >
+                        <DropdownMenuItem key={account.id} onClick={() => handleSwitch(account.id)} className="cursor-pointer">
                             <div className="flex flex-1 items-center gap-2">
                                 <div className="flex aspect-square size-6 items-center justify-center rounded-md border">
                                     <UserIcon className="size-3" />
                                 </div>
                                 <div className="flex-1 truncate">
                                     <div className="truncate font-medium">{account.name}</div>
-                                    {account.server && <div className="truncate text-xs text-muted-foreground">{account.server}</div>}
+                                    {account.server && <div className="text-muted-foreground truncate text-xs">{account.server}</div>}
                                 </div>
                             </div>
                             {account.id === active.id && <Check className="ml-auto size-4" />}

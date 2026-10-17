@@ -1,13 +1,27 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { CheckCircle2, ChevronRight, Compass, Edit3, Flame, Lightbulb, Settings2, Sparkles, Target, TrendingUp, Users, XCircle, Zap } from 'lucide-react';
-import { useCallback, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { ResourceEditorDialog, type UserResources } from '@/components/resource-editor-dialog';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { ClassCode, FactionCode, TierCode } from '@/types/afk';
+import { Head, Link, router } from '@inertiajs/react';
+import {
+    CheckCircle2,
+    ChevronRight,
+    Compass,
+    Edit3,
+    Flame,
+    Lightbulb,
+    Settings2,
+    Sparkles,
+    Target,
+    TrendingUp,
+    Users,
+    XCircle,
+    Zap,
+} from 'lucide-react';
+import { useCallback, useState } from 'react';
 
 type UpgradeKind = 'signature_item' | 'furniture' | 'engraving' | 'ascension';
 
@@ -134,11 +148,11 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
     const applyFilter = useCallback(
         (nextFormationId: number | '') => {
             setFormationId(nextFormationId);
-            router.get(
-                '/roster/planner',
-                nextFormationId === '' ? { top: topN } : { top: topN, formation_id: nextFormationId },
-                { preserveState: true, preserveScroll: true, replace: true },
-            );
+            router.get('/roster/planner', nextFormationId === '' ? { top: topN } : { top: topN, formation_id: nextFormationId }, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            });
         },
         [topN],
     );
@@ -150,9 +164,7 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
     }, []);
 
     const hasAnyResources = Object.values(currentResources).some((v) => v > 0);
-    const visibleSuggestions = onlyAffordable
-        ? suggestions.filter((s) => s.affordable === true)
-        : suggestions;
+    const visibleSuggestions = onlyAffordable ? suggestions.filter((s) => s.affordable === true) : suggestions;
 
     if (rosterSize === 0) {
         return (
@@ -161,9 +173,7 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                 <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-12 text-center">
                     <Users className="size-12 text-amber-100/30" />
                     <h2 className="text-xl font-semibold text-amber-100">Roster vazio</h2>
-                    <p className="max-w-md text-sm text-amber-100/60">
-                        Adicione heróis ao seu roster pra receber sugestões de investimento.
-                    </p>
+                    <p className="max-w-md text-sm text-amber-100/60">Adicione heróis ao seu roster pra receber sugestões de investimento.</p>
                     <Link
                         href="/heroes"
                         className="mt-2 inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-3 py-1.5 text-xs font-medium text-amber-200 hover:bg-amber-500/25"
@@ -187,8 +197,8 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                         <div className="flex-1">
                             <h1 className="text-lg font-semibold text-amber-100">Próximos investimentos</h1>
                             <p className="mt-1 text-xs text-amber-100/60">
-                                Sugestões priorizadas por <strong>ROI</strong> (ganho de power ÷ esforço), ajustadas por
-                                contexto: facção sub-investida, tier Ascended, herói Desperto, presença na formação selecionada.
+                                Sugestões priorizadas por <strong>ROI</strong> (ganho de power ÷ esforço), ajustadas por contexto: facção
+                                sub-investida, tier Ascended, herói Desperto, presença na formação selecionada.
                             </p>
                         </div>
                     </div>
@@ -224,7 +234,7 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                             {(Object.keys(RESOURCE_LABEL) as Array<keyof UserResources>).map((key) => (
                                 <span key={key} className="flex items-center gap-1 text-xs">
                                     <span className="text-amber-100/50">{RESOURCE_LABEL[key]}:</span>
-                                    <span className="font-mono font-semibold tabular-nums text-amber-100">
+                                    <span className="font-mono font-semibold text-amber-100 tabular-nums">
                                         {currentResources[key].toLocaleString('pt-BR')}
                                     </span>
                                 </span>
@@ -259,9 +269,7 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                     <div className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-8 text-center">
                         <Lightbulb className="mx-auto mb-3 size-10 text-amber-100/30" />
                         <p className="text-sm font-semibold text-amber-100">
-                            {onlyAffordable && suggestions.length > 0
-                                ? 'Nenhuma sugestão cabe no orçamento atual'
-                                : 'Nada a sugerir agora'}
+                            {onlyAffordable && suggestions.length > 0 ? 'Nenhuma sugestão cabe no orçamento atual' : 'Nada a sugerir agora'}
                         </p>
                         <p className="mt-1 text-xs text-amber-100/50">
                             {onlyAffordable && suggestions.length > 0
@@ -282,10 +290,7 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                                         {idx + 1}
                                     </span>
 
-                                    <Link
-                                        href={`/heroes/${sug.slug}`}
-                                        className="flex flex-1 items-center gap-2 hover:bg-amber-500/5"
-                                    >
+                                    <Link href={`/heroes/${sug.slug}`} className="flex flex-1 items-center gap-2 hover:bg-amber-500/5">
                                         {sug.portrait_url ? (
                                             <img
                                                 src={sug.portrait_url}
@@ -324,13 +329,10 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                                         </span>
 
                                         <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-300">
-                                            <Zap className="size-3" />
-                                            +{sug.power_gain.toLocaleString('pt-BR')} power
+                                            <Zap className="size-3" />+{sug.power_gain.toLocaleString('pt-BR')} power
                                         </span>
 
-                                        <span className={cn('text-[10px] font-medium', costColor(sug.cost))}>
-                                            Custo: {costLabel(sug.cost)}
-                                        </span>
+                                        <span className={cn('text-[10px] font-medium', costColor(sug.cost))}>Custo: {costLabel(sug.cost)}</span>
 
                                         {hasAnyResources && sug.affordable === true && (
                                             <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
@@ -366,7 +368,7 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                                                     <span
                                                         key={r}
                                                         className={cn(
-                                                            'inline-flex items-center rounded-md border bg-black/20 px-1.5 py-0.5 text-[9px] uppercase tracking-wide',
+                                                            'inline-flex items-center rounded-md border bg-black/20 px-1.5 py-0.5 text-[9px] tracking-wide uppercase',
                                                             meta.className,
                                                         )}
                                                     >
@@ -392,8 +394,8 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                 )}
 
                 <p className="text-center text-[10px] text-amber-100/40">
-                    Score = (ganho de power ÷ custo aproximado) × multiplicadores contextuais. Custos são unidades
-                    abstratas comparáveis entre tipos de upgrade.
+                    Score = (ganho de power ÷ custo aproximado) × multiplicadores contextuais. Custos são unidades abstratas comparáveis entre tipos
+                    de upgrade.
                 </p>
             </div>
 

@@ -5,13 +5,11 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\Beast;
 use App\Models\ChallengeType;
-use App\Models\Formation;
 use App\Models\FormationTag;
 use App\Models\GameAccount;
 use App\Models\Hero;
 use App\Models\ScoringWeightPreset;
-use App\Models\UserHero;
-use App\Models\UserTierList;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -74,7 +72,7 @@ class BackupController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function buildPayload(\App\Models\User $user): array
+    private function buildPayload(User $user): array
     {
         $accounts = $user->gameAccounts()
             ->orderByDesc('is_default')
@@ -560,7 +558,7 @@ class BackupController extends Controller
                     'position' => $teamRow['position'] ?? 1,
                     'name' => $teamRow['name'] ?? null,
                     'beast_id' => $teamBeastId,
-                    'beast_level' => $teamRow['beast_level'] ?? \App\Models\Beast::MAX_LEVEL,
+                    'beast_level' => $teamRow['beast_level'] ?? Beast::MAX_LEVEL,
                 ]);
                 foreach ($teamRow['heroes'] ?? [] as $heroRow) {
                     $heroId = $heroIdsBySlug[$heroRow['hero_slug'] ?? ''] ?? null;

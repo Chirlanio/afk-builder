@@ -42,10 +42,11 @@ class SyncHeroRatingsAllClashCommand extends Command
         if ($fromFile !== '') {
             if (! is_readable($fromFile)) {
                 $this->error("Arquivo não legível: {$fromFile}");
+
                 return self::FAILURE;
             }
             $html = (string) file_get_contents($fromFile);
-            $this->info("HTML lido de {$fromFile} (".number_format(strlen($html))." bytes).");
+            $this->info("HTML lido de {$fromFile} (".number_format(strlen($html)).' bytes).');
         } else {
             $this->info("Buscando HTML de {$url} via curl...");
             $result = Process::timeout(30)->run([
@@ -56,6 +57,7 @@ class SyncHeroRatingsAllClashCommand extends Command
             if (! $result->successful()) {
                 $this->error("curl falhou (exit {$result->exitCode()}). Stderr: ".trim($result->errorOutput()));
                 $this->comment('Dica: faça download manual e use --from-file=caminho.html');
+
                 return self::FAILURE;
             }
             $html = $result->output();
@@ -69,6 +71,7 @@ class SyncHeroRatingsAllClashCommand extends Command
         $items = $xpath->query("//div[contains(@class, 'tieritem') and contains(@class, 'afkarena')]");
         if (! $items || $items->length === 0) {
             $this->error('Nenhum tieritem encontrado na página.');
+
             return self::FAILURE;
         }
 
@@ -87,6 +90,7 @@ class SyncHeroRatingsAllClashCommand extends Command
 
             if ($idAttr === '' || ! preg_match('/tiercode-([a-z]+)/', $classAttr, $tm)) {
                 $totals['skipped']++;
+
                 continue;
             }
 
@@ -94,6 +98,7 @@ class SyncHeroRatingsAllClashCommand extends Command
             if (! isset(self::TIER_CODE_MAP[$code])) {
                 // Tiercode não é de tier de herói (newsletter, pro, free, best, new, etc)
                 $totals['skipped']++;
+
                 continue;
             }
             $tier = self::TIER_CODE_MAP[$code];
@@ -102,12 +107,14 @@ class SyncHeroRatingsAllClashCommand extends Command
             if (! $hero) {
                 $totals['skipped']++;
                 $unmatched[$idAttr] = ($unmatched[$idAttr] ?? 0) + 1;
+
                 continue;
             }
             $totals['matched']++;
 
             if ($this->option('dry-run')) {
                 $this->line("  <fg=gray>[dry]</> {$hero->slug} · overall/all = {$tier}");
+
                 continue;
             }
 
@@ -165,6 +172,7 @@ class SyncHeroRatingsAllClashCommand extends Command
                 return $hero;
             }
         }
+
         return null;
     }
 }

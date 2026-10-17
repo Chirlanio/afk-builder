@@ -240,7 +240,7 @@ class SyncCommandController extends Controller
     private function coerceInt(mixed $value, string $name, array $opt): int
     {
         if (! is_numeric($value)) {
-            throw ValidationException::withMessages([$name => "Deve ser um número inteiro"]);
+            throw ValidationException::withMessages([$name => 'Deve ser um número inteiro']);
         }
         $int = (int) $value;
         if (isset($opt['min']) && $int < $opt['min']) {

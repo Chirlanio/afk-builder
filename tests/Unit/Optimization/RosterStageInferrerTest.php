@@ -25,6 +25,7 @@ class RosterStageInferrerTest extends TestCase
             $uh->ascension_value = $asc;
             $roster[$i] = $uh;
         }
+
         return $roster;
     }
 

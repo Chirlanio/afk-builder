@@ -1,9 +1,9 @@
-import axios from 'axios';
-import { Loader2, Save, X } from 'lucide-react';
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import axios from 'axios';
+import { Loader2, Save, X } from 'lucide-react';
+import { useState } from 'react';
 
 export interface UserResources {
     primordial_emblems: number;

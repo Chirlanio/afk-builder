@@ -17,14 +17,14 @@ return new class extends Migration
                 ->cascadeOnDelete();
         });
 
-        DB::statement("
+        DB::statement('
             UPDATE roster_power_snapshots
             SET game_account_id = (
                 SELECT id FROM game_accounts
                 WHERE game_accounts.user_id = roster_power_snapshots.user_id
                   AND game_accounts.is_default = 1
             )
-        ");
+        ');
     }
 
     public function down(): void

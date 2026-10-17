@@ -1,12 +1,12 @@
-import { Head, router } from '@inertiajs/react';
-import { Crown, Filter, Flame, Heart, Shield, ShieldCheck, Sparkles, Sword, X, Zap } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { FACTION_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { FactionCode } from '@/types/afk';
+import { Head, router } from '@inertiajs/react';
+import { Crown, Filter, Flame, Heart, Shield, ShieldCheck, Sparkles, Sword, X, Zap } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 
 type Slot = 'weapon' | 'helmet' | 'chest' | 'boots';
 type HeroType = 'strength' | 'agility' | 'intelligence';
@@ -165,16 +165,13 @@ export default function EquipmentsIndex({ equipments, factions, filters }: PageP
         applyFilters(empty);
     }, [applyFilters]);
 
-    const hasActiveFilter = useMemo(
-        () => Object.values(filters).some((v) => v !== null && v !== ''),
-        [filters],
-    );
+    const hasActiveFilter = useMemo(() => Object.values(filters).some((v) => v !== null && v !== ''), [filters]);
 
     // Agrupa por set_code pra mostrar como seções
     const grouped = useMemo(() => {
         const map = new Map<string, Equipment[]>();
         for (const e of equipments) {
-            if (! map.has(e.set_code)) map.set(e.set_code, []);
+            if (!map.has(e.set_code)) map.set(e.set_code, []);
             map.get(e.set_code)!.push(e);
         }
         return Array.from(map.entries());
@@ -191,8 +188,8 @@ export default function EquipmentsIndex({ equipments, factions, filters }: PageP
                         <div className="flex-1">
                             <h1 className="text-lg font-semibold text-amber-100">Equipamentos Míticos</h1>
                             <p className="mt-1 text-xs text-amber-100/60">
-                                Sets de equipamentos nomeados (Gaius/Ancelot/Místico) com bônus de facção de 30%.
-                                Tiers Mítico → T1 → T2 escalam linearmente; T3 e T4 substituem upgrades por <strong>set bonuses</strong>.
+                                Sets de equipamentos nomeados (Gaius/Ancelot/Místico) com bônus de facção de 30%. Tiers Mítico → T1 → T2 escalam
+                                linearmente; T3 e T4 substituem upgrades por <strong>set bonuses</strong>.
                             </p>
                         </div>
                     </div>
@@ -267,18 +264,14 @@ export default function EquipmentsIndex({ equipments, factions, filters }: PageP
                     <div className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-8 text-center">
                         <Sparkles className="mx-auto mb-3 size-10 text-amber-100/30" />
                         <p className="text-sm font-semibold text-amber-100">Nenhum equipamento encontrado.</p>
-                        <p className="mt-1 text-xs text-amber-100/50">
-                            Tente remover filtros pra ver o catálogo completo.
-                        </p>
+                        <p className="mt-1 text-xs text-amber-100/50">Tente remover filtros pra ver o catálogo completo.</p>
                     </div>
                 ) : (
                     grouped.map(([setCode, items]) => (
                         <section key={setCode} className="rounded-2xl border border-amber-400/15 bg-zinc-950/60 p-5">
                             <header className="mb-3 flex items-center gap-2">
                                 <Flame className="size-4 text-amber-300" />
-                                <h2 className="text-sm font-semibold text-amber-100">
-                                    {SET_LABEL[setCode] ?? setCode}
-                                </h2>
+                                <h2 className="text-sm font-semibold text-amber-100">{SET_LABEL[setCode] ?? setCode}</h2>
                                 <span className="text-[10px] text-amber-100/40">{items.length} item(s)</span>
                             </header>
                             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -308,10 +301,10 @@ function EquipmentCard({ equipment }: EquipmentCardProps) {
                 <div className={cn('grid size-9 flex-shrink-0 place-items-center rounded-md', factionTheme?.cardGradient)}>
                     <SlotIcon className="size-4 text-amber-200" />
                 </div>
-                <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-amber-100 truncate">{equipment.name_pt}</h3>
+                <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-sm font-semibold text-amber-100">{equipment.name_pt}</h3>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px]">
-                        <span className={cn('rounded border px-1 py-0.5 font-mono uppercase tracking-wide', QUALITY_BADGE[equipment.quality_tier])}>
+                        <span className={cn('rounded border px-1 py-0.5 font-mono tracking-wide uppercase', QUALITY_BADGE[equipment.quality_tier])}>
                             {QUALITY_LABEL[equipment.quality_tier]}
                         </span>
                         <span className={cn('rounded border px-1 py-0.5', HERO_TYPE_BADGE[equipment.hero_type])}>
@@ -326,13 +319,11 @@ function EquipmentCard({ equipment }: EquipmentCardProps) {
 
             {/* Power */}
             <div className="flex items-center justify-between rounded border border-amber-400/15 bg-black/40 px-2 py-1.5">
-                <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-amber-100/50">
+                <span className="flex items-center gap-1 text-[10px] tracking-wider text-amber-100/50 uppercase">
                     <Zap className="size-3" />
                     Força
                 </span>
-                <span className="font-mono text-sm font-bold tabular-nums text-amber-100">
-                    {formatPower(equipment.power_rating)}
-                </span>
+                <span className="font-mono text-sm font-bold text-amber-100 tabular-nums">{formatPower(equipment.power_rating)}</span>
             </div>
 
             {/* Stats */}
@@ -353,9 +344,7 @@ function EquipmentCard({ equipment }: EquipmentCardProps) {
                         {Object.entries(equipment.set_bonuses).map(([key, value]) => (
                             <li key={key} className="flex items-center justify-between text-fuchsia-200">
                                 <span>{STAT_LABEL[key] ?? key}</span>
-                                <span className="font-mono">
-                                    {key.endsWith('_pct') ? `${value}%` : value.toLocaleString('pt-BR')}
-                                </span>
+                                <span className="font-mono">{key.endsWith('_pct') ? `${value}%` : value.toLocaleString('pt-BR')}</span>
                             </li>
                         ))}
                     </ul>

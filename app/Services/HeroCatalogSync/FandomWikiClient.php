@@ -9,8 +9,11 @@ use RuntimeException;
 class FandomWikiClient
 {
     public const API_URL = 'https://afk-arena.fandom.com/api.php';
+
     public const HEROES_CATEGORY = 'Category:Heroes';
+
     private const USER_AGENT = 'AFK-Builder/0.1 (https://github.com/local; afk-builder@local) Laravel-HTTP';
+
     private const THROTTLE_MICROSECONDS = 250_000;
 
     private float $lastRequestAt = 0.0;

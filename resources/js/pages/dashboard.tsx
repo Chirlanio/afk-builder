@@ -1,5 +1,21 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { BookOpen, ChevronRight, Crown, Flame, Gem, Heart, LayoutGrid, PenLine, Shield, Sparkles, Star, Sword, Target, Trophy, Users } from 'lucide-react';
+import {
+    BookOpen,
+    ChevronRight,
+    Crown,
+    Flame,
+    Gem,
+    Heart,
+    LayoutGrid,
+    PenLine,
+    Shield,
+    Sparkles,
+    Star,
+    Sword,
+    Target,
+    Trophy,
+    Users,
+} from 'lucide-react';
 
 import { RosterPowerChart, type PowerHistoryPoint } from '@/components/roster-power-chart';
 import AppLayout from '@/layouts/app-layout';
@@ -116,7 +132,9 @@ export default function Dashboard({
                                 Bem-vindo de volta
                             </span>
                             <h1 className="mt-3 text-2xl font-bold text-amber-50 md:text-3xl">Olá, {userName}!</h1>
-                            <p className="mt-1 max-w-xl text-sm text-amber-100/60">Acompanhe seu progresso, monte formações e conquiste cada modo de Esperia.</p>
+                            <p className="mt-1 max-w-xl text-sm text-amber-100/60">
+                                Acompanhe seu progresso, monte formações e conquiste cada modo de Esperia.
+                            </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                             <Link
@@ -234,7 +252,9 @@ export default function Dashboard({
                                         >
                                             <div className={`text-xs font-semibold ${theme.headerText}`}>{theme.label}</div>
                                             <div className="mt-1 text-2xl font-bold text-amber-50">{total}</div>
-                                            <div className="text-[10px] tracking-wider text-amber-100/40 uppercase">{total === 1 ? 'herói' : 'heróis'}</div>
+                                            <div className="text-[10px] tracking-wider text-amber-100/40 uppercase">
+                                                {total === 1 ? 'herói' : 'heróis'}
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -253,7 +273,9 @@ export default function Dashboard({
                                 </div>
                                 <div className="flex-1">
                                     <div className="text-sm font-semibold text-amber-100">Catálogo de heróis</div>
-                                    <div className="text-xs text-amber-100/50">{stats.catalog_total} disponíveis em {stats.factions_count} facções</div>
+                                    <div className="text-xs text-amber-100/50">
+                                        {stats.catalog_total} disponíveis em {stats.factions_count} facções
+                                    </div>
                                 </div>
                                 <ChevronRight className="size-4 text-amber-100/30 transition-transform group-hover:translate-x-1 group-hover:text-amber-300" />
                             </div>
@@ -312,7 +334,10 @@ export default function Dashboard({
                                         </div>
                                         <div className="min-w-[80px] text-xs text-amber-100/70">{CLASS_LABEL[code]}</div>
                                         <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-amber-900/30">
-                                            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-500 to-yellow-400 transition-all" style={{ width: `${pct}%` }} />
+                                            <div
+                                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-500 to-yellow-400 transition-all"
+                                                style={{ width: `${pct}%` }}
+                                            />
                                         </div>
                                         <div className="min-w-[28px] text-right font-mono text-xs text-amber-100 tabular-nums">{total}</div>
                                     </div>
@@ -330,9 +355,14 @@ export default function Dashboard({
                                 const pct = stats.roster_total > 0 ? (total / stats.roster_total) * 100 : 0;
                                 return (
                                     <div key={code} className="flex items-center gap-3">
-                                        <div className={cn('shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase', theme.badge)}>{theme.label}</div>
+                                        <div className={cn('shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase', theme.badge)}>
+                                            {theme.label}
+                                        </div>
                                         <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-amber-900/30">
-                                            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-500 to-yellow-400 transition-all" style={{ width: `${pct}%` }} />
+                                            <div
+                                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-500 to-yellow-400 transition-all"
+                                                style={{ width: `${pct}%` }}
+                                            />
                                         </div>
                                         <div className="min-w-[28px] text-right font-mono text-xs text-amber-100 tabular-nums">{total}</div>
                                     </div>
@@ -364,8 +394,16 @@ export default function Dashboard({
                                         )}
                                     >
                                         <div className="flex items-center gap-2">
-                                            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-300">#{idx + 1}</span>
-                                            {h.portrait_url && <img src={h.portrait_url} alt={h.hero_name ?? ''} className="size-8 rounded-full border border-amber-400/30 object-cover" />}
+                                            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-300">
+                                                #{idx + 1}
+                                            </span>
+                                            {h.portrait_url && (
+                                                <img
+                                                    src={h.portrait_url}
+                                                    alt={h.hero_name ?? ''}
+                                                    className="size-8 rounded-full border border-amber-400/30 object-cover"
+                                                />
+                                            )}
                                             <div className="min-w-0 flex-1">
                                                 <div className="truncate text-xs font-semibold text-amber-100">{h.hero_name}</div>
                                                 <div className="text-[10px] text-amber-100/40">
@@ -373,7 +411,9 @@ export default function Dashboard({
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="font-mono text-lg font-bold text-amber-50 tabular-nums">{h.power.toLocaleString('pt-BR')}</div>
+                                        <div className="font-mono text-lg font-bold text-amber-50 tabular-nums">
+                                            {h.power.toLocaleString('pt-BR')}
+                                        </div>
                                     </Link>
                                 );
                             })}
@@ -438,7 +478,9 @@ export default function Dashboard({
                                         <div className="font-semibold text-amber-100 group-hover:text-amber-50">{f.name}</div>
                                         <span
                                             className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wider uppercase ${
-                                                f.mode === 'real' ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300' : 'border-sky-400/40 bg-sky-400/10 text-sky-300'
+                                                f.mode === 'real'
+                                                    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300'
+                                                    : 'border-sky-400/40 bg-sky-400/10 text-sky-300'
                                             }`}
                                         >
                                             {f.mode === 'real' ? 'Real' : 'Alvo'}
@@ -447,7 +489,9 @@ export default function Dashboard({
                                     <div className="text-xs text-amber-100/50">
                                         {f.challenge_label ?? '—'} · {f.teams_count} eq.
                                     </div>
-                                    {f.updated_at && <div className="text-[10px] tracking-wider text-amber-100/30 uppercase">Editado {f.updated_at}</div>}
+                                    {f.updated_at && (
+                                        <div className="text-[10px] tracking-wider text-amber-100/30 uppercase">Editado {f.updated_at}</div>
+                                    )}
                                 </Link>
                             ))}
                         </div>

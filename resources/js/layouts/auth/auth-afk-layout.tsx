@@ -36,9 +36,7 @@ export default function AuthAfkLayout({ children, title, description }: AuthAfkL
                                 alt="AFK Arena"
                                 className="h-12 w-auto drop-shadow-[0_0_18px_rgba(251,191,36,0.45)] transition-transform group-hover:scale-105"
                             />
-                            <span className="hidden text-sm font-semibold tracking-[0.3em] text-amber-200/80 uppercase xl:inline">
-                                Builder
-                            </span>
+                            <span className="hidden text-sm font-semibold tracking-[0.3em] text-amber-200/80 uppercase xl:inline">Builder</span>
                         </Link>
 
                         <div className="max-w-md space-y-5">
@@ -46,12 +44,10 @@ export default function AuthAfkLayout({ children, title, description }: AuthAfkL
                                 <span className="size-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.9)]" />
                                 Esperia aguarda
                             </span>
-                            <h2 className="text-3xl leading-tight font-bold text-amber-50 xl:text-4xl">
-                                Domine cada formação, em todos os modos.
-                            </h2>
+                            <h2 className="text-3xl leading-tight font-bold text-amber-50 xl:text-4xl">Domine cada formação, em todos os modos.</h2>
                             <p className="text-base leading-relaxed text-amber-100/70">
-                                Monte equipes ideais com seu roster real, calcule sinergias, otimize Campanha, Torre do Rei,
-                                Reino dos Sonhos e muito mais — tudo em um só lugar.
+                                Monte equipes ideais com seu roster real, calcule sinergias, otimize Campanha, Torre do Rei, Reino dos Sonhos e muito
+                                mais — tudo em um só lugar.
                             </p>
                             <div className="flex flex-wrap gap-2 pt-2 text-xs">
                                 {[
@@ -64,10 +60,7 @@ export default function AuthAfkLayout({ children, title, description }: AuthAfkL
                                     { label: 'Dimensionais', cls: 'border-blue-400/50 text-blue-200' },
                                     { label: 'Draconis', cls: 'border-rose-400/50 text-rose-200' },
                                 ].map((f) => (
-                                    <span
-                                        key={f.label}
-                                        className={`rounded-full border bg-white/5 px-2.5 py-1 backdrop-blur-sm ${f.cls}`}
-                                    >
+                                    <span key={f.label} className={`rounded-full border bg-white/5 px-2.5 py-1 backdrop-blur-sm ${f.cls}`}>
                                         {f.label}
                                     </span>
                                 ))}
@@ -77,10 +70,7 @@ export default function AuthAfkLayout({ children, title, description }: AuthAfkL
                 </aside>
 
                 <main className="relative flex items-center justify-center px-6 py-10 sm:px-10 lg:px-14">
-                    <Link
-                        href="/"
-                        className="absolute top-6 left-6 flex items-center gap-2 lg:hidden"
-                    >
+                    <Link href="/" className="absolute top-6 left-6 flex items-center gap-2 lg:hidden">
                         <img src="/images/auth/afk-arena-logo.png" alt="AFK Arena" className="h-8 w-auto" />
                     </Link>
 
@@ -92,9 +82,7 @@ export default function AuthAfkLayout({ children, title, description }: AuthAfkL
                                         {title}
                                     </h1>
                                 )}
-                                {description && (
-                                    <p className="text-sm text-amber-100/60">{description}</p>
-                                )}
+                                {description && <p className="text-sm text-amber-100/60">{description}</p>}
                             </div>
                             {children}
                         </div>

@@ -9,7 +9,6 @@ use App\Models\Hero;
 use App\Models\UserHero;
 use App\Services\ActiveGameAccount;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
@@ -56,6 +55,7 @@ class UserHeroController extends Controller
         if ($request->expectsJson()) {
             return response()->json(['ok' => true, 'user_hero' => $userHero]);
         }
+
         return back();
     }
 
@@ -87,6 +87,7 @@ class UserHeroController extends Controller
         if ($request->expectsJson()) {
             return response()->json(['ok' => true, 'user_hero' => $userHero->fresh()]);
         }
+
         return back();
     }
 
@@ -173,6 +174,7 @@ class UserHeroController extends Controller
         }
 
         $artifactFields = $this->resolveArtifactFields($data, $hero);
+
         return [...$artifactFields, 'collection_id' => null];
     }
 
@@ -215,6 +217,7 @@ class UserHeroController extends Controller
         if ($request->expectsJson()) {
             return response()->json(['ok' => true]);
         }
+
         return back();
     }
 
@@ -222,7 +225,7 @@ class UserHeroController extends Controller
      * Atualiza os 35 stats do roster (HP/ATK/DEF + extras). Mesma lista de
      * campos que HeroStat. hp/atk/def são integer; demais aceitam decimais.
      */
-    public function updateStats(Request $request, UserHero $userHero): \Illuminate\Http\JsonResponse
+    public function updateStats(Request $request, UserHero $userHero): JsonResponse
     {
         abort_unless($userHero->game_account_id === $this->active->get()->id, 403);
 

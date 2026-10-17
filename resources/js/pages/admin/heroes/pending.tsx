@@ -1,6 +1,3 @@
-import { Head, router } from '@inertiajs/react';
-import { Check, ExternalLink, Plus, ShieldCheck, X } from 'lucide-react';
-import { useState } from 'react';
 import { CreateHeroModal } from '@/components/create-hero-modal';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +7,9 @@ import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { ClassCode, Faction, FactionCode, HeroClass, Tier, TierCode } from '@/types/afk';
+import { Head, router } from '@inertiajs/react';
+import { Check, ExternalLink, Plus, ShieldCheck, X } from 'lucide-react';
+import { useState } from 'react';
 
 interface PendingHero {
     id: number;
@@ -69,8 +69,8 @@ export default function HeroesPendingReview({ heroes, factions, heroClasses, tie
             >
                 {heroes.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
-                        <ShieldCheck className="size-10 text-muted-foreground" />
-                        <p className="mt-2 text-sm text-muted-foreground">Nenhum herói pendente. ✓</p>
+                        <ShieldCheck className="text-muted-foreground size-10" />
+                        <p className="text-muted-foreground mt-2 text-sm">Nenhum herói pendente. ✓</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -81,29 +81,19 @@ export default function HeroesPendingReview({ heroes, factions, heroClasses, tie
                             const isBusy = busyId === hero.id;
 
                             return (
-                                <div
-                                    key={hero.id}
-                                    className={cn(
-                                        'flex gap-3 rounded-xl border bg-card p-3',
-                                        factionTheme.cardBorder,
-                                    )}
-                                >
+                                <div key={hero.id} className={cn('bg-card flex gap-3 rounded-xl border p-3', factionTheme.cardBorder)}>
                                     <div className={cn('relative size-24 shrink-0 overflow-hidden rounded-lg', factionTheme.cardGradient)}>
                                         {hero.portrait_url ? (
-                                            <img
-                                                src={hero.portrait_url}
-                                                alt={hero.name}
-                                                className="size-full object-contain object-bottom"
-                                            />
+                                            <img src={hero.portrait_url} alt={hero.name} className="size-full object-contain object-bottom" />
                                         ) : (
-                                            <div className="grid size-full place-items-center text-xs text-muted-foreground">sem imagem</div>
+                                            <div className="text-muted-foreground grid size-full place-items-center text-xs">sem imagem</div>
                                         )}
                                     </div>
 
                                     <div className="flex flex-1 flex-col gap-1.5">
                                         <div>
                                             <h3 className="text-sm font-semibold">{hero.name}</h3>
-                                            {hero.title && <p className="text-xs text-muted-foreground">{hero.title}</p>}
+                                            {hero.title && <p className="text-muted-foreground text-xs">{hero.title}</p>}
                                         </div>
 
                                         <div className="flex flex-wrap items-center gap-1">
@@ -122,7 +112,7 @@ export default function HeroesPendingReview({ heroes, factions, heroClasses, tie
                                                 href={hero.source_url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                                                className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
                                             >
                                                 <ExternalLink className="size-3" />
                                                 Fandom Wiki
@@ -159,13 +149,7 @@ export default function HeroesPendingReview({ heroes, factions, heroClasses, tie
                 )}
             </PageShell>
 
-            <CreateHeroModal
-                open={createOpen}
-                onOpenChange={setCreateOpen}
-                factions={factions}
-                heroClasses={heroClasses}
-                tiers={tiers}
-            />
+            <CreateHeroModal open={createOpen} onOpenChange={setCreateOpen} factions={factions} heroClasses={heroClasses} tiers={tiers} />
         </AppLayout>
     );
 }

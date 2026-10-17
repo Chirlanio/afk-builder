@@ -57,7 +57,7 @@ export function BeastBuffsEditor({ buffs, onChange, accent = 'amber' }: Props) {
                 const display = raw === undefined || raw === null ? '' : String(raw);
                 return (
                     <div key={field.key} className="flex flex-col gap-1">
-                        <label className="text-[10px] font-medium text-muted-foreground" htmlFor={`buff-${field.key}`}>
+                        <label className="text-muted-foreground text-[10px] font-medium" htmlFor={`buff-${field.key}`}>
                             {field.label}
                         </label>
                         <div className="flex items-center gap-1">
@@ -73,7 +73,7 @@ export function BeastBuffsEditor({ buffs, onChange, accent = 'amber' }: Props) {
                                 placeholder="0"
                                 className="h-7 text-xs"
                             />
-                            <span className="text-[10px] text-muted-foreground">%</span>
+                            <span className="text-muted-foreground text-[10px]">%</span>
                         </div>
                     </div>
                 );

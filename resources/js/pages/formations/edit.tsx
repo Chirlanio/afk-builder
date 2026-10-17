@@ -1,12 +1,11 @@
-import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { Head, router } from '@inertiajs/react';
-import axios from 'axios';
-import { Copy, Download, FileText, History, Link2, Loader2, MoreHorizontal, RotateCcw, Save, Share2, Sparkles, Target, Trash2, Users } from 'lucide-react';
-import { TeamsCountDialog } from '@/components/teams-count-dialog';
-import { useCallback, useMemo, useState } from 'react';
 import { EditorPool } from '@/components/formation-editor/editor-pool';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
 import { TeamRow, type TeamSlotsState } from '@/components/formation-editor/team-row';
+import { FormationExportPreview } from '@/components/formation-export-preview';
+import { FormationNotesSheet } from '@/components/formation-notes-sheet';
+import { FormationTagsMenu, tagColorClasses, type FormationTagPayload } from '@/components/formation-tags-menu';
+import { ScoreBreakdownCard } from '@/components/score-breakdown-card';
+import { TeamsCountDialog } from '@/components/teams-count-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -14,6 +13,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { WeightTunerSheet, type WeightOverrides, type WeightPreset } from '@/components/weight-tuner-sheet';
+import { useAutoScrollOnDrag } from '@/hooks/use-auto-scroll-on-drag';
+import { useFormationExport } from '@/hooks/use-formation-export';
 import AppLayout from '@/layouts/app-layout';
 import { FACTION_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
@@ -33,13 +35,26 @@ import type {
     Tier,
     TierCode,
 } from '@/types/afk';
-import { ScoreBreakdownCard } from '@/components/score-breakdown-card';
-import { FormationExportPreview } from '@/components/formation-export-preview';
-import { FormationNotesSheet } from '@/components/formation-notes-sheet';
-import { FormationTagsMenu, tagColorClasses, type FormationTagPayload } from '@/components/formation-tags-menu';
-import { WeightTunerSheet, type WeightOverrides, type WeightPreset } from '@/components/weight-tuner-sheet';
-import { useAutoScrollOnDrag } from '@/hooks/use-auto-scroll-on-drag';
-import { useFormationExport } from '@/hooks/use-formation-export';
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
+import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
+import {
+    Copy,
+    Download,
+    FileText,
+    History,
+    Link2,
+    Loader2,
+    MoreHorizontal,
+    RotateCcw,
+    Save,
+    Share2,
+    Sparkles,
+    Target,
+    Trash2,
+    Users,
+} from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 
 interface PageProps {
     formation: Formation & {
@@ -126,7 +141,9 @@ export default function FormationsEdit({
     const [isSharing, setIsSharing] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
     const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-    const [versions, setVersions] = useState<Array<{ id: number; created_at: string | null; team_count: number; hero_count: number; name: string | null }>>([]);
+    const [versions, setVersions] = useState<
+        Array<{ id: number; created_at: string | null; team_count: number; hero_count: number; name: string | null }>
+    >([]);
     const [isLoadingVersions, setIsLoadingVersions] = useState(false);
     const [poolSheetOpen, setPoolSheetOpen] = useState(false);
     const [notesSheetOpen, setNotesSheetOpen] = useState(false);
@@ -138,12 +155,16 @@ export default function FormationsEdit({
     const [savedOverrides, setSavedOverrides] = useState<Partial<WeightOverrides> | null>(scoringProfileOverrides ?? null);
     const [presets, setPresets] = useState<WeightPreset[]>(weightPresets);
     const [tags, setTags] = useState<FormationTagPayload[]>(availableTags);
-    const [selectedTagIds, setSelectedTagIds] = useState<number[]>(
-        formation.tags ? formation.tags.map((t) => t.id) : [],
-    );
+    const [selectedTagIds, setSelectedTagIds] = useState<number[]>(formation.tags ? formation.tags.map((t) => t.id) : []);
     const autoScroll = useAutoScrollOnDrag();
     const exportFilename = `${formation.name.replace(/[^a-zA-Z0-9-_]+/g, '_').toLowerCase()}.png`;
-    const { ref: exportRef, download: downloadPng, isExporting, error: exportError, clearError } = useFormationExport({
+    const {
+        ref: exportRef,
+        download: downloadPng,
+        isExporting,
+        error: exportError,
+        clearError,
+    } = useFormationExport({
         filename: exportFilename,
     });
 
@@ -330,11 +351,7 @@ export default function FormationsEdit({
         if (sourceData.kind === 'beast' && targetData.kind === 'beast-slot') {
             const beastId = sourceData.beastId;
             const targetTeamPosition = targetData.teamPosition;
-            setTeams((prev) =>
-                prev.map((team) =>
-                    team.position === targetTeamPosition ? { ...team, beastId } : team,
-                ),
-            );
+            setTeams((prev) => prev.map((team) => (team.position === targetTeamPosition ? { ...team, beastId } : team)));
             setIsDirty(true);
             return;
         }
@@ -482,9 +499,7 @@ export default function FormationsEdit({
     const generateShareLink = async () => {
         setIsSharing(true);
         try {
-            const response = await axios.post<{ share_token: string; public_url: string }>(
-                `/formations/${formation.id}/share`,
-            );
+            const response = await axios.post<{ share_token: string; public_url: string }>(`/formations/${formation.id}/share`);
             setShareToken(response.data.share_token);
         } catch (error) {
             console.error('Falha ao gerar link de compartilhamento:', error);
@@ -521,9 +536,9 @@ export default function FormationsEdit({
         setHistoryDialogOpen(true);
         setIsLoadingVersions(true);
         try {
-            const response = await axios.get<{ versions: Array<{ id: number; created_at: string | null; team_count: number; hero_count: number; name: string | null }> }>(
-                `/formations/${formation.id}/versions`,
-            );
+            const response = await axios.get<{
+                versions: Array<{ id: number; created_at: string | null; team_count: number; hero_count: number; name: string | null }>;
+            }>(`/formations/${formation.id}/versions`);
             setVersions(response.data.versions);
         } catch (error) {
             console.error('Falha ao carregar histórico:', error);
@@ -607,7 +622,7 @@ export default function FormationsEdit({
                                 setIsDirty(true);
                             }}
                             maxLength={100}
-                            className="h-9 flex-1 max-w-md text-base font-semibold"
+                            className="h-9 max-w-md flex-1 text-base font-semibold"
                         />
 
                         {/* Ações desktop (md+) */}
@@ -637,45 +652,24 @@ export default function FormationsEdit({
                                 }}
                                 onTagsChange={setTags}
                             />
-                            <Button
-                                variant="outline"
-                                onClick={() => setNotesSheetOpen(true)}
-                                disabled={isSaving}
-                                className="gap-1.5"
-                            >
+                            <Button variant="outline" onClick={() => setNotesSheetOpen(true)} disabled={isSaving} className="gap-1.5">
                                 <FileText className="size-4" />
                                 Notas
                                 {notes.trim().length > 0 && <span className="ml-1 size-1.5 rounded-full bg-amber-400" aria-hidden />}
                             </Button>
-                            <Button
-                                variant="outline"
-                                onClick={openHistory}
-                                disabled={isSaving}
-                            >
+                            <Button variant="outline" onClick={openHistory} disabled={isSaving}>
                                 <History className="size-4" />
                                 Histórico
                             </Button>
-                            <Button
-                                variant="outline"
-                                onClick={() => setShareDialogOpen(true)}
-                                disabled={isSaving}
-                            >
+                            <Button variant="outline" onClick={() => setShareDialogOpen(true)} disabled={isSaving}>
                                 <Share2 className="size-4" />
                                 {shareToken ? 'Compartilhada' : 'Compartilhar'}
                             </Button>
-                            <Button
-                                variant="outline"
-                                onClick={downloadPng}
-                                disabled={isSaving || isExporting}
-                            >
+                            <Button variant="outline" onClick={downloadPng} disabled={isSaving || isExporting}>
                                 {isExporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
                                 {isExporting ? 'Gerando...' : 'PNG'}
                             </Button>
-                            <Button
-                                variant="outline"
-                                onClick={suggestAll}
-                                disabled={isSuggestingAll || isSaving}
-                            >
+                            <Button variant="outline" onClick={suggestAll} disabled={isSuggestingAll || isSaving}>
                                 {isSuggestingAll ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
                                 {isSuggestingAll ? 'Sugerindo...' : 'Sugerir todas'}
                             </Button>
@@ -725,11 +719,7 @@ export default function FormationsEdit({
                     </div>
 
                     {/* Indicador "alterações não salvas" mobile */}
-                    {isDirty && (
-                        <p className="-mt-2 text-xs text-amber-600 dark:text-amber-400 md:hidden">
-                            Alterações não salvas
-                        </p>
-                    )}
+                    {isDirty && <p className="-mt-2 text-xs text-amber-600 md:hidden dark:text-amber-400">Alterações não salvas</p>}
 
                     {/* Linha 2: badges + beast selector */}
                     <div className="flex flex-wrap items-center gap-2">
@@ -744,10 +734,10 @@ export default function FormationsEdit({
                                     onClick={() => adjustable && setTeamsCountDialogOpen(true)}
                                     disabled={!adjustable}
                                     className={cn(
-                                        'inline-flex h-6 items-center gap-1 rounded-md border bg-background px-2 text-xs font-medium',
+                                        'bg-background inline-flex h-6 items-center gap-1 rounded-md border px-2 text-xs font-medium',
                                         adjustable
-                                            ? 'cursor-pointer hover:border-primary hover:text-primary'
-                                            : 'cursor-default text-muted-foreground',
+                                            ? 'hover:border-primary hover:text-primary cursor-pointer'
+                                            : 'text-muted-foreground cursor-default',
                                     )}
                                     title={adjustable ? 'Clique para ajustar a quantidade de equipes' : `Este desafio fixa em ${maxT} equipe(s)`}
                                 >
@@ -817,8 +807,8 @@ export default function FormationsEdit({
                                         />
                                         <RecommendedMatchesStripe matches={recommendedMatches?.[team.position] ?? []} />
                                         {teamScore && !isDirty && (
-                                            <details className="rounded-lg border bg-card/30 text-xs">
-                                                <summary className="flex cursor-pointer items-center justify-between px-3 py-1.5 text-muted-foreground hover:text-foreground">
+                                            <details className="bg-card/30 rounded-lg border text-xs">
+                                                <summary className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center justify-between px-3 py-1.5">
                                                     <span className="font-medium">Ver score detalhado</span>
                                                     <span className={cn('font-mono tabular-nums', !weightsAreDefault && 'text-amber-400')}>
                                                         {weightsAreDefault || !customWeights
@@ -839,7 +829,7 @@ export default function FormationsEdit({
                                                     score={teamScore}
                                                     compact
                                                     className="border-0"
-                                                    weights={weightsAreDefault ? undefined : customWeights ?? undefined}
+                                                    weights={weightsAreDefault ? undefined : (customWeights ?? undefined)}
                                                 />
                                             </details>
                                         )}
@@ -873,16 +863,14 @@ export default function FormationsEdit({
                                 <Users className="size-4" />
                                 Heróis disponíveis
                             </SheetTitle>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-muted-foreground text-xs">
                                 Toque num herói para adicioná-lo ao próximo slot livre, ou arraste pra um slot específico.
                             </p>
                         </SheetHeader>
 
                         {teams.length > 1 && (
-                            <div className="flex shrink-0 flex-wrap items-center gap-1.5 rounded-lg border bg-muted/20 p-1.5">
-                                <span className="px-1 text-[11px] font-medium text-muted-foreground">
-                                    Adicionar à:
-                                </span>
+                            <div className="bg-muted/20 flex shrink-0 flex-wrap items-center gap-1.5 rounded-lg border p-1.5">
+                                <span className="text-muted-foreground px-1 text-[11px] font-medium">Adicionar à:</span>
                                 {teams.map((team) => {
                                     const filled = team.slots.filter((s) => s.heroId !== null).length;
                                     const full = filled >= 5;
@@ -895,9 +883,7 @@ export default function FormationsEdit({
                                             disabled={full}
                                             className={cn(
                                                 'min-h-9 rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                                                active
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : 'text-muted-foreground hover:bg-muted',
+                                                active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
                                                 full && 'cursor-not-allowed opacity-50',
                                             )}
                                             aria-pressed={active}
@@ -932,7 +918,7 @@ export default function FormationsEdit({
                 <button
                     type="button"
                     onClick={() => setPoolSheetOpen(true)}
-                    className="fixed bottom-4 right-4 z-40 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-400 text-zinc-900 shadow-[0_0_24px_-4px_rgba(251,191,36,0.7)] transition-transform hover:scale-105 active:scale-95 lg:hidden"
+                    className="fixed right-4 bottom-4 z-40 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-yellow-400 text-zinc-900 shadow-[0_0_24px_-4px_rgba(251,191,36,0.7)] transition-transform hover:scale-105 active:scale-95 lg:hidden"
                     aria-label="Abrir lista de heróis"
                 >
                     <Users className="size-6" />
@@ -972,7 +958,7 @@ export default function FormationsEdit({
                             score: null,
                             beast_id: t.beastId,
                             beast_level: t.beastLevel,
-                            beast: t.beastId ? beastById[t.beastId] ?? null : null,
+                            beast: t.beastId ? (beastById[t.beastId] ?? null) : null,
                             team_heroes: t.slots
                                 .map((slot, slotIdx) => ({
                                     id: slotIdx,
@@ -1016,16 +1002,11 @@ export default function FormationsEdit({
                 {exportError && (
                     <div
                         role="alert"
-                        className="fixed bottom-4 left-1/2 z-50 max-w-md -translate-x-1/2 rounded-lg border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-lg"
+                        className="border-destructive bg-destructive/10 text-destructive fixed bottom-4 left-1/2 z-50 max-w-md -translate-x-1/2 rounded-lg border px-4 py-3 text-sm shadow-lg"
                     >
                         <div className="flex items-start gap-2">
                             <span className="flex-1">{exportError}</span>
-                            <button
-                                type="button"
-                                onClick={clearError}
-                                className="rounded p-0.5 hover:bg-destructive/20"
-                                aria-label="Fechar"
-                            >
+                            <button type="button" onClick={clearError} className="hover:bg-destructive/20 rounded p-0.5" aria-label="Fechar">
                                 ×
                             </button>
                         </div>
@@ -1040,42 +1021,34 @@ export default function FormationsEdit({
                                 Histórico de versões
                             </DialogTitle>
                             <DialogDescription>
-                                Cada vez que você salva, uma versão anterior é guardada (até 20). Restaurar substitui o estado atual — a versão de agora também vai pro histórico antes da troca.
+                                Cada vez que você salva, uma versão anterior é guardada (até 20). Restaurar substitui o estado atual — a versão de
+                                agora também vai pro histórico antes da troca.
                             </DialogDescription>
                         </DialogHeader>
 
                         {isLoadingVersions ? (
                             <div className="flex justify-center py-8">
-                                <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                                <Loader2 className="text-muted-foreground size-6 animate-spin" />
                             </div>
                         ) : versions.length === 0 ? (
-                            <p className="py-8 text-center text-sm text-muted-foreground">
+                            <p className="text-muted-foreground py-8 text-center text-sm">
                                 Sem versões anteriores ainda. Salve a formação ao menos uma vez para começar o histórico.
                             </p>
                         ) : (
                             <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto">
                                 {versions.map((v) => (
-                                    <div
-                                        key={v.id}
-                                        className="flex items-center justify-between gap-3 rounded-lg border p-2.5"
-                                    >
+                                    <div key={v.id} className="flex items-center justify-between gap-3 rounded-lg border p-2.5">
                                         <div className="flex flex-col text-xs">
                                             <span className="font-medium">
-                                                {v.created_at
-                                                    ? new Date(v.created_at).toLocaleString('pt-BR')
-                                                    : 'sem data'}
+                                                {v.created_at ? new Date(v.created_at).toLocaleString('pt-BR') : 'sem data'}
                                             </span>
                                             <span className="text-muted-foreground">
                                                 {v.name && v.name !== formation.name ? `"${v.name}" · ` : ''}
-                                                {v.hero_count} herói{v.hero_count !== 1 ? 's' : ''} em {v.team_count} equipe{v.team_count !== 1 ? 's' : ''}
+                                                {v.hero_count} herói{v.hero_count !== 1 ? 's' : ''} em {v.team_count} equipe
+                                                {v.team_count !== 1 ? 's' : ''}
                                             </span>
                                         </div>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => restoreVersion(v.id)}
-                                        >
+                                        <Button type="button" variant="outline" size="sm" onClick={() => restoreVersion(v.id)}>
                                             <RotateCcw className="size-3" />
                                             Restaurar
                                         </Button>
@@ -1101,11 +1074,7 @@ export default function FormationsEdit({
                         {shareToken ? (
                             <div className="flex flex-col gap-3">
                                 <div className="flex items-center gap-2">
-                                    <Input
-                                        readOnly
-                                        value={`${window.location.origin}/f/${shareToken}`}
-                                        className="font-mono text-xs"
-                                    />
+                                    <Input readOnly value={`${window.location.origin}/f/${shareToken}`} className="font-mono text-xs" />
                                     <Button type="button" variant="outline" size="sm" onClick={copyShareLink}>
                                         <Copy className="size-4" />
                                         {copySuccess ? 'Copiado!' : 'Copiar'}
@@ -1181,7 +1150,7 @@ function RecommendedMatchesStripe({ matches }: { matches: RecommendedMatch[] }) 
 
     return (
         <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-2 py-1">
-            <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+            <span className="flex items-center gap-1 text-[10px] font-semibold tracking-wide text-amber-700 uppercase dark:text-amber-400">
                 <Sparkles className="size-3" />
                 Comps próximos:
             </span>
@@ -1200,14 +1169,19 @@ function RecommendedMatchesStripe({ matches }: { matches: RecommendedMatch[] }) 
                         key={match.slug}
                         href="/formations/recommended"
                         title={titleLines.join('\n')}
-                        className="group flex items-center gap-1 rounded-md border bg-card px-1.5 py-0.5 text-[10px] hover:border-amber-500/60 hover:bg-amber-500/10"
+                        className="group bg-card flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] hover:border-amber-500/60 hover:bg-amber-500/10"
                     >
                         {match.tier && (
-                            <span className={cn('rounded px-1 py-0.5 text-[9px] font-bold leading-none', MATCH_TIER_BADGE[match.tier] ?? 'bg-muted text-foreground')}>
+                            <span
+                                className={cn(
+                                    'rounded px-1 py-0.5 text-[9px] leading-none font-bold',
+                                    MATCH_TIER_BADGE[match.tier] ?? 'bg-muted text-foreground',
+                                )}
+                            >
                                 {match.tier}
                             </span>
                         )}
-                        <span className="truncate font-medium max-w-[140px]">{match.name}</span>
+                        <span className="max-w-[140px] truncate font-medium">{match.name}</span>
                         <span className="text-muted-foreground">
                             {match.core_overlap}/{match.total_core} core
                         </span>

@@ -1,12 +1,12 @@
-import { Head, useForm } from '@inertiajs/react';
-import { ListChecks, Save } from 'lucide-react';
-import { type FormEvent } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
+import { Head, useForm } from '@inertiajs/react';
+import { ListChecks, Save } from 'lucide-react';
+import { type FormEvent } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Tier Lists', href: '/tier-lists' },
@@ -28,7 +28,11 @@ export default function TierListCreate() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nova Tier List" />
 
-            <PageShell title="Nova Tier List" icon={ListChecks} description="Crie uma tier list. Após criar, você poderá arrastar heróis e customizar os tiers.">
+            <PageShell
+                title="Nova Tier List"
+                icon={ListChecks}
+                description="Crie uma tier list. Após criar, você poderá arrastar heróis e customizar os tiers."
+            >
                 <form onSubmit={submit} className="flex max-w-2xl flex-col gap-4">
                     <div className="flex flex-col gap-1.5">
                         <Label htmlFor="name">Nome *</Label>
@@ -40,7 +44,7 @@ export default function TierListCreate() {
                             required
                             maxLength={100}
                         />
-                        {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+                        {errors.name && <p className="text-destructive text-xs">{errors.name}</p>}
                     </div>
 
                     <div className="flex flex-col gap-1.5">
@@ -49,16 +53,17 @@ export default function TierListCreate() {
                             id="description"
                             value={data.description}
                             onChange={(e) => setData('description', e.target.value)}
-                            className="min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            className="border-input bg-background min-h-[80px] rounded-md border px-3 py-2 text-sm"
                             rows={3}
                             maxLength={5000}
                             placeholder="Contexto, critério, etc..."
                         />
-                        {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
+                        {errors.description && <p className="text-destructive text-xs">{errors.description}</p>}
                     </div>
 
-                    <p className="text-xs text-muted-foreground">
-                        Tiers padrão: <strong>S+</strong>, <strong>S</strong>, <strong>A</strong>, <strong>B</strong>, <strong>C</strong>. Você pode adicionar/remover/renomear depois.
+                    <p className="text-muted-foreground text-xs">
+                        Tiers padrão: <strong>S+</strong>, <strong>S</strong>, <strong>A</strong>, <strong>B</strong>, <strong>C</strong>. Você pode
+                        adicionar/remover/renomear depois.
                     </p>
 
                     <div className="flex justify-end gap-2 border-t pt-3">

@@ -272,7 +272,7 @@ class FormationController extends Controller
 
                 continue;
             }
-            $breakdown = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $team->beast, $ctx, $team->beast_level ?? \App\Models\Beast::MAX_LEVEL);
+            $breakdown = $scorer->score($heroes, $userHeroesById, $synergyWeights, $profile, $team->beast, $ctx, $team->beast_level ?? Beast::MAX_LEVEL);
             $scores[$team->position] = $breakdown->toArray();
         }
 
@@ -331,7 +331,7 @@ class FormationController extends Controller
             'teams.*.position' => ['required', 'integer', 'min:1', 'max:'.$formation->teams_count],
             'teams.*.name' => ['nullable', 'string', 'max:60'],
             'teams.*.beast_id' => ['nullable', 'integer', Rule::exists('beasts', 'id')->where('is_active', true)],
-            'teams.*.beast_level' => ['nullable', 'integer', 'min:1', 'max:'.\App\Models\Beast::MAX_LEVEL],
+            'teams.*.beast_level' => ['nullable', 'integer', 'min:1', 'max:'.Beast::MAX_LEVEL],
             'teams.*.heroes' => ['array', 'max:5'],
             'teams.*.heroes.*.slot' => ['required', 'integer', 'min:1', 'max:5'],
             'teams.*.heroes.*.hero_id' => ['required', 'integer', Rule::exists('heroes', 'id')->where('is_active', true)],
@@ -389,7 +389,7 @@ class FormationController extends Controller
                 $team->update([
                     'name' => $teamPayload['name'] ?? null,
                     'beast_id' => $teamPayload['beast_id'] ?? null,
-                    'beast_level' => $teamPayload['beast_level'] ?? \App\Models\Beast::MAX_LEVEL,
+                    'beast_level' => $teamPayload['beast_level'] ?? Beast::MAX_LEVEL,
                 ]);
 
                 $team->teamHeroes()->delete();

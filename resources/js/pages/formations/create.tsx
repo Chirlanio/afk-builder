@@ -1,6 +1,3 @@
-import { Head, useForm } from '@inertiajs/react';
-import { Plus, Swords, Target, Users } from 'lucide-react';
-import { useMemo } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +7,9 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { ChallengeType, FormationMode } from '@/types/afk';
+import { Head, useForm } from '@inertiajs/react';
+import { Plus, Swords, Target, Users } from 'lucide-react';
+import { useMemo } from 'react';
 
 interface PageProps {
     challengeTypes: ChallengeType[];
@@ -59,7 +59,7 @@ export default function FormationsCreate({ challengeTypes }: PageProps) {
                 description="Escolha o tipo de desafio e o modo. Você poderá montar as equipes na próxima tela."
                 width="narrow"
             >
-                <form onSubmit={submit} className="grid gap-4 rounded-xl border bg-card p-4">
+                <form onSubmit={submit} className="bg-card grid gap-4 rounded-xl border p-4">
                     <div className="space-y-1.5">
                         <Label htmlFor="name">Nome</Label>
                         <Input
@@ -71,7 +71,7 @@ export default function FormationsCreate({ challengeTypes }: PageProps) {
                             maxLength={100}
                             autoFocus
                         />
-                        {form.errors.name && <p className="text-xs text-destructive">{form.errors.name}</p>}
+                        {form.errors.name && <p className="text-destructive text-xs">{form.errors.name}</p>}
                     </div>
 
                     <div className="space-y-1.5">
@@ -94,12 +94,10 @@ export default function FormationsCreate({ challengeTypes }: PageProps) {
                                 ))}
                             </SelectContent>
                         </Select>
-                        {form.errors.challenge_type_id && (
-                            <p className="text-xs text-destructive">{form.errors.challenge_type_id}</p>
-                        )}
+                        {form.errors.challenge_type_id && <p className="text-destructive text-xs">{form.errors.challenge_type_id}</p>}
 
                         {selected && (
-                            <div className="mt-2 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+                            <div className="bg-muted/40 text-muted-foreground mt-2 rounded-md border p-3 text-xs">
                                 {selected.description && <p className="mb-2">{selected.description}</p>}
                                 <ul className="flex flex-wrap gap-3">
                                     <li className="flex items-center gap-1">
@@ -108,13 +106,9 @@ export default function FormationsCreate({ challengeTypes }: PageProps) {
                                             ? `${selected.max_teams} equipe(s)`
                                             : `${selected.min_teams}–${selected.max_teams} equipes`}
                                     </li>
-                                    {selected.is_pvp && (
-                                        <li className={cn('font-medium text-rose-600 dark:text-rose-400')}>PvP</li>
-                                    )}
+                                    {selected.is_pvp && <li className={cn('font-medium text-rose-600 dark:text-rose-400')}>PvP</li>}
                                     {selected.teams_must_be_unique && (
-                                        <li className="font-medium text-amber-600 dark:text-amber-400">
-                                            Heróis não podem se repetir entre equipes
-                                        </li>
+                                        <li className="font-medium text-amber-600 dark:text-amber-400">Heróis não podem se repetir entre equipes</li>
                                     )}
                                 </ul>
                             </div>
@@ -139,14 +133,12 @@ export default function FormationsCreate({ challengeTypes }: PageProps) {
                                     )
                                 }
                             />
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="text-muted-foreground text-[11px]">
                                 {teamsCountLocked
                                     ? `Este desafio requer exatamente ${selected.max_teams} ${selected.max_teams === 1 ? 'equipe' : 'equipes'}.`
                                     : `Entre ${selected.min_teams} e ${selected.max_teams} equipes. Você pode alterar depois.`}
                             </p>
-                            {form.errors.teams_count && (
-                                <p className="text-xs text-destructive">{form.errors.teams_count}</p>
-                            )}
+                            {form.errors.teams_count && <p className="text-destructive text-xs">{form.errors.teams_count}</p>}
                         </div>
                     )}
 
@@ -158,36 +150,28 @@ export default function FormationsCreate({ challengeTypes }: PageProps) {
                                 onClick={() => form.setData('mode', 'real')}
                                 className={cn(
                                     'flex flex-col items-start gap-1 rounded-md border-2 p-3 text-left transition-colors',
-                                    form.data.mode === 'real'
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border hover:border-foreground/30',
+                                    form.data.mode === 'real' ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/30',
                                 )}
                             >
                                 <div className="flex items-center gap-2 font-semibold">
                                     <Swords className="size-4" />
                                     Real
                                 </div>
-                                <span className="text-xs text-muted-foreground">
-                                    Use só os heróis que você possui no roster.
-                                </span>
+                                <span className="text-muted-foreground text-xs">Use só os heróis que você possui no roster.</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => form.setData('mode', 'target')}
                                 className={cn(
                                     'flex flex-col items-start gap-1 rounded-md border-2 p-3 text-left transition-colors',
-                                    form.data.mode === 'target'
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border hover:border-foreground/30',
+                                    form.data.mode === 'target' ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/30',
                                 )}
                             >
                                 <div className="flex items-center gap-2 font-semibold">
                                     <Target className="size-4" />
                                     Alvo
                                 </div>
-                                <span className="text-xs text-muted-foreground">
-                                    Planeje com heróis que ainda não tem (guia de progressão).
-                                </span>
+                                <span className="text-muted-foreground text-xs">Planeje com heróis que ainda não tem (guia de progressão).</span>
                             </button>
                         </div>
                     </div>

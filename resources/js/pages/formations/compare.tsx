@@ -1,6 +1,3 @@
-import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, GitCompareArrows, Minus, Plus, Target, Trophy, Users } from 'lucide-react';
-import { useMemo } from 'react';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
@@ -8,16 +5,10 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
-import type {
-    ClassCode,
-    Faction,
-    FactionCode,
-    Hero,
-    HeroClass,
-    ScoreBreakdownPayload,
-    Tier,
-    TierCode,
-} from '@/types/afk';
+import type { ClassCode, Faction, FactionCode, Hero, HeroClass, ScoreBreakdownPayload, Tier, TierCode } from '@/types/afk';
+import { Head, Link } from '@inertiajs/react';
+import { ArrowLeft, GitCompareArrows, Minus, Plus, Target, Trophy, Users } from 'lucide-react';
+import { useMemo } from 'react';
 
 interface ComparedTeam {
     id: number;
@@ -97,12 +88,24 @@ function ScoreRow({ label, a, b, bold }: ScoreRowProps) {
     return (
         <div className="flex flex-col gap-0.5">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-xs">
-                <div className={cn('flex items-center justify-end gap-1 tabular-nums', winner === 'a' && 'font-semibold text-emerald-600 dark:text-emerald-400', bold && 'font-bold')}>
+                <div
+                    className={cn(
+                        'flex items-center justify-end gap-1 tabular-nums',
+                        winner === 'a' && 'font-semibold text-emerald-600 dark:text-emerald-400',
+                        bold && 'font-bold',
+                    )}
+                >
                     {winner === 'a' && <Plus className="size-2.5 text-emerald-500" />}
                     <span>{a.toFixed(2)}</span>
                 </div>
-                <span className={cn('text-center text-muted-foreground', bold && 'font-semibold text-foreground')}>{label}</span>
-                <div className={cn('flex items-center gap-1 tabular-nums', winner === 'b' && 'font-semibold text-emerald-600 dark:text-emerald-400', bold && 'font-bold')}>
+                <span className={cn('text-muted-foreground text-center', bold && 'text-foreground font-semibold')}>{label}</span>
+                <div
+                    className={cn(
+                        'flex items-center gap-1 tabular-nums',
+                        winner === 'b' && 'font-semibold text-emerald-600 dark:text-emerald-400',
+                        bold && 'font-bold',
+                    )}
+                >
                     <span>{b.toFixed(2)}</span>
                     {winner === 'b' && <Plus className="size-2.5 text-emerald-500" />}
                 </div>
@@ -118,7 +121,7 @@ function ScoreRow({ label, a, b, bold }: ScoreRowProps) {
                         style={{ width: `${aPct}%` }}
                     />
                 </div>
-                <span className="min-w-[36px] text-center text-[10px] font-mono tabular-nums text-muted-foreground">
+                <span className="text-muted-foreground min-w-[36px] text-center font-mono text-[10px] tabular-nums">
                     {winner === 'tie' ? '=' : `Δ${formatDelta(delta)}`}
                 </span>
                 <div className="flex h-1 justify-start">
@@ -153,11 +156,9 @@ function TeamColumn({
     side: 'a' | 'b';
 }) {
     return (
-        <div className="rounded-lg border bg-card p-2.5">
+        <div className="bg-card rounded-lg border p-2.5">
             <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold">
-                    {team.name ?? `Equipe ${team.position}`}
-                </span>
+                <span className="text-xs font-semibold">{team.name ?? `Equipe ${team.position}`}</span>
                 <Badge variant="secondary" className="text-[10px]">
                     {team.score.total.toFixed(2)}
                 </Badge>
@@ -171,7 +172,7 @@ function TeamColumn({
                         return (
                             <div
                                 key={slotPos}
-                                className="grid size-14 place-items-center rounded border-2 border-dashed border-muted-foreground/20 text-[9px] text-muted-foreground"
+                                className="border-muted-foreground/20 text-muted-foreground grid size-14 place-items-center rounded border-2 border-dashed text-[9px]"
                             >
                                 vazio
                             </div>
@@ -186,9 +187,10 @@ function TeamColumn({
                             key={slotPos}
                             className={cn(
                                 'rounded transition-all',
-                                isExclusive && (side === 'a'
-                                    ? 'ring-2 ring-sky-400 ring-offset-1 ring-offset-card'
-                                    : 'ring-2 ring-amber-400 ring-offset-1 ring-offset-card'),
+                                isExclusive &&
+                                    (side === 'a'
+                                        ? 'ring-offset-card ring-2 ring-sky-400 ring-offset-1'
+                                        : 'ring-offset-card ring-2 ring-amber-400 ring-offset-1'),
                             )}
                             title={isExclusive ? `Exclusivo de ${side === 'a' ? 'A' : 'B'}` : undefined}
                         >
@@ -232,14 +234,7 @@ function HeroBadge({
     );
 }
 
-export default function FormationsCompare({
-    formationA,
-    formationB,
-    heroes,
-    factions,
-    heroClasses,
-    tiers,
-}: PageProps) {
+export default function FormationsCompare({ formationA, formationB, heroes, factions, heroClasses, tiers }: PageProps) {
     const heroById = useMemo(() => Object.fromEntries(heroes.map((h) => [h.id, h])) as Record<number, Hero>, [heroes]);
     const factionById = useMemo(() => Object.fromEntries(factions.map((f) => [f.id, f])) as Record<number, Faction>, [factions]);
     const classById = useMemo(() => Object.fromEntries(heroClasses.map((c) => [c.id, c])) as Record<number, HeroClass>, [heroClasses]);
@@ -275,10 +270,13 @@ export default function FormationsCompare({
     }, [heroIdsByFormation]);
 
     // Heroes exclusivos da formação A vs B — para destaque nos chips dos teams
-    const exclusiveIds = useMemo(() => ({
-        a: new Set(heroDiff.onlyA),
-        b: new Set(heroDiff.onlyB),
-    }), [heroDiff]);
+    const exclusiveIds = useMemo(
+        () => ({
+            a: new Set(heroDiff.onlyA),
+            b: new Set(heroDiff.onlyB),
+        }),
+        [heroDiff],
+    );
 
     // Wins por componente — calcula sobre o agregado das teams
     const componentWins = useMemo(() => {
@@ -340,7 +338,9 @@ export default function FormationsCompare({
                                 <span
                                     className={cn(
                                         'inline-flex size-5 items-center justify-center rounded-full text-[10px] font-bold uppercase',
-                                        color === 'sky' ? 'bg-sky-500/20 text-sky-700 dark:text-sky-300' : 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
+                                        color === 'sky'
+                                            ? 'bg-sky-500/20 text-sky-700 dark:text-sky-300'
+                                            : 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
                                     )}
                                     aria-label={`Formação ${side.toUpperCase()}`}
                                 >
@@ -373,28 +373,39 @@ export default function FormationsCompare({
                 </div>
 
                 {/* Resumo: total + componentes vencedores */}
-                <div className="rounded-xl border bg-card p-4">
+                <div className="bg-card rounded-xl border p-4">
                     <h2 className="mb-3 text-sm font-semibold">Pontuação total e componentes</h2>
                     <ScoreRow label="Total geral" a={formationA.total_score} b={formationB.total_score} bold />
 
                     <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
                         <div className="rounded-md border bg-sky-500/5 p-2">
-                            <div className="text-[10px] uppercase tracking-wide text-sky-700 dark:text-sky-300">A venceu</div>
-                            <div className="font-mono text-lg font-bold tabular-nums">{componentWins.aWins}/{componentWins.total}</div>
+                            <div className="text-[10px] tracking-wide text-sky-700 uppercase dark:text-sky-300">A venceu</div>
+                            <div className="font-mono text-lg font-bold tabular-nums">
+                                {componentWins.aWins}/{componentWins.total}
+                            </div>
                         </div>
-                        <div className="rounded-md border bg-muted/50 p-2">
-                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Empate</div>
-                            <div className="font-mono text-lg font-bold tabular-nums">{componentWins.ties}/{componentWins.total}</div>
+                        <div className="bg-muted/50 rounded-md border p-2">
+                            <div className="text-muted-foreground text-[10px] tracking-wide uppercase">Empate</div>
+                            <div className="font-mono text-lg font-bold tabular-nums">
+                                {componentWins.ties}/{componentWins.total}
+                            </div>
                         </div>
                         <div className="rounded-md border bg-amber-500/5 p-2">
-                            <div className="text-[10px] uppercase tracking-wide text-amber-700 dark:text-amber-300">B venceu</div>
-                            <div className="font-mono text-lg font-bold tabular-nums">{componentWins.bWins}/{componentWins.total}</div>
+                            <div className="text-[10px] tracking-wide text-amber-700 uppercase dark:text-amber-300">B venceu</div>
+                            <div className="font-mono text-lg font-bold tabular-nums">
+                                {componentWins.bWins}/{componentWins.total}
+                            </div>
                         </div>
                     </div>
 
                     {totalWinner !== 'tie' && (
-                        <p className="mt-3 text-center text-xs text-muted-foreground">
-                            <span className={cn('font-semibold', totalWinner === 'a' ? 'text-sky-600 dark:text-sky-400' : 'text-amber-600 dark:text-amber-400')}>
+                        <p className="text-muted-foreground mt-3 text-center text-xs">
+                            <span
+                                className={cn(
+                                    'font-semibold',
+                                    totalWinner === 'a' ? 'text-sky-600 dark:text-sky-400' : 'text-amber-600 dark:text-amber-400',
+                                )}
+                            >
                                 {totalWinner === 'a' ? formationA.name : formationB.name}
                             </span>{' '}
                             tem total <span className="font-mono">+{totalDelta.toFixed(2)}</span> pontos a mais.
@@ -403,7 +414,7 @@ export default function FormationsCompare({
                 </div>
 
                 {/* Composição: heróis em comum vs exclusivos */}
-                <div className="rounded-xl border bg-card p-4">
+                <div className="bg-card rounded-xl border p-4">
                     <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
                         <Users className="size-4" />
                         Composição geral
@@ -445,9 +456,9 @@ export default function FormationsCompare({
                 {/* Comparação team a team */}
                 <div className="flex flex-col gap-3">
                     {teamPairs.map(({ position, a, b }) => (
-                        <div key={position} className="rounded-xl border bg-card p-3">
+                        <div key={position} className="bg-card rounded-xl border p-3">
                             <div className="mb-3 flex items-center gap-2">
-                                <span className="grid size-7 place-items-center rounded-md bg-primary/10 text-sm font-bold text-primary">
+                                <span className="bg-primary/10 text-primary grid size-7 place-items-center rounded-md text-sm font-bold">
                                     {position}
                                 </span>
                                 <span className="text-sm font-semibold">Equipe {position}</span>
@@ -470,7 +481,7 @@ export default function FormationsCompare({
                                         side="a"
                                     />
                                 ) : (
-                                    <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
+                                    <div className="text-muted-foreground rounded-lg border border-dashed p-4 text-center text-xs">
                                         Não existe equipe nessa posição.
                                     </div>
                                 )}
@@ -479,18 +490,13 @@ export default function FormationsCompare({
                                     {a && b ? (
                                         <>
                                             {SCORE_COMPONENTS.map(({ key, label }) => (
-                                                <ScoreRow
-                                                    key={key}
-                                                    label={label}
-                                                    a={Number(a.score[key] ?? 0)}
-                                                    b={Number(b.score[key] ?? 0)}
-                                                />
+                                                <ScoreRow key={key} label={label} a={Number(a.score[key] ?? 0)} b={Number(b.score[key] ?? 0)} />
                                             ))}
                                             <div className="my-1 border-t" />
                                             <ScoreRow label="Total" a={a.score.total} b={b.score.total} bold />
                                         </>
                                     ) : (
-                                        <span className="text-center text-xs text-muted-foreground">—</span>
+                                        <span className="text-muted-foreground text-center text-xs">—</span>
                                     )}
                                 </div>
 
@@ -505,7 +511,7 @@ export default function FormationsCompare({
                                         side="b"
                                     />
                                 ) : (
-                                    <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
+                                    <div className="text-muted-foreground rounded-lg border border-dashed p-4 text-center text-xs">
                                         Não existe equipe nessa posição.
                                     </div>
                                 )}
@@ -514,11 +520,9 @@ export default function FormationsCompare({
                     ))}
                 </div>
 
-                <p className="text-center text-[11px] text-muted-foreground">
-                    Heróis com anel{' '}
-                    <span className="inline-block size-2 rounded-full bg-sky-400 align-middle" /> ou{' '}
-                    <span className="inline-block size-2 rounded-full bg-amber-400 align-middle" /> são exclusivos
-                    daquela formação.
+                <p className="text-muted-foreground text-center text-[11px]">
+                    Heróis com anel <span className="inline-block size-2 rounded-full bg-sky-400 align-middle" /> ou{' '}
+                    <span className="inline-block size-2 rounded-full bg-amber-400 align-middle" /> são exclusivos daquela formação.
                 </p>
             </PageShell>
         </AppLayout>
@@ -537,20 +541,23 @@ interface HeroGroupProps {
 }
 
 function HeroGroup({ title, count, heroIds, heroById, factionById, classById, tierById, tone }: HeroGroupProps) {
-    const toneClasses = tone === 'sky'
-        ? 'border-sky-500/30 bg-sky-500/5'
-        : tone === 'amber'
-            ? 'border-amber-500/30 bg-amber-500/5'
-            : 'border-emerald-500/30 bg-emerald-500/5';
+    const toneClasses =
+        tone === 'sky'
+            ? 'border-sky-500/30 bg-sky-500/5'
+            : tone === 'amber'
+              ? 'border-amber-500/30 bg-amber-500/5'
+              : 'border-emerald-500/30 bg-emerald-500/5';
 
     return (
         <div className={cn('rounded-lg border p-2.5', toneClasses)}>
             <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs font-semibold">{title}</span>
-                <Badge variant="outline" className="text-[10px]">{count}</Badge>
+                <Badge variant="outline" className="text-[10px]">
+                    {count}
+                </Badge>
             </div>
             {heroIds.length === 0 ? (
-                <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <p className="text-muted-foreground flex items-center gap-1 text-[11px]">
                     <Minus className="size-3" />
                     Nenhum
                 </p>
@@ -559,15 +566,7 @@ function HeroGroup({ title, count, heroIds, heroById, factionById, classById, ti
                     {heroIds.map((id) => {
                         const hero = heroById[id];
                         if (!hero) return null;
-                        return (
-                            <HeroBadge
-                                key={id}
-                                hero={hero}
-                                factionById={factionById}
-                                classById={classById}
-                                tierById={tierById}
-                            />
-                        );
+                        return <HeroBadge key={id} hero={hero} factionById={factionById} classById={classById} tierById={tierById} />;
                     })}
                 </div>
             )}

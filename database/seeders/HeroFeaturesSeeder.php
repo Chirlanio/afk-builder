@@ -82,6 +82,7 @@ class HeroFeaturesSeeder extends Seeder
 
                 if (! $hero) {
                     $missing[] = $name;
+
                     continue;
                 }
 
@@ -110,6 +111,7 @@ class HeroFeaturesSeeder extends Seeder
         if (preg_match('/^(.+?)\s*\((.+)\)\s*$/', trim($raw), $m)) {
             return [trim($m[1]), trim($m[2])];
         }
+
         return [trim($raw), null];
     }
 

@@ -51,6 +51,7 @@ class TierRatingScorer
         }
 
         $avg = $totalPoints / count($heroes);
+
         return $avg / 10.0;
     }
 

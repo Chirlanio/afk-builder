@@ -18,11 +18,12 @@ class SyncBeastsCommand extends Command
 
     public function handle(FandomWikiClient $client): int
     {
-        $this->info("Buscando wikitext de '" . self::PAGE_TITLE . "'...");
+        $this->info("Buscando wikitext de '".self::PAGE_TITLE."'...");
 
         $wikitext = $client->fetchWikitext(self::PAGE_TITLE);
         if (! $wikitext) {
             $this->error('Não foi possível obter wikitext da página.');
+
             return self::FAILURE;
         }
 
@@ -31,6 +32,7 @@ class SyncBeastsCommand extends Command
 
         if ($total === 0) {
             $this->error('Nenhum beast encontrado — verificar parser ou estrutura da wiki.');
+
             return self::FAILURE;
         }
 
@@ -43,14 +45,16 @@ class SyncBeastsCommand extends Command
             $slug = Str::slug($name);
             if ($slug === '') {
                 $skipped++;
+
                 continue;
             }
 
-            $sourceUrl = 'https://afk-arena.fandom.com/wiki/' . rawurlencode(str_replace(' ', '_', $name));
+            $sourceUrl = 'https://afk-arena.fandom.com/wiki/'.rawurlencode(str_replace(' ', '_', $name));
 
             if ($this->option('dry-run')) {
                 $exists = Beast::where('slug', $slug)->exists();
-                $this->line('  [dry] ' . ($exists ? '~' : '+') . " {$slug}");
+                $this->line('  [dry] '.($exists ? '~' : '+')." {$slug}");
+
                 continue;
             }
 

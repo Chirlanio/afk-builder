@@ -1,7 +1,3 @@
-import { Head, router } from '@inertiajs/react';
-import axios from 'axios';
-import { Package, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
 import { CollectionFormModal } from '@/components/collection-form-modal';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +6,10 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import type { Collection } from '@/types/afk';
+import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
+import { Package, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface PageProps {
     collections: Collection[];
@@ -52,18 +52,24 @@ export default function CollectionsAdminIndex({ collections }: PageProps) {
             >
                 {collections.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
-                        <Package className="size-10 text-muted-foreground" />
-                        <p className="mt-2 text-sm text-muted-foreground">Nenhuma coleção cadastrada ainda.</p>
-                        <Button variant="link" onClick={() => setCreateOpen(true)}>Cadastrar primeira</Button>
+                        <Package className="text-muted-foreground size-10" />
+                        <p className="text-muted-foreground mt-2 text-sm">Nenhuma coleção cadastrada ainda.</p>
+                        <Button variant="link" onClick={() => setCreateOpen(true)}>
+                            Cadastrar primeira
+                        </Button>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                         {collections.map((collection) => (
-                            <div key={collection.id} className="flex gap-3 rounded-lg border bg-card p-3">
+                            <div key={collection.id} className="bg-card flex gap-3 rounded-lg border p-3">
                                 {collection.portrait_url ? (
-                                    <img src={collection.portrait_url} alt={collection.name} className="size-16 shrink-0 rounded-lg border bg-muted/30 object-contain" />
+                                    <img
+                                        src={collection.portrait_url}
+                                        alt={collection.name}
+                                        className="bg-muted/30 size-16 shrink-0 rounded-lg border object-contain"
+                                    />
                                 ) : (
-                                    <div className="grid size-16 shrink-0 place-items-center rounded-lg border border-dashed bg-muted/30 text-muted-foreground">
+                                    <div className="bg-muted/30 text-muted-foreground grid size-16 shrink-0 place-items-center rounded-lg border border-dashed">
                                         <Package className="size-6" />
                                     </div>
                                 )}
@@ -71,13 +77,22 @@ export default function CollectionsAdminIndex({ collections }: PageProps) {
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0">
                                             <h3 className="truncate text-sm font-semibold">{collection.name}</h3>
-                                            {!collection.is_active && <Badge variant="outline" className="mt-1 text-[10px]">Inativa</Badge>}
+                                            {!collection.is_active && (
+                                                <Badge variant="outline" className="mt-1 text-[10px]">
+                                                    Inativa
+                                                </Badge>
+                                            )}
                                         </div>
                                         <div className="flex shrink-0 gap-1">
                                             <Button size="icon" variant="ghost" onClick={() => setEditing(collection)} className="size-7">
                                                 <Pencil className="size-3" />
                                             </Button>
-                                            <Button size="icon" variant="ghost" onClick={() => handleDelete(collection)} className="size-7 text-destructive hover:bg-destructive/10">
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                onClick={() => handleDelete(collection)}
+                                                className="text-destructive hover:bg-destructive/10 size-7"
+                                            >
                                                 <Trash2 className="size-3" />
                                             </Button>
                                         </div>
@@ -88,7 +103,7 @@ export default function CollectionsAdminIndex({ collections }: PageProps) {
                                         {collection.defense_bonus > 0 && <Badge variant="secondary">DEF +{collection.defense_bonus}</Badge>}
                                     </div>
                                     {collection.description && (
-                                        <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{collection.description}</p>
+                                        <p className="text-muted-foreground mt-2 line-clamp-2 text-xs">{collection.description}</p>
                                     )}
                                 </div>
                             </div>

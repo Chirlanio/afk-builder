@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ChallengeType;
 use App\Models\Faction;
 use App\Models\Formation;
+use App\Models\FormationTeamHero;
 use App\Models\Hero;
 use App\Models\HeroClass;
 use App\Models\Tier;
@@ -128,7 +129,7 @@ class FormationTeamsCountTest extends TestCase
         $positions = $formation->teams()->pluck('position')->sort()->values()->all();
         $this->assertSame([1, 2], $positions);
         // Cascade: team_heroes do team apagado também somem
-        $this->assertSame(0, \App\Models\FormationTeamHero::where('hero_id', $hero->id)->count());
+        $this->assertSame(0, FormationTeamHero::where('hero_id', $hero->id)->count());
     }
 
     public function test_update_teams_count_no_op_quando_igual(): void

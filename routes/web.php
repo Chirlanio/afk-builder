@@ -20,14 +20,14 @@ use App\Http\Controllers\HeroController;
 use App\Http\Controllers\HeroFavoriteController;
 use App\Http\Controllers\HeroUsageController;
 use App\Http\Controllers\RecommendedFormationController;
+use App\Http\Controllers\ResonatingCrystalController;
 use App\Http\Controllers\RosterAnalyticsController;
 use App\Http\Controllers\RosterImportController;
-use App\Http\Controllers\ResonatingCrystalController;
 use App\Http\Controllers\RosterPlannerController;
-use App\Http\Controllers\UserResourceController;
 use App\Http\Controllers\ScoringWeightPresetController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\UserHeroController;
+use App\Http\Controllers\UserResourceController;
 use App\Http\Controllers\UserTierListController;
 use Illuminate\Support\Facades\Route;
 

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -7,6 +6,7 @@ import { GlobalSearchDialog } from '@/components/global-search-dialog';
 import { KeyboardShortcutsHelp } from '@/components/keyboard-shortcuts-help';
 import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts';
 import { type BreadcrumbItem } from '@/types';
+import { useState } from 'react';
 
 export default function AppSidebarLayout({ children, breadcrumbs = [] }: { children: React.ReactNode; breadcrumbs?: BreadcrumbItem[] }) {
     const [searchOpen, setSearchOpen] = useState(false);
@@ -24,11 +24,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: { child
         <AppShell variant="sidebar">
             <AppSidebar />
             <AppContent variant="sidebar">
-                <AppSidebarHeader
-                    breadcrumbs={breadcrumbs}
-                    onOpenSearch={() => setSearchOpen(true)}
-                    onOpenHelp={() => setHelpOpen(true)}
-                />
+                <AppSidebarHeader breadcrumbs={breadcrumbs} onOpenSearch={() => setSearchOpen(true)} onOpenHelp={() => setHelpOpen(true)} />
                 {children}
             </AppContent>
             <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />

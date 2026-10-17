@@ -8,9 +8,7 @@ export default function AppLogo() {
             </div>
             <div className="ml-1 grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold tracking-wide">AFK Builder</span>
-                <span className="truncate text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
-                    Companion App
-                </span>
+                <span className="text-muted-foreground truncate text-[10px] tracking-[0.2em] uppercase">Companion App</span>
             </div>
         </>
     );

@@ -1,6 +1,3 @@
-import axios from 'axios';
-import { ImagePlus, Loader2, PawPrint, Save, X } from 'lucide-react';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { BeastBuffsEditor, normalizeBuffs, type BuffsMap } from '@/components/beast-buffs-editor';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -8,6 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { Beast } from '@/types/afk';
+import axios from 'axios';
+import { ImagePlus, Loader2, PawPrint, Save, X } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 interface Props {
     open: boolean;
@@ -170,40 +170,49 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
 
     const buffsForScope = (s: Scope): BuffsMap => {
         switch (s) {
-            case 'strength': return data.buffs_strength;
-            case 'intelligence': return data.buffs_intelligence;
-            case 'agility': return data.buffs_agility;
-            case 'team': return data.buffs_team;
+            case 'strength':
+                return data.buffs_strength;
+            case 'intelligence':
+                return data.buffs_intelligence;
+            case 'agility':
+                return data.buffs_agility;
+            case 'team':
+                return data.buffs_team;
         }
     };
 
     const setBuffsForScope = (s: Scope, next: BuffsMap) => {
         setData((prev) => {
             switch (s) {
-                case 'strength': return { ...prev, buffs_strength: next };
-                case 'intelligence': return { ...prev, buffs_intelligence: next };
-                case 'agility': return { ...prev, buffs_agility: next };
-                case 'team': return { ...prev, buffs_team: next };
+                case 'strength':
+                    return { ...prev, buffs_strength: next };
+                case 'intelligence':
+                    return { ...prev, buffs_intelligence: next };
+                case 'agility':
+                    return { ...prev, buffs_agility: next };
+                case 'team':
+                    return { ...prev, buffs_team: next };
             }
         });
     };
 
-    const countActive = (s: Scope) => Object.keys(buffsForScope(s)).filter((k) => {
-        const v = buffsForScope(s)[k];
-        const n = typeof v === 'string' ? parseFloat(v) : v;
-        return Number.isFinite(n) && (n as number) > 0;
-    }).length;
+    const countActive = (s: Scope) =>
+        Object.keys(buffsForScope(s)).filter((k) => {
+            const v = buffsForScope(s)[k];
+            const n = typeof v === 'string' ? parseFloat(v) : v;
+            return Number.isFinite(n) && (n as number) > 0;
+        }).length;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
                 <DialogTitle asChild>
                     <div className="flex flex-col items-center gap-1 text-center">
-                        <span className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        <span className="text-muted-foreground flex items-center gap-2 text-[10px] tracking-wider uppercase">
                             <PawPrint className="size-3" />
                             Besta
                         </span>
-                        <h2 className="text-xl font-bold leading-tight">{isEditing ? 'Editar besta' : 'Nova besta'}</h2>
+                        <h2 className="text-xl leading-tight font-bold">{isEditing ? 'Editar besta' : 'Nova besta'}</h2>
                     </div>
                 </DialogTitle>
                 <DialogDescription className="text-center">
@@ -222,8 +231,8 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                                 pattern="[a-z0-9-]+"
                                 disabled={isEditing}
                             />
-                            <p className="text-[10px] text-muted-foreground">Apenas minúsculas, números e hífens.</p>
-                            {errors.slug && <p className="text-xs text-destructive">{errors.slug}</p>}
+                            <p className="text-muted-foreground text-[10px]">Apenas minúsculas, números e hífens.</p>
+                            {errors.slug && <p className="text-destructive text-xs">{errors.slug}</p>}
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="b-name">Nome *</Label>
@@ -233,7 +242,7 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                                 onChange={(e) => setData((s) => ({ ...s, name: e.target.value }))}
                                 placeholder="Dreary Ball"
                             />
-                            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+                            {errors.name && <p className="text-destructive text-xs">{errors.name}</p>}
                         </div>
                     </div>
 
@@ -243,7 +252,7 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                             id="b-desc"
                             value={data.description}
                             onChange={(e) => setData((s) => ({ ...s, description: e.target.value }))}
-                            className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            className="border-input bg-background flex min-h-[60px] w-full rounded-md border px-3 py-2 text-sm"
                             rows={3}
                             maxLength={5000}
                             placeholder="Skills/efeitos da besta quando ativa..."
@@ -252,7 +261,7 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
 
                     <div className="flex flex-col gap-2">
                         <Label>Buffs (em %, no nível 36)</Label>
-                        <div className="flex flex-wrap gap-1 rounded-md border bg-muted/30 p-0.5">
+                        <div className="bg-muted/30 flex flex-wrap gap-1 rounded-md border p-0.5">
                             {(['strength', 'intelligence', 'agility', 'team'] as Scope[]).map((s) => {
                                 const active = scope === s;
                                 const count = countActive(s);
@@ -268,7 +277,12 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                                     >
                                         {SCOPE_LABELS[s]}
                                         {count > 0 && (
-                                            <span className={cn('ml-1.5 rounded-full px-1.5 py-0.5 text-[9px]', active ? 'bg-primary-foreground/20' : 'bg-muted-foreground/20')}>
+                                            <span
+                                                className={cn(
+                                                    'ml-1.5 rounded-full px-1.5 py-0.5 text-[9px]',
+                                                    active ? 'bg-primary-foreground/20' : 'bg-muted-foreground/20',
+                                                )}
+                                            >
                                                 {count}
                                             </span>
                                         )}
@@ -281,7 +295,7 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                             onChange={(next) => setBuffsForScope(scope, next)}
                             accent={SCOPE_ACCENT[scope]}
                         />
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-muted-foreground text-[10px]">
                             {scope === 'team'
                                 ? 'Aplicados a todos os heróis da equipe.'
                                 : `Aplicados apenas a heróis de tipo ${SCOPE_LABELS[scope]}.`}
@@ -295,13 +309,15 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                                 id="b-tier"
                                 value={data.tier}
                                 onChange={(e) => setData((s) => ({ ...s, tier: e.target.value }))}
-                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                                className="border-input bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm"
                             >
                                 {BEAST_TIERS.map((t) => (
-                                    <option key={t || 'none'} value={t}>{t || '(sem tier)'}</option>
+                                    <option key={t || 'none'} value={t}>
+                                        {t || '(sem tier)'}
+                                    </option>
                                 ))}
                             </select>
-                            {errors.tier && <p className="text-[10px] text-destructive">{errors.tier}</p>}
+                            {errors.tier && <p className="text-destructive text-[10px]">{errors.tier}</p>}
                         </div>
                         <div className="flex flex-col gap-1.5 sm:col-span-2">
                             <Label htmlFor="b-tier-note">Observação do tier</Label>
@@ -311,21 +327,21 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                                 onChange={(e) => setData((s) => ({ ...s, tier_note: e.target.value }))}
                                 placeholder="Ex: Buffa carry, debuffa time inimigo"
                             />
-                            {errors.tier_note && <p className="text-[10px] text-destructive">{errors.tier_note}</p>}
+                            {errors.tier_note && <p className="text-destructive text-[10px]">{errors.tier_note}</p>}
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                         <Label>Imagem da besta</Label>
                         <div className="flex items-start gap-3">
-                            <div className="relative grid size-24 shrink-0 place-items-center overflow-hidden rounded-lg border bg-muted/30">
+                            <div className="bg-muted/30 relative grid size-24 shrink-0 place-items-center overflow-hidden rounded-lg border">
                                 {data.portrait_url ? (
                                     <>
                                         <img src={data.portrait_url} alt="preview" className="size-full object-contain" />
                                         <button
                                             type="button"
                                             onClick={() => setData((s) => ({ ...s, portrait_url: '' }))}
-                                            className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-background/80 text-destructive hover:bg-background"
+                                            className="bg-background/80 text-destructive hover:bg-background absolute top-1 right-1 grid size-5 place-items-center rounded-full"
                                             aria-label="Remover imagem"
                                             title="Remover imagem"
                                         >
@@ -333,7 +349,7 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                                         </button>
                                     </>
                                 ) : (
-                                    <PawPrint className="size-8 text-muted-foreground" />
+                                    <PawPrint className="text-muted-foreground size-8" />
                                 )}
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -358,7 +374,7 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                                         {uploading ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
                                         {uploading ? 'Enviando...' : 'Upload'}
                                     </Button>
-                                    <p className="text-[10px] text-muted-foreground">PNG/JPG/WebP até 2 MB.</p>
+                                    <p className="text-muted-foreground text-[10px]">PNG/JPG/WebP até 2 MB.</p>
                                 </div>
                                 <Input
                                     id="b-portrait"
@@ -367,8 +383,8 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                                     onChange={(e) => setData((s) => ({ ...s, portrait_url: e.target.value }))}
                                     placeholder="https://... ou /storage/beasts/..."
                                 />
-                                {uploadError && <p className="text-[10px] text-destructive">{uploadError}</p>}
-                                {errors.portrait_url && <p className="text-[10px] text-destructive">{errors.portrait_url}</p>}
+                                {uploadError && <p className="text-destructive text-[10px]">{uploadError}</p>}
+                                {errors.portrait_url && <p className="text-destructive text-[10px]">{errors.portrait_url}</p>}
                             </div>
                         </div>
                     </div>
@@ -382,7 +398,7 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                             onChange={(e) => setData((s) => ({ ...s, source_url: e.target.value }))}
                             placeholder="https://afk-arena.fandom.com/wiki/..."
                         />
-                        {errors.source_url && <p className="text-[10px] text-destructive">{errors.source_url}</p>}
+                        {errors.source_url && <p className="text-destructive text-[10px]">{errors.source_url}</p>}
                     </div>
 
                     <label className="flex items-center gap-2 text-sm">
@@ -390,7 +406,7 @@ export function BeastFormModal({ open, onOpenChange, beast, onSaved }: Props) {
                             type="checkbox"
                             checked={data.is_active}
                             onChange={(e) => setData((s) => ({ ...s, is_active: e.target.checked }))}
-                            className="size-4 rounded border-input"
+                            className="border-input size-4 rounded"
                         />
                         Ativo (visível para escolher em formações)
                     </label>

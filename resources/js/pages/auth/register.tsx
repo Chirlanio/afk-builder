@@ -38,10 +38,7 @@ export default function Register() {
     };
 
     return (
-        <AuthLayout
-            title="Crie sua conta"
-            description="Comece a montar suas formações em segundos"
-        >
+        <AuthLayout title="Crie sua conta" description="Comece a montar suas formações em segundos">
             <Head title="Cadastrar" />
             <form className="flex flex-col gap-5" onSubmit={submit}>
                 <div className="grid gap-4">
@@ -128,22 +125,14 @@ export default function Register() {
                         tabIndex={5}
                         disabled={processing}
                     >
-                        {processing ? (
-                            <LoaderCircle className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <Sparkles className="h-4 w-4" />
-                        )}
+                        {processing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                         Criar conta
                     </Button>
                 </div>
 
                 <div className="text-center text-sm text-amber-100/60">
                     Já tem conta?{' '}
-                    <TextLink
-                        href={route('login')}
-                        tabIndex={6}
-                        className="font-semibold text-amber-300 hover:text-amber-200"
-                    >
+                    <TextLink href={route('login')} tabIndex={6} className="font-semibold text-amber-300 hover:text-amber-200">
                         Entrar
                     </TextLink>
                 </div>

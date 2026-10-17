@@ -5,7 +5,6 @@ namespace App\Services\Optimization;
 use App\Models\Hero;
 use App\Models\HeroRating;
 use App\Models\RecommendedFormation;
-use Illuminate\Support\Collection;
 
 /**
  * Compara um time atual com os comps recomendados curados (afk.guide via Fase 21.4)
@@ -93,6 +92,7 @@ class RecommendedFormationMatcher
             if ($a['core_overlap'] !== $b['core_overlap']) {
                 return $b['core_overlap'] - $a['core_overlap'];
             }
+
             return $b['total_overlap'] - $a['total_overlap'];
         });
 

@@ -1,18 +1,9 @@
-import { AlertCircle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CLASS_LABEL, FACTION_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
-import type {
-    Beast,
-    ClassCode,
-    Faction,
-    FactionCode,
-    Hero,
-    HeroClass,
-    Tier,
-    TierCode,
-} from '@/types/afk';
+import type { Beast, ClassCode, Faction, FactionCode, Hero, HeroClass, Tier, TierCode } from '@/types/afk';
+import { AlertCircle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { BeastSlot } from './beast-slot';
 import { TeamSlot } from './team-slot';
 
@@ -47,10 +38,7 @@ interface FactionBonus {
     color: string;
 }
 
-function computeFactionBonus(
-    heroes: Hero[],
-    factionById: Record<number, Faction>,
-): FactionBonus | null {
+function computeFactionBonus(heroes: Hero[], factionById: Record<number, Faction>): FactionBonus | null {
     if (heroes.length < 5) return null;
 
     const counts: Record<FactionCode, number> = {
@@ -89,9 +77,7 @@ function computeFactionBonus(
         };
     }
 
-    if ((top[1] === 3 && second?.[1] === 2) ||
-        (top[1] === 3 && celestials >= 2) ||
-        (top[1] === 2 && second?.[1] === 2 && celestials >= 1)) {
+    if ((top[1] === 3 && second?.[1] === 2) || (top[1] === 3 && celestials >= 2) || (top[1] === 2 && second?.[1] === 2 && celestials >= 1)) {
         const partnerLabel = second && second[1] >= 2 ? factionLabel(second[0]) : factionLabel('celestial');
         return {
             label: `3+2: ${factionLabel(top[0])} + ${partnerLabel}`,
@@ -102,10 +88,23 @@ function computeFactionBonus(
     return null;
 }
 
-export function TeamRow({ team, heroById, beastById, factionById, classById, tierById, engravingByHeroId, onRemoveHero, onClearBeast, onBeastLevelChange, onAutoBestBeast, isPickingBeast, onSuggest, isSuggesting }: TeamRowProps) {
-    const heroesInTeam: Hero[] = team.slots
-        .map((s) => (s.heroId ? heroById[s.heroId] : null))
-        .filter((h): h is Hero => h !== null);
+export function TeamRow({
+    team,
+    heroById,
+    beastById,
+    factionById,
+    classById,
+    tierById,
+    engravingByHeroId,
+    onRemoveHero,
+    onClearBeast,
+    onBeastLevelChange,
+    onAutoBestBeast,
+    isPickingBeast,
+    onSuggest,
+    isSuggesting,
+}: TeamRowProps) {
+    const heroesInTeam: Hero[] = team.slots.map((s) => (s.heroId ? heroById[s.heroId] : null)).filter((h): h is Hero => h !== null);
 
     const bonus = computeFactionBonus(heroesInTeam, factionById);
 
@@ -122,12 +121,10 @@ export function TeamRow({ team, heroById, beastById, factionById, classById, tie
     const hasEmptySlots = filledCount < 5;
 
     return (
-        <div className="flex flex-col gap-2 rounded-xl border bg-card p-3">
+        <div className="bg-card flex flex-col gap-2 rounded-xl border p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                    <span className="grid size-7 place-items-center rounded-md bg-primary/10 text-sm font-bold text-primary">
-                        {team.position}
-                    </span>
+                    <span className="bg-primary/10 text-primary grid size-7 place-items-center rounded-md text-sm font-bold">{team.position}</span>
                     <span className="text-sm font-semibold">Equipe {team.position}</span>
                     <Badge variant="secondary" className="text-[10px]">
                         {filledCount}/5
@@ -136,7 +133,7 @@ export function TeamRow({ team, heroById, beastById, factionById, classById, tie
 
                 <div className="flex flex-wrap items-center gap-1.5">
                     {bonus && (
-                        <Badge className={cn('gap-1 bg-amber-500/15 text-foreground', bonus.color)}>
+                        <Badge className={cn('text-foreground gap-1 bg-amber-500/15', bonus.color)}>
                             <CheckCircle2 className="size-3" />
                             {bonus.label}
                         </Badge>
@@ -154,19 +151,8 @@ export function TeamRow({ team, heroById, beastById, factionById, classById, tie
                         </Badge>
                     )}
                     {onSuggest && hasEmptySlots && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={onSuggest}
-                            disabled={isSuggesting}
-                            className="h-7 gap-1 text-xs"
-                        >
-                            {isSuggesting ? (
-                                <Loader2 className="size-3 animate-spin" />
-                            ) : (
-                                <Sparkles className="size-3" />
-                            )}
+                        <Button type="button" variant="outline" size="sm" onClick={onSuggest} disabled={isSuggesting} className="h-7 gap-1 text-xs">
+                            {isSuggesting ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
                             {isSuggesting ? 'Sugerindo...' : 'Sugerir'}
                         </Button>
                     )}
@@ -198,7 +184,7 @@ export function TeamRow({ team, heroById, beastById, factionById, classById, tie
 
                 <BeastSlot
                     teamPosition={team.position}
-                    beast={team.beastId ? beastById[team.beastId] ?? null : null}
+                    beast={team.beastId ? (beastById[team.beastId] ?? null) : null}
                     level={team.beastLevel}
                     onClear={onClearBeast}
                     onLevelChange={onBeastLevelChange}

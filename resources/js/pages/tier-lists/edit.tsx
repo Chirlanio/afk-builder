@@ -8,7 +8,7 @@ import { useAutoScrollOnDrag } from '@/hooks/use-auto-scroll-on-drag';
 import AppLayout from '@/layouts/app-layout';
 import { TIER_LIST_COLOR_BG, TIER_LIST_COLOR_BORDER, TIER_LIST_COLORS } from '@/lib/afk';
 import { cn } from '@/lib/utils';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, SharedData } from '@/types';
 import type { Faction, Hero, HeroClass, TierListColor, UserTierList, UserTierListItem, UserTierListRow } from '@/types/afk';
 import {
     closestCorners,
@@ -29,7 +29,6 @@ import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { Check, ListChecks, Pencil, Plus, Save, Search, Share2, Sparkles, Trash2, X } from 'lucide-react';
 import { type FormEvent, useMemo, useState } from 'react';
-import type { SharedData } from '@/types';
 
 interface PageProps {
     tierList: UserTierList & { rows: (UserTierListRow & { items: (UserTierListItem & { hero: Hero })[] })[] };

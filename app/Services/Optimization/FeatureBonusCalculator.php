@@ -21,7 +21,9 @@ use Illuminate\Support\Collection;
 class FeatureBonusCalculator
 {
     private const PVP_TOP_BONUS = 0.15;
+
     private const TWISTED_TOP_BONUS = 0.15;
+
     private const EARLY_TAG_BONUS = 0.05;
 
     /**

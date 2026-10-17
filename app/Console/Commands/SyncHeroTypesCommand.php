@@ -37,6 +37,7 @@ class SyncHeroTypesCommand extends Command
 
         if ($total === 0) {
             $this->info('Nenhum herói para atualizar.');
+
             return self::SUCCESS;
         }
 
@@ -55,6 +56,7 @@ class SyncHeroTypesCommand extends Command
                 if (! $wt) {
                     $this->line("  <fg=yellow>?</> [{$i}/{$total}] {$hero->slug} (sem wikitext em '{$title}')");
                     $missing++;
+
                     continue;
                 }
 
@@ -64,12 +66,14 @@ class SyncHeroTypesCommand extends Command
                 if ($type === null) {
                     $this->line("  <fg=yellow>-</> [{$i}/{$total}] {$hero->slug} (campo type ausente na wiki)");
                     $missing++;
+
                     continue;
                 }
 
                 if ($type === $hero->type) {
                     $this->line("  <fg=gray>=</> [{$i}/{$total}] {$hero->slug} (já = {$type})");
                     $unchanged++;
+
                     continue;
                 }
 

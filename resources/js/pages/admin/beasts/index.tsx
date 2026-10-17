@@ -1,17 +1,17 @@
-import { Head, router } from '@inertiajs/react';
-import axios from 'axios';
-import { PawPrint, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
 import { BeastFormModal } from '@/components/beast-form-modal';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
-import { beastStatCounts } from '@/lib/beast';
 import AppLayout from '@/layouts/app-layout';
+import { beastStatCounts } from '@/lib/beast';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { Beast } from '@/types/afk';
+import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
+import { PawPrint, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface PageProps {
     beasts: Beast[];
@@ -40,16 +40,18 @@ function beastTheme(beast: Beast): BeastTheme {
         };
     }
     if (stats.length === 1) {
-        if (stats[0] === 'str') return {
-            cardGradient: 'bg-gradient-to-br from-rose-950/40 via-rose-900/15 to-background',
-            cardBorder: 'border-rose-500/50',
-            cardHoverGlow: 'hover:shadow-rose-500/40',
-        };
-        if (stats[0] === 'int') return {
-            cardGradient: 'bg-gradient-to-br from-sky-950/40 via-sky-900/15 to-background',
-            cardBorder: 'border-sky-500/50',
-            cardHoverGlow: 'hover:shadow-sky-500/40',
-        };
+        if (stats[0] === 'str')
+            return {
+                cardGradient: 'bg-gradient-to-br from-rose-950/40 via-rose-900/15 to-background',
+                cardBorder: 'border-rose-500/50',
+                cardHoverGlow: 'hover:shadow-rose-500/40',
+            };
+        if (stats[0] === 'int')
+            return {
+                cardGradient: 'bg-gradient-to-br from-sky-950/40 via-sky-900/15 to-background',
+                cardBorder: 'border-sky-500/50',
+                cardHoverGlow: 'hover:shadow-sky-500/40',
+            };
         return {
             cardGradient: 'bg-gradient-to-br from-emerald-950/40 via-emerald-900/15 to-background',
             cardBorder: 'border-emerald-500/50',
@@ -98,9 +100,11 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
             >
                 {beasts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
-                        <PawPrint className="size-10 text-muted-foreground" />
-                        <p className="mt-2 text-sm text-muted-foreground">Nenhum beast cadastrado ainda.</p>
-                        <p className="mt-1 text-xs text-muted-foreground">Rode <code className="rounded bg-muted px-1">php artisan beasts:sync</code> ou crie manualmente.</p>
+                        <PawPrint className="text-muted-foreground size-10" />
+                        <p className="text-muted-foreground mt-2 text-sm">Nenhum beast cadastrado ainda.</p>
+                        <p className="text-muted-foreground mt-1 text-xs">
+                            Rode <code className="bg-muted rounded px-1">php artisan beasts:sync</code> ou crie manualmente.
+                        </p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -125,27 +129,27 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
                                 >
                                     <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1">
                                         {counts.strength > 0 && (
-                                            <span className="rounded-md bg-rose-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                                            <span className="rounded-md bg-rose-500/90 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase shadow-sm">
                                                 For ({counts.strength})
                                             </span>
                                         )}
                                         {counts.intelligence > 0 && (
-                                            <span className="rounded-md bg-sky-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                                            <span className="rounded-md bg-sky-500/90 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase shadow-sm">
                                                 Int ({counts.intelligence})
                                             </span>
                                         )}
                                         {counts.agility > 0 && (
-                                            <span className="rounded-md bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                                            <span className="rounded-md bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase shadow-sm">
                                                 Agi ({counts.agility})
                                             </span>
                                         )}
                                         {counts.team > 0 && (
-                                            <span className="rounded-md bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                                            <span className="rounded-md bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase shadow-sm">
                                                 Eq ({counts.team})
                                             </span>
                                         )}
                                         {total === 0 && (
-                                            <span className="rounded-md bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                                            <span className="rounded-md bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase shadow-sm">
                                                 Sem buffs
                                             </span>
                                         )}
@@ -166,7 +170,7 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
                                                     setEditing(beast);
                                                 }
                                             }}
-                                            className="grid size-7 cursor-pointer place-items-center rounded-full bg-background/90 text-foreground shadow-sm hover:bg-background"
+                                            className="bg-background/90 text-foreground hover:bg-background grid size-7 cursor-pointer place-items-center rounded-full shadow-sm"
                                             aria-label="Editar"
                                         >
                                             <Pencil className="size-3" />
@@ -185,7 +189,7 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
                                                     handleDelete(beast);
                                                 }
                                             }}
-                                            className="grid size-7 cursor-pointer place-items-center rounded-full bg-background/90 text-destructive shadow-sm hover:bg-background"
+                                            className="bg-background/90 text-destructive hover:bg-background grid size-7 cursor-pointer place-items-center rounded-full shadow-sm"
                                             aria-label="Remover"
                                         >
                                             <Trash2 className="size-3" />
@@ -204,17 +208,17 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
                                                 className="size-full object-contain transition-transform duration-300 group-hover:scale-105"
                                             />
                                         ) : (
-                                            <PawPrint className="size-12 text-muted-foreground/60" />
+                                            <PawPrint className="text-muted-foreground/60 size-12" />
                                         )}
                                     </div>
 
                                     <div className="flex flex-col gap-0.5 px-2 py-2 text-left">
                                         <div className="flex items-center gap-1">
-                                            <span className="truncate text-sm font-semibold leading-tight">{beast.name}</span>
+                                            <span className="truncate text-sm leading-tight font-semibold">{beast.name}</span>
                                             {beast.tier && (
                                                 <span
                                                     className={cn(
-                                                        'shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none',
+                                                        'shrink-0 rounded px-1 py-0.5 text-[9px] leading-none font-bold',
                                                         beast.tier === 'S+' && 'bg-gradient-to-br from-rose-500 to-amber-400 text-white',
                                                         beast.tier === 'S' && 'bg-rose-500 text-white',
                                                         beast.tier === 'A' && 'bg-orange-500 text-white',
@@ -230,7 +234,9 @@ export default function BeastsAdminIndex({ beasts }: PageProps) {
                                             )}
                                         </div>
                                         {!beast.is_active && (
-                                            <Badge variant="outline" className="mt-1 w-fit text-[10px]">Inativo</Badge>
+                                            <Badge variant="outline" className="mt-1 w-fit text-[10px]">
+                                                Inativo
+                                            </Badge>
                                         )}
                                     </div>
                                 </button>

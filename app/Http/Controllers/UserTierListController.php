@@ -13,7 +13,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -182,7 +181,7 @@ class UserTierListController extends Controller
 
         DB::transaction(function () use ($row, $heroIds) {
             foreach ($heroIds as $position => $heroId) {
-                \App\Models\UserTierListItem::where('user_tier_list_row_id', $row->id)
+                UserTierListItem::where('user_tier_list_row_id', $row->id)
                     ->where('hero_id', $heroId)
                     ->update(['position' => $position]);
             }
@@ -216,7 +215,7 @@ class UserTierListController extends Controller
         DB::transaction(function () use ($tierList, $data, $rowId) {
             // Remove o herói de qualquer row desta lista
             $rowIds = $tierList->rows()->pluck('id');
-            \App\Models\UserTierListItem::whereIn('user_tier_list_row_id', $rowIds)
+            UserTierListItem::whereIn('user_tier_list_row_id', $rowIds)
                 ->where('hero_id', $data['hero_id'])
                 ->delete();
 
@@ -224,9 +223,9 @@ class UserTierListController extends Controller
                 return; // herói volta pro pool
             }
 
-            $position = $data['position'] ?? (int) (\App\Models\UserTierListItem::where('user_tier_list_row_id', $rowId)->max('position') ?? -1) + 1;
+            $position = $data['position'] ?? (int) (UserTierListItem::where('user_tier_list_row_id', $rowId)->max('position') ?? -1) + 1;
 
-            \App\Models\UserTierListItem::create([
+            UserTierListItem::create([
                 'user_tier_list_row_id' => $rowId,
                 'hero_id' => $data['hero_id'],
                 'position' => $position,
