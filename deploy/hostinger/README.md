@@ -123,3 +123,13 @@ O app envia dois e-mails: redefinição de senha e confirmação de cadastro. De
 ```
 gzip -dc ~/backups/afk-builder/db-AAAAMMDD-HHMMSS.sql.gz | mysql --defaults-extra-file=<arquivo com as credenciais> u401878354_afk
 ```
+
+## Tradução EN→PT-BR (fora do servidor)
+
+Na Hostinger, o Google Translate responde **HTTP 429** a qualquer requisição feita pelo PHP: a assinatura TLS do libcurl do PHP de lá é tratada como robô. O `curl` de linha de comando do mesmo servidor passa, mas o PHP não pode chamá-lo (`exec`/`proc_open` bloqueados). Por isso `content:translate` não funciona em produção, e a tradução é feita por arquivo:
+
+1. **Servidor** (cron único): `php artisan content:translations export ~/domains/nexa.app.br/public_html/deploy/translations.jsonl`
+2. **Máquina local** (o Google aceita): baixar o arquivo e rodar `php artisan content:translations translate translations.jsonl`. Gera `translations.pt.jsonl` e retoma de onde parou se cair.
+3. **Servidor**: subir o `.pt.jsonl` e rodar `php artisan content:translations import <arquivo>`. Só preenche campos ainda vazios, então traduções revisadas à mão não são sobrescritas.
+
+Repetir quando o sync trouxer heróis novos.

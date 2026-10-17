@@ -3909,6 +3909,15 @@ O otimizador enxergava os heróis por rótulos (facção, classe, tier rating, s
   - Ratings do modo (`mode=dragonforge`): frequência de cada herói nas formações, ponderada pelas estrelas → S+/S/A/B; fora do guia, A para Dracônicos e C para os demais. São derivados das escolhas do guia — refletem a comunidade, não uma avaliação independente. O perfil do tipo prioriza tier rating (peso 1,6).
   - Comps de várias equipes: "duplicar" cria a formação com todas as equipes; o matcher compara o time do editor com a equipe mais parecida de cada comp; a página de comps ganhou filtro por modo.
 
+### ✅ Fase 64 — Correções de dados, tradução e benchmark do otimizador (2026-10-18)
+
+- **Tradução:** o `stichoza/google-translate-php` passou a receber HTTP 429 e o `content:translate` "concluía" sem traduzir nada (as falhas só iam para o log). Agora o `GoogleFreeTranslator` (HTTP/2 + POST, com novas tentativas) e o comando falham de forma visível. Na Hostinger nem isso basta: o Google recusa o PHP do servidor pela assinatura TLS. Daí o `content:translations export|translate|import`, que traduz por arquivo fora do servidor (ver `deploy/hostinger/README.md`).
+- **Besta duplicada:** "Joyous Reamer" é um erro de digitação da página Beasts da wiki; a besta é Joyous Roamer (patch 1.158). O sync corrige o nome (`SyncBeastsCommand::NAME_FIXES`) e uma migration removeu a duplicata. Thistlekin segue sem tier: não há fonte pública.
+- **Heróis fora do sync:** `FandomSyncService::INFOBOX_FIXES` completa a classe ou o tier que a wiki deixa em branco para 8 heróis (Angelo, Arden, Golus, Bronn, Draconis Archer/Warrior, Dreaf, Eletha), com base na descrição da própria página. Ankhira e Gourgue ficam de fora: não há pista da classe deles. Daemina não existe na wiki.
+- **Desperto:** `Hero::isAwakenedSlug` exige slug = nome + título ("shemira-the-soulreaver"). A regra antiga (slug ≠ nome) marcava o Ukyo ("Ukyo Tachibana"/`ukyo`).
+- **Capacidades:** novas regras ("fatal blow", "impervious to mind control", roubo de vida, "grants the allied target…") corrigiram Brutus e Mortas. Gavus segue sem perfil (sem habilidades na wiki).
+- **`optimizer:benchmark`:** mede em que percentil os comps recomendados completos ficam contra times aleatórios, por componente. No catálogo de produção: **total 88,0** (acaso = 50), facção 78, tier rating 78,5, sinergias 70, classes 59, destaques 59. Variações de peso ficaram entre 86,8 e 89,8, ruído para 9 comps, então **os pesos foram mantidos**. Rodar antes de mudar o `TeamScorer`.
+
 ### ✅ Correções pós-auditoria (2026-10-16)
 
 - **OCR quebrado:** o `post()` do `useForm` ignorava a opção `data` (o backend nunca recebia `heroes`) e `lines` vinha `undefined` no tesseract.js v7. Corrigido conforme a Fase 59, com testes.
