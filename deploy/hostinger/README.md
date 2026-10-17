@@ -58,7 +58,8 @@ Enquanto o DNS de `nexa.app.br` não aponta para o servidor, o app responde em
 [`link.sh`](link.sh) via cron único). Mesmo código e mesmo banco; o Laravel monta
 URLs a partir do host da requisição, então funciona nos dois endereços.
 
-`nexa.app.br` está no ar com SSL desde 2026-10-17 — o site provisório pode ser apagado no hPanel.
+`nexa.app.br` está no ar com SSL desde 2026-10-17 e o site provisório foi excluído
+(o symlink foi desfeito antes, para a exclusão não alcançar a pasta de produção).
 
 ## Deploys seguintes (CI)
 
