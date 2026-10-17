@@ -20,6 +20,12 @@ class UserHero extends Model
         'arena_damage_boost', 'arena_damage_reduction', 'trial_damage_boost',
     ];
 
+    /**
+     * Not persisted: the account's typical real-stat power, set for heroes
+     * without game-screen stats (see PowerCalculator::imputeMissingRealStats).
+     */
+    public ?float $realStatEstimate = null;
+
     protected $fillable = [
         'game_account_id',
         'hero_id',

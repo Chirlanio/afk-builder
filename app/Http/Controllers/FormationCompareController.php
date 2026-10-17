@@ -15,6 +15,7 @@ use App\Models\Tier;
 use App\Models\UserHero;
 use App\Services\ActiveGameAccount;
 use App\Services\Optimization\ChallengeTypeMode;
+use App\Services\Optimization\PowerCalculator;
 use App\Services\Optimization\RosterStageInferrer;
 use App\Services\Optimization\ScoringContext;
 use App\Services\Optimization\ScoringProfile;
@@ -51,8 +52,8 @@ class FormationCompareController extends Controller
             ->get()
             ->keyBy('id');
 
+        // Whole roster, so heroes without game-screen stats get the account median.
         $userHeroesById = UserHero::where('game_account_id', $account->id)
-            ->whereIn('hero_id', $allHeroIds)
             ->with([
                 'artifact:id,attributes',
                 'collection:id,hp_bonus,attack_bonus,defense_bonus',
@@ -60,6 +61,7 @@ class FormationCompareController extends Controller
             ->get()
             ->keyBy('hero_id')
             ->all();
+        (new PowerCalculator)->imputeMissingRealStats($userHeroesById);
 
         $synergyWeights = [];
         foreach (HeroSynergy::all(['hero_a_id', 'hero_b_id', 'weight']) as $s) {

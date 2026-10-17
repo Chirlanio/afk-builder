@@ -19,6 +19,7 @@ use App\Services\ActiveGameAccount;
 use App\Services\Formations\FormationVersioning;
 use App\Services\Optimization\ChallengeTypeMode;
 use App\Services\Optimization\MultiTeamPartitioner;
+use App\Services\Optimization\PowerCalculator;
 use App\Services\Optimization\RecommendedFormationMatcher;
 use App\Services\Optimization\RosterStageInferrer;
 use App\Services\Optimization\ScoringContext;
@@ -822,7 +823,7 @@ class FormationController extends Controller
             return [];
         }
 
-        return UserHero::where('game_account_id', $accountId)
+        $userHeroes = UserHero::where('game_account_id', $accountId)
             ->with([
                 'artifact:id,attributes',
                 'collection:id,hp_bonus,attack_bonus,defense_bonus',
@@ -830,6 +831,9 @@ class FormationController extends Controller
             ->get()
             ->keyBy('hero_id')
             ->all();
+        (new PowerCalculator)->imputeMissingRealStats($userHeroes);
+
+        return $userHeroes;
     }
 
     /**

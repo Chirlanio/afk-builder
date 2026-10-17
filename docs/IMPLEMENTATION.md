@@ -3934,6 +3934,13 @@ O otimizador enxergava os heróis por rótulos (facção, classe, tier rating, s
 - **Causa 3 — efeitos de mobília:** só 78 dos 227 heróis têm efeitos de mobília classificados, e o componente somava tags sem teto (~7 por time, × 0,4 ≈ 3 pontos, contra 0..1 do tier rating). Heróis sem dados, como o Hybris, nunca entravam. No benchmark (agora com a mobília de produção), o ganho vinha só da cobertura: com a média imputada a quem não tem dados, o total caiu de 88,3 (peso 0) para 74,0. Peso padrão `furniture_effect_weight` 0,4 → **0** (`ScoringProfile::DEFAULT_FURNITURE_EFFECT_WEIGHT`); o componente segue no detalhamento e o ajuste de pesos pode ligá-lo. O investimento em mobília (F3/F9) continua no poder.
 - **Pendente:** os atributos reais de fim de jogo (10^9 de HP) também estouram a escala de `realStatContribution` (calibrada para ~6×10^5) no modo real; precisa de recalibração antes de usar atributos do roster nessa faixa.
 
+### ✅ Fase 67 — Atributos de fim de jogo no modo real e investimento máximo no modo alvo (2026-10-18)
+
+- **Escala dos atributos reais:** os fatores de `realStatContribution` foram calibrados em heróis Lendários (~6×10^5 de HP); uma conta de fim de jogo tem ~10^9 e cada herói passava a valer ~10^6 de poder. Agora a contribuição segue linear até 1.000 pontos (snapshots calibrados intactos) e cresce em log acima disso (`1000 + 300 × ln(x/1000)`): ~3,1 mil para 1,6×10^9 de HP, e dobrar os atributos vale ~210 pontos em qualquer fase.
+- **Heróis sem atributos de tela:** recebem a mediana da conta (`PowerCalculator::imputeMissingRealStats`, em `FormationController::loadUserHeroes` e na comparação), para que cadastrar atributos de alguns heróis não faça só eles vencerem.
+- **Modo alvo no investimento máximo:** heróis Ascendidos entram como Ascendido 5★, nível 240, F9, item de assinatura e gravação no limite da facção (+40/E80 para Celestiais e Hypogeans, +30/E60 para os demais), pela mesma fórmula do roster. Antes: Ascendido 1★ sem investimento, poder igual para todos.
+- **`optimizer:benchmark`** (agora com custos de SI no banco de teste): total 88,2 → **91,6**; pior comp 54 → 75. Testados também peso 2-4 no tier rating (até 93,2 de média, mas pior comp 65-70) e metade/zero da vantagem de facção (90,1/88,4): mantidos peso 1 e limites completos.
+
 ### ✅ Correções pós-auditoria (2026-10-16)
 
 - **OCR quebrado:** o `post()` do `useForm` ignorava a opção `data` (o backend nunca recebia `heroes`) e `lines` vinha `undefined` no tesseract.js v7. Corrigido conforme a Fase 59, com testes.

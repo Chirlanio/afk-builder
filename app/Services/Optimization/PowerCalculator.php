@@ -12,6 +12,18 @@ use App\Models\UserHero;
 
 class PowerCalculator
 {
+    /** Ascended 5★ (see UserHeroController::ASCENSION_CODES). */
+    private const MAX_ASCENSION_VALUE = 16;
+
+    private const MAX_LEVEL = 240;
+
+    private const MAX_FURNITURE = 9;
+
+    private const ENGRAVING_CAP_DEFAULT = 60;
+
+    /** E80 is exclusive to Celestial and Hypogean heroes. */
+    private const ENGRAVING_CAP_EXTENDED = 80;
+
     private const TIER_BASELINE = [
         'common' => ['ascension' => 3, 'level' => 100],
         'legendary' => ['ascension' => 9, 'level' => 160],
@@ -108,6 +120,11 @@ class PowerCalculator
      */
     private const CATALOG_STAT_HP_MAX = 100_000;
 
+    /** Above this, real-stat power grows logarithmically (see realStatContribution). */
+    private const REAL_STAT_LOG_KNEE = 1000.0;
+
+    private const REAL_STAT_LOG_SCALE = 300.0;
+
     /** Limiar pra considerar que `UserHero->hp` tem valor REAL do jogo (não vazio). */
     private const REAL_STAT_HP_THRESHOLD = 1000;
 
@@ -137,9 +154,11 @@ class PowerCalculator
         // + Equipamento Mítico (sets Gaius/Ancelot/Místico, com bônus de facção).
         // Com stats reais o equipamento NÃO entra: a tela de atributos do jogo já
         // mostra os valores com ele equipado, e somar de novo contava duas vezes.
-        $base += $this->hasRealStats($userHero)
-            ? $this->realStatContribution($userHero)
-            : $this->statContribution($this->safeStats($hero)) + $this->mythicEquipmentContribution($userHero, $hero);
+        $base += match (true) {
+            $this->hasRealStats($userHero) => $this->realStatContribution($userHero),
+            $userHero->realStatEstimate !== null => $userHero->realStatEstimate,
+            default => $this->statContribution($this->safeStats($hero)) + $this->mythicEquipmentContribution($userHero, $hero),
+        };
 
         // Equipamento na slot artefato/coleção (mutex no controller).
         if ($userHero->relationLoaded('artifact') && $userHero->artifact) {
@@ -209,9 +228,29 @@ class PowerCalculator
         return self::BEAST_BUFF_FACTOR;
     }
 
+    /**
+     * Target mode: every hero at the best condition the game allows. Ascended
+     * heroes are taken fully invested — Ascended 5★, level 240, F9, Signature
+     * Item and Engraving at their faction caps (+40/E80 for Celestial and
+     * Hypogean, +30/E60 for the rest) — through the same formula as the roster.
+     */
     public function targetBaseline(Hero $hero): float
     {
         $tierCode = $hero->tier?->code ?? 'common';
+        if ($tierCode === 'ascended') {
+            $factionCode = $hero->relationLoaded('faction') ? $hero->faction?->code : null;
+            $extended = in_array($factionCode, SignatureItemCost::FACTION_CAP_40, true);
+            $maxed = new UserHero([
+                'ascension_value' => self::MAX_ASCENSION_VALUE,
+                'level' => self::MAX_LEVEL,
+                'signature_item' => SignatureItemCost::capForFaction($factionCode),
+                'furniture' => self::MAX_FURNITURE,
+                'engraving' => $extended ? self::ENGRAVING_CAP_EXTENDED : self::ENGRAVING_CAP_DEFAULT,
+            ]);
+
+            return $this->forUserHero($maxed, $hero);
+        }
+
         $baseline = self::TIER_BASELINE[$tierCode] ?? self::TIER_BASELINE['common'];
 
         return $baseline['ascension'] * 100 + $baseline['level'] + $this->statContribution($this->safeStats($hero));
@@ -356,6 +395,54 @@ class PowerCalculator
      * Calibrado a partir de snapshots reais — ver as constantes REAL_STAT_*_FACTOR.
      */
     public function realStatContribution(UserHero $userHero): float
+    {
+        $linear = $this->linearRealStatContribution($userHero);
+
+        // Game-screen stats grow exponentially with level and the Resonating
+        // Crystal: ~6×10^5 HP at Legendary, ~10^9 at end game. The linear factors
+        // (calibrated on Legendary snapshots) are kept up to the knee; above it the
+        // contribution grows logarithmically, so a 1.6×10^9 HP hero adds ~3k
+        // instead of ~800k and doubling stats is worth ~210 points at any stage.
+        if ($linear <= self::REAL_STAT_LOG_KNEE) {
+            return $linear;
+        }
+
+        return self::REAL_STAT_LOG_KNEE + self::REAL_STAT_LOG_SCALE * log($linear / self::REAL_STAT_LOG_KNEE);
+    }
+
+    /**
+     * Gives heroes without game-screen stats the median real-stat contribution
+     * of the account's heroes that have them. Otherwise registering stats for a
+     * few heroes made exactly those heroes win every suggestion.
+     *
+     * @param  iterable<UserHero>  $userHeroes
+     */
+    public function imputeMissingRealStats(iterable $userHeroes): void
+    {
+        $known = [];
+        $missing = [];
+        foreach ($userHeroes as $userHero) {
+            if ($this->hasRealStats($userHero)) {
+                $known[] = $this->realStatContribution($userHero);
+            } else {
+                $missing[] = $userHero;
+            }
+        }
+
+        if (empty($known)) {
+            return;
+        }
+
+        sort($known);
+        $middle = intdiv(count($known), 2);
+        $median = count($known) % 2 ? $known[$middle] : ($known[$middle - 1] + $known[$middle]) / 2;
+
+        foreach ($missing as $userHero) {
+            $userHero->realStatEstimate = $median;
+        }
+    }
+
+    private function linearRealStatContribution(UserHero $userHero): float
     {
         return ((int) ($userHero->hp ?? 0)) * self::REAL_STAT_HP_FACTOR
             + ((int) ($userHero->attack ?? 0)) * self::REAL_STAT_ATK_FACTOR

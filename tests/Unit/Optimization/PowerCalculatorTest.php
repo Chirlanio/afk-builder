@@ -254,10 +254,25 @@ class PowerCalculatorTest extends TestCase
         $stats->defense = 200;      // *0.7 = 140
         $hero->setRelation('stats', $stats);
 
-        // baseline ascended: 12*100 + 240 = 1440
+        // fully invested ascended: A5★ 16*100 + 240 = 1840
+        // + SI 30: 720*0.2 = 144; F9: 9*30 + 200 + 100 = 570; E60: 30 + 50 + 100 = 180
         // + stats: 200 + 300 + 140 = 640
-        // total: 2080
-        $this->assertEqualsWithDelta(2080.0, $this->calc->targetBaseline($hero), 0.001);
+        // total: 3374
+        $this->assertEqualsWithDelta(3374.0, $this->calc->targetBaseline($hero), 0.001);
+    }
+
+    public function test_target_baseline_uses_faction_caps_for_signature_item_and_engraving(): void
+    {
+        $tier = new Tier(['code' => 'ascended']);
+        $celestial = new Hero;
+        $celestial->setRelation('tier', $tier);
+        $celestial->setRelation('faction', new Faction(['code' => 'celestial']));
+        $mauler = new Hero;
+        $mauler->setRelation('tier', $tier);
+        $mauler->setRelation('faction', new Faction(['code' => 'mauler']));
+
+        // SI 40 vs 30: (1530-720)*0.2 = 162; E80 vs E60: 10 + 50 = 60
+        $this->assertEqualsWithDelta(222.0, $this->calc->targetBaseline($celestial) - $this->calc->targetBaseline($mauler), 0.001);
     }
 
     public function test_artifact_contribution_zero_quando_null(): void
@@ -513,6 +528,40 @@ class PowerCalculatorTest extends TestCase
             $this->calc->realStatContribution($ivan),
             20.0,
         );
+    }
+
+    public function test_real_stat_contribution_grows_logarithmically_at_end_game(): void
+    {
+        // Game-screen stats of an end-game account (Resonating Crystal ~675).
+        $estrilda = $this->makeUserHero(['hp' => 1_588_434_513, 'attack' => 44_692_846, 'defense' => 25_690_578]);
+        $raine = $this->makeUserHero(['hp' => 534_529_602, 'attack' => 44_070_627, 'defense' => 9_064_019]);
+
+        // linear 1,146,267 → 1000 + 300 × ln(1146.3) ≈ 3115 (it was ~1.15M)
+        $this->assertEqualsWithDelta(3115.0, $this->calc->realStatContribution($estrilda), 5.0);
+        // About 2x the stats → ~230 points more, not 2x the power.
+        $this->assertEqualsWithDelta(
+            300 * log(2.15),
+            $this->calc->realStatContribution($estrilda) - $this->calc->realStatContribution($raine),
+            10.0,
+        );
+    }
+
+    public function test_heroes_without_real_stats_get_the_account_median(): void
+    {
+        $withStats = [
+            $this->makeUserHero(['hp' => 1_588_434_513, 'attack' => 44_692_846, 'defense' => 25_690_578]),
+            $this->makeUserHero(['hp' => 534_529_602, 'attack' => 44_070_627, 'defense' => 9_064_019]),
+            $this->makeUserHero(['hp' => 880_582_345, 'attack' => 39_003_991, 'defense' => 14_797_742]),
+        ];
+        $without = $this->makeUserHero(['ascension_value' => 16, 'level' => 240, 'hp' => 0]);
+
+        $this->calc->imputeMissingRealStats([...$withStats, $without]);
+
+        $contributions = array_map(fn ($uh) => $this->calc->realStatContribution($uh), $withStats);
+        sort($contributions);
+        $this->assertEqualsWithDelta($contributions[1], $without->realStatEstimate, 0.001);
+        $this->assertNull($withStats[0]->realStatEstimate);
+        $this->assertEqualsWithDelta(1600 + 240 + $contributions[1], $this->calc->forUserHero($without), 0.001);
     }
 
     public function test_for_user_hero_prefere_stats_reais_quando_preenchidos(): void
