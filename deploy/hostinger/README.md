@@ -7,10 +7,10 @@ Diferente da Oracle (`deploy/oracle/`), aqui não há root, supervisor nem nginx
 | Necessidade | Como é resolvida |
 |---|---|
 | Servir só `public/` | Repositório em `public_html/afk-builder` + [`public_html.htaccess`](public_html.htaccess) reescrevendo tudo para `afk-builder/public/` |
-| `composer install` | Feito pelo deploy Git da Hostinger após cada clone/pull |
-| Assets do Vite | `public/build` não está no Git: build local + upload de `build.zip` |
-| Fila (`/admin/sync`) | Cron a cada minuto com `queue:work --stop-when-empty` |
-| Scheduler | Cron a cada minuto com `schedule:run` |
+| `composer install` | Feito no GitHub Actions (`--no-dev`); o `vendor/` vai pronto no release |
+| Assets do Vite | `public/build` não está no Git: compilado no GitHub Actions e enviado no release |
+| Fila (`/admin/sync`) | Cron a cada minuto com [`cron.sh queue`](cron.sh): `queue:work --stop-when-empty` sob `flock` (um worker por vez) e `DB_QUEUE_RETRY_AFTER=1900` |
+| Scheduler | Cron a cada minuto com [`cron.sh schedule`](cron.sh) |
 | `storage:link` | `symlink()` é bloqueado no PHP web → link criado com `ln -s` via cron |
 | Comandos artisan avulsos | Sem SSH pelo MCP: cron de execução única, lido com "Get cron job output" e apagado depois |
 
@@ -42,9 +42,10 @@ PHP CLI: `/opt/alt/php84/usr/bin/php`.
 9. **Catálogo** (cron único rodando [`catalog.sh`](catalog.sh), alguns minutos): `heroes:sync --initial`, enrich, imagens, tipos, móveis, artefatos, beasts, ratings e os seeders que dependem dos heróis (sinergias, inscrições, features, tiers de beasts, comps recomendados).
 10. **Crons fixos:**
     ```
-    * * * * *  cd ~/domains/nexa.app.br/public_html/afk-builder && /opt/alt/php84/usr/bin/php artisan schedule:run
-    * * * * *  cd ~/domains/nexa.app.br/public_html/afk-builder && /opt/alt/php84/usr/bin/php artisan queue:work --stop-when-empty --max-time=55 --tries=1
+    * * * * *  /bin/sh /home/u401878354/domains/nexa.app.br/public_html/afk-builder/deploy/hostinger/cron.sh schedule
+    * * * * *  /bin/sh /home/u401878354/domains/nexa.app.br/public_html/afk-builder/deploy/hostinger/cron.sh queue
     ```
+    O agendador da Hostinger **não executa** linhas no formato `cd … && php artisan …` — elas ficam sem saída e sem efeito. Sempre chamar um script com `/bin/sh`.
 11. **Admin:** em banco novo **ninguém** vira admin sozinho (a promoção da migration `add_is_admin_to_users_table` só atinge usuários que já existiam). Depois de criar sua conta, rode num cron único:
     ```
     cd ~/domains/nexa.app.br/public_html/afk-builder && /opt/alt/php84/usr/bin/php artisan tinker --execute="App\Models\User::where('email', 'SEU@EMAIL')->update(['is_admin' => true]);"
