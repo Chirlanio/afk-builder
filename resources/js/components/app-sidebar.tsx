@@ -141,7 +141,8 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
+                {/* Links para o repositório e a documentação interna — só fazem sentido para o admin. */}
+                {auth.user?.is_admin && <NavFooter items={footerNavItems} className="mt-auto" />}
                 <div className="flex items-center justify-end px-2">
                     <LocaleSwitcher />
                 </div>
