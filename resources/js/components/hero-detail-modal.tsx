@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
+import { CapabilityBadge, CapabilityList } from '@/components/capability-badges';
 import { CreateHeroModal } from '@/components/create-hero-modal';
 import { HeroSlotCard } from '@/components/hero-slot-card';
 import { MarkdownContent } from '@/components/markdown-content';
@@ -758,6 +759,17 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                             </SectionBlock>
                         )}
 
+                        {/* Capacidades (perfil do classificador + correções do admin) */}
+                        {hero.effective_capabilities && Object.keys(hero.effective_capabilities).length > 0 && (
+                            <SectionBlock
+                                icon={Sparkles}
+                                title="Capacidades"
+                                extra={<span className="text-muted-foreground text-[10px]">lidas das habilidades</span>}
+                            >
+                                <CapabilityList profile={hero.effective_capabilities} />
+                            </SectionBlock>
+                        )}
+
                         {/* Abilities */}
                         <SectionBlock icon={Sparkles} title="Habilidades">
                             {abilities.length === 0 ? (
@@ -783,6 +795,13 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                                                 {abilityDesc && (
                                                     <div className="text-muted-foreground mt-2">
                                                         <MarkdownContent>{abilityDesc}</MarkdownContent>
+                                                    </div>
+                                                )}
+                                                {ability.effects && ability.effects.length > 0 && (
+                                                    <div className="mt-2 flex flex-wrap gap-1">
+                                                        {ability.effects.map((tag) => (
+                                                            <CapabilityBadge key={tag} tag={tag} />
+                                                        ))}
                                                     </div>
                                                 )}
                                             </div>

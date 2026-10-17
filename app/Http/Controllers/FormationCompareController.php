@@ -122,6 +122,7 @@ class FormationCompareController extends Controller
             furnitureAbilitiesByHeroId: $furnitureAbilitiesByHeroId,
             mode: ChallengeTypeMode::forCode($formation->challengeType->code ?? null),
             stage: (new RosterStageInferrer)->inferFromRoster($userHeroesById),
+            challengeCode: $formation->challengeType->code ?? null,
         );
 
         $teams = [];

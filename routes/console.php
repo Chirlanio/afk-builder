@@ -25,3 +25,10 @@ Schedule::command('roster:snapshot')
     ->dailyAt('04:00')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Perfil de capacidades (cura, controle, energia...) usado pelo otimizador.
+// Roda depois do heroes:sync para que heróis novos já entrem classificados.
+Schedule::command('heroes:classify-capabilities')
+    ->dailyAt('04:10')
+    ->withoutOverlapping()
+    ->onOneServer();

@@ -29,13 +29,38 @@ class Hero extends Model
         'released_at',
         'is_active',
         'pending_review',
+        'capabilities',
+        'capabilities_manual',
     ];
 
     protected $casts = [
         'released_at' => 'date',
         'is_active' => 'boolean',
         'pending_review' => 'boolean',
+        'capabilities' => 'array',
+        'capabilities_manual' => 'array',
     ];
+
+    /**
+     * Perfil de capacidades efetivo: o do classificador com as correções do
+     * admin aplicadas por cima (remove primeiro, depois add/sobrescreve força).
+     *
+     * @return array<string, int>
+     */
+    public function effectiveCapabilities(): array
+    {
+        $profile = $this->capabilities ?? [];
+        $manual = $this->capabilities_manual ?? [];
+
+        foreach ($manual['remove'] ?? [] as $tag) {
+            unset($profile[$tag]);
+        }
+        foreach ($manual['add'] ?? [] as $tag => $strength) {
+            $profile[$tag] = (int) $strength;
+        }
+
+        return $profile;
+    }
 
     public function faction(): BelongsTo
     {

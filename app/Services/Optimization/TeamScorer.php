@@ -15,6 +15,7 @@ class TeamScorer
         private readonly TierRatingScorer $tierRatingScorer = new TierRatingScorer,
         private readonly FeatureBonusCalculator $featureBonus = new FeatureBonusCalculator,
         private readonly FurnitureEffectScorer $furnitureEffectScorer = new FurnitureEffectScorer,
+        private readonly TeamCapabilityAnalyzer $capabilityAnalyzer = new TeamCapabilityAnalyzer,
     ) {}
 
     /**
@@ -83,6 +84,8 @@ class TeamScorer
                 'mode' => $ctx->mode,
                 'stage' => $ctx->stage,
                 'engraving_milestones' => $engravingResult['milestones'],
+                // Informativo — não entra no total (ver TeamCapabilityAnalyzer).
+                'capabilities' => $this->capabilityAnalyzer->analyze($heroes, $ctx->challengeCode),
             ],
         );
     }

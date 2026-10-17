@@ -98,6 +98,11 @@ const adminNavItems: NavItem[] = [
         icon: ShieldCheck,
     },
     {
+        title: 'Capacidades',
+        url: '/admin/heroes/capabilities',
+        icon: Sparkles,
+    },
+    {
         title: 'Coleções',
         url: '/admin/collections',
         icon: Package,

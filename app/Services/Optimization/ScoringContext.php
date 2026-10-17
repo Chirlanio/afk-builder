@@ -28,5 +28,7 @@ class ScoringContext
         public readonly array $furnitureAbilitiesByHeroId = [],
         public readonly string $mode = HeroRating::MODE_PVE,
         public readonly string $stage = HeroRating::STAGE_END,
+        /** Código do ChallengeType — o `mode` agrupa demais (chefes caem em PvE). */
+        public readonly ?string $challengeCode = null,
     ) {}
 }

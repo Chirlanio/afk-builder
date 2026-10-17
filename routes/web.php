@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\BeastAdminController;
 use App\Http\Controllers\Admin\CollectionAdminController;
 use App\Http\Controllers\Admin\HeroAdminController;
+use App\Http\Controllers\Admin\HeroCapabilityAdminController;
 use App\Http\Controllers\Admin\HeroStatsAdminController;
 use App\Http\Controllers\Admin\SyncCommandController;
 use App\Http\Controllers\DashboardController;
@@ -164,6 +165,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('heroes', [HeroAdminController::class, 'storeManual'])->name('heroes.store');
         Route::patch('heroes/{hero}/approve', [HeroAdminController::class, 'approve'])->name('heroes.approve');
         Route::patch('heroes/{hero}/reject', [HeroAdminController::class, 'reject'])->name('heroes.reject');
+        Route::get('heroes/capabilities', [HeroCapabilityAdminController::class, 'index'])->name('heroes.capabilities');
+        Route::patch('heroes/{hero}/capabilities', [HeroCapabilityAdminController::class, 'update'])->name('heroes.capabilities.update');
+        Route::delete('heroes/{hero}/capabilities', [HeroCapabilityAdminController::class, 'reset'])->name('heroes.capabilities.reset');
         Route::patch('heroes/{slug}/stats', [HeroStatsAdminController::class, 'update'])
             ->where('slug', '[a-z0-9-]+')
             ->name('heroes.stats.update');

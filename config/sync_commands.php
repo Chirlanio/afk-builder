@@ -122,4 +122,13 @@ return [
             'force' => ['type' => 'bool', 'label' => 'Re-traduzir (mesmo se _pt já existe)'],
         ],
     ],
+
+    'heroes:classify-capabilities' => [
+        'label' => 'Classificar capacidades dos heróis',
+        'description' => 'Lê as habilidades e o papel de cada herói e gera o perfil de capacidades (cura, controle, energia, linha de frente...) usado pelo otimizador. Correções manuais do admin são preservadas. Rodar após sync/enrich.',
+        'icon' => 'Sparkles',
+        'options' => [
+            'slug' => ['type' => 'string', 'label' => 'Slug do herói', 'placeholder' => 'Ex: lucius', 'pattern' => '/^[a-z0-9\-]{1,80}$/'],
+        ],
+    ],
 ];

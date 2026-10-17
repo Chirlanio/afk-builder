@@ -1,4 +1,6 @@
+import { TeamCapabilityPanel } from '@/components/capability-badges';
 import type { WeightOverrides } from '@/components/weight-tuner-sheet';
+import type { TeamCapabilityAnalysis } from '@/lib/capabilities';
 import { cn } from '@/lib/utils';
 import type { ScoreBreakdownPayload } from '@/types/afk';
 
@@ -122,6 +124,7 @@ export function ScoreBreakdownCard({ score, className, compact = false, weights 
                         )}
                     </span>
                 </div>
+                <TeamCapabilityPanel analysis={score.details?.capabilities as TeamCapabilityAnalysis | undefined} />
             </div>
         </div>
     );

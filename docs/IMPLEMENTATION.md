@@ -3886,6 +3886,18 @@ Produção em **https://nexa.app.br** — Hostinger Cloud Economy (hospedagem co
 - **Bug achado no deploy:** `BeastTiersSeeder` ainda usava as colunas `*_buff` removidas na Fase 51 — corrigido, com `CatalogSeedersTest` cobrindo os seeders de catálogo.
 - **Removidos:** os alvos Oracle Cloud (`deploy/oracle/`) e Vercel (`vercel.json`, `api/index.php`), que não chegaram a ser usados.
 
+### ✅ Fase 62 — Perfil de capacidades dos heróis (2026-10-18)
+
+O otimizador enxergava os heróis por rótulos (facção, classe, tier rating, sinergias cadastradas) e ignorava o que cada um FAZ: as 906 habilidades importadas e o `role_label` da wiki não entravam em nada.
+
+- **`HeroCapabilityClassifier`:** lê as descrições das habilidades (EN, Fandom) frase a frase e o papel da wiki, e gera o perfil do herói — 18 capacidades em 5 grupos: dano (área, alvo único, contínuo), sustentação (cura do time, escudo, redução de dano, autossustentação, sobrevive/revive), controle (forte, leve, imunidade), suporte (dissipar, energia para aliados, roubo de energia, buff, debuff) e posição (linha de frente, alcance da linha de trás). Força 1 ou 2 por capacidade. Calibrado contra as 906 habilidades; o contexto da frase decide o sentido ("heals all allies" é cura do time, "heals himself" é autossustentação; "immune to control" não é controle sobre inimigos).
+- **Dados:** `heroes.capabilities` (classificador, regenerado) + `heroes.capabilities_manual` (correções do admin, `{add, remove}`, nunca tocadas pela reclassificação); `hero_abilities.effects` recebe as capacidades de cada habilidade.
+- **`heroes:classify-capabilities`:** agendado diariamente às 04:10 (depois do `heroes:sync`), disponível no `/admin/sync` e no `catalog.sh`.
+- **Admin `/admin/heroes/capabilities`:** revisão por herói (força 0/1/2 por capacidade); o servidor grava só a diferença em relação ao classificador.
+- **UI:** perfil na ficha do herói (bloco "Capacidades" + selos em cada habilidade) e painel "Capacidades do time" no breakdown das formações — o que o time cobre, o que falta no contexto (PvE, PvP, Chefe), "sem sustentação" e "sem efeito contra chefe" (controle).
+
+**Por que é informativo e não entra no score:** antes de ligar no otimizador, cinco critérios de pontuação por capacidades (cobertura com essenciais, cobertura pura, intensidade, riqueza do kit, nº de capacidades) foram validados contra os comps recomendados da comunidade, comparando com 3.000 times aleatórios. Nenhum separou os comps fortes do acaso — percentil médio entre 20 e 41 (acaso = 50). Comps fortes vencem por mecânicas específicas (reflexo de dano, burst que dispensa tanque, empilhar charm) e pela força dos heróis, que o texto das habilidades não revela. Próximo passo: aprender pesos com os 3.402 tier ratings por modo e só então validar de novo. `TeamCapabilityAnalyzer` documenta isso no código.
+
 ### ✅ Correções pós-auditoria (2026-10-16)
 
 - **OCR quebrado:** o `post()` do `useForm` ignorava a opção `data` (o backend nunca recebia `heroes`) e `lines` vinha `undefined` no tesseract.js v7. Corrigido conforme a Fase 59, com testes.

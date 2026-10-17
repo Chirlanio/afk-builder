@@ -19,5 +19,6 @@ for s in HeroSynergySeeder HeroEngravingsSeeder HeroFeaturesSeeder BeastTiersSee
   run db:seed --class=$s --force
 done
 run beasts:seed-buffs
+run heroes:classify-capabilities
 run optimize
 echo "== FIM catalogo"

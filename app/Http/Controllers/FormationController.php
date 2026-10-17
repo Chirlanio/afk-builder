@@ -874,6 +874,7 @@ class FormationController extends Controller
             furnitureAbilitiesByHeroId: $furnitureAbilitiesByHeroId,
             mode: $mode,
             stage: $stage,
+            challengeCode: $formation->challengeType->code ?? null,
         );
     }
 

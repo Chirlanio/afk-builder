@@ -117,6 +117,7 @@ class HeroController extends Controller
 
         $heroPayload = array_merge($hero->toArray(), [
             'is_awakened' => Str::slug($hero->name) !== $hero->slug,
+            'effective_capabilities' => $hero->effectiveCapabilities(),
         ]);
 
         $userHero = $this->active->get()

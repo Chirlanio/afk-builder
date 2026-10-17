@@ -56,6 +56,8 @@ export interface Hero {
     hero_class?: HeroClass;
     tier?: Tier;
     features?: HeroFeature[];
+    /** Perfil de capacidades do classificador + correções do admin (tag → força 1..2). */
+    effective_capabilities?: Record<string, number>;
 }
 
 export interface HeroFurnitureAbility {
@@ -288,7 +290,8 @@ export interface HeroAbility {
     display_order: number;
     ascension_unlock: string | null;
     description: string | null;
-    effects?: Record<string, unknown> | null;
+    /** Capacidades detectadas nesta habilidade (HeroCapabilityClassifier). */
+    effects?: string[] | null;
 }
 
 export type EquipmentSlot = 'weapon' | 'helmet' | 'chest' | 'boots';
