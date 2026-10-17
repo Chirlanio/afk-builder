@@ -8,6 +8,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Validação do certificado SSL (ACME HTTP-01): servir direto do public_html,
+    # sem redirect para HTTPS (que ainda não existe) e sem passar pelo Laravel.
+    RewriteRule ^\.well-known/ - [L]
+
     # Força HTTPS.
     RewriteCond %{HTTPS} off
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
