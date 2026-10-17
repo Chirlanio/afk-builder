@@ -38,17 +38,17 @@ PHP CLI: `/opt/alt/php84/usr/bin/php`.
    ```
    cd ~/domains/nexa.app.br/public_html && rm -rf afk-builder/public/build && mkdir -p afk-builder/public/build && unzip -oq build.zip -d afk-builder/public/build && rm build.zip
    ```
-8. **Setup inicial** (cron único):
-   ```
-   cd ~/domains/nexa.app.br/public_html/afk-builder && /opt/alt/php84/usr/bin/php artisan migrate --force && /opt/alt/php84/usr/bin/php artisan db:seed --force && ln -sfn ../storage/app/public public/storage && /opt/alt/php84/usr/bin/php artisan optimize
-   ```
-9. **Catálogo** (cron único, ~3 min): `php artisan heroes:sync --initial && php artisan heroes:resolve-images`.
+8. **Setup inicial** (cron único rodando [`setup.sh`](setup.sh), enviado para `public_html/`): extrai o release, `migrate`, `db:seed` + `EquipmentSeeder`, `storage` link e `optimize`.
+9. **Catálogo** (cron único rodando [`catalog.sh`](catalog.sh), alguns minutos): `heroes:sync --initial`, enrich, imagens, tipos, móveis, artefatos, beasts, ratings e os seeders que dependem dos heróis (sinergias, inscrições, features, tiers de beasts, comps recomendados).
 10. **Crons fixos:**
     ```
     * * * * *  cd ~/domains/nexa.app.br/public_html/afk-builder && /opt/alt/php84/usr/bin/php artisan schedule:run
     * * * * *  cd ~/domains/nexa.app.br/public_html/afk-builder && /opt/alt/php84/usr/bin/php artisan queue:work --stop-when-empty --max-time=55 --tries=1
     ```
-11. **Admin:** o primeiro usuário registrado vira admin automaticamente. Crie a sua conta logo após o deploy.
+11. **Admin:** em banco novo **ninguém** vira admin sozinho (a promoção da migration `add_is_admin_to_users_table` só atinge usuários que já existiam). Depois de criar sua conta, rode num cron único:
+    ```
+    cd ~/domains/nexa.app.br/public_html/afk-builder && /opt/alt/php84/usr/bin/php artisan tinker --execute="App\Models\User::where('email', 'SEU@EMAIL')->update(['is_admin' => true]);"
+    ```
 
 ## Deploys seguintes
 
