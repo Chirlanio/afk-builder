@@ -39,6 +39,7 @@ class AiExportController extends Controller
             'objective' => ['required', 'string', Rule::in(AiExportObjectives::codes())],
             'planning' => ['required', Rule::enum(Planning::class)],
             'include_suggestion' => ['nullable', 'boolean'],
+            'detail' => ['nullable', Rule::in(['full', 'compact'])],
         ]);
         $objective = AiExportObjectives::get($data['objective']);
         $params = $request->validate($objective->rules());
@@ -50,6 +51,7 @@ class AiExportController extends Controller
                 Planning::from($data['planning']),
                 $params,
                 $request->boolean('include_suggestion'),
+                ($data['detail'] ?? 'full') === 'full',
             ),
         );
     }

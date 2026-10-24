@@ -553,6 +553,73 @@ class AiExportTest extends TestCase
         $this->assertSame('8 (3 equipes)', $byCode['dragon_trial']['fields'][0]['options'][5]['label']);
     }
 
+    private function heroWithFullSheet(string $name): Hero
+    {
+        $hero = $this->makeHero($name);
+        $hero->update(['title' => 'the Arcanist', 'type' => 'intelligence', 'role_label' => 'Burst Damage', 'special_mechanic' => 'Charges energy on kills']);
+        $hero->abilities()->create(['name' => 'Hidden Gift', 'type' => 'passive', 'display_order' => 3, 'description' => null]);
+        $hero->abilities()->create([
+            'name' => 'Arcane Burst', 'type' => 'ultimate', 'display_order' => 1,
+            'description' => 'Deals 300% Attack as damage to all enemies.',
+        ]);
+        $hero->abilities()->create([
+            'name' => 'Mana Shield', 'type' => 'passive', 'display_order' => 2, 'ascension_unlock' => 'Legendary+',
+            'description' => 'Gains a shield equal to 20% of Max HP.',
+        ]);
+        $hero->furnitureAbility()->create([
+            'name' => 'Arcane Focus', 'f3_description' => 'Arcane Burst also silences.', 'f9_description' => 'Arcane Burst hits twice.',
+        ]);
+        $hero->engravings()->create(['level' => 30, 'label' => 'E30', 'description' => 'Mana Shield also heals.', 'source' => 'test']);
+        $hero->features()->create(['tag' => 'burst', 'note' => 'Top damage in PvP', 'source' => 'test']);
+
+        return $hero;
+    }
+
+    public function test_full_detail_sends_the_whole_hero_sheet_in_the_original_text(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->heroWithFullSheet('Talene');
+        $this->rate($hero, 'S+');
+        $user->defaultGameAccount->userHeroes()->create(['hero_id' => $hero->id, 'level' => 240]);
+
+        foreach (['real', 'target'] as $planning) {
+            $markdown = $this->export($user, ['planning' => $planning])->assertOk()->json('markdown');
+
+            $this->assertStringContainsString('Intelligence', $markdown, $planning);
+            $this->assertStringContainsString('Burst Damage', $markdown, $planning);
+            $this->assertStringContainsString('Charges energy on kills', $markdown, $planning);
+            $this->assertStringContainsString('Arcane Burst (ultimate): Deals 300% Attack as damage to all enemies.', $markdown, $planning);
+            $this->assertStringContainsString('Mana Shield (passive, desbloqueia em Legendary+): Gains a shield equal to 20% of Max HP.', $markdown, $planning);
+            $this->assertStringContainsString('Mobília (Arcane Focus): F3: Arcane Burst also silences. F9: Arcane Burst hits twice.', $markdown, $planning);
+            $this->assertStringContainsString('E30: Mana Shield also heals.', $markdown, $planning);
+            $this->assertStringContainsString('burst (Top damage in PvP)', $markdown, $planning);
+            $this->assertStringContainsString('ficha completa', $markdown, $planning);
+            $this->assertStringContainsString('Título: the Arcanist', $markdown, $planning);
+            $this->assertStringContainsString('- Hidden Gift (passive)', $markdown, $planning);
+        }
+    }
+
+    public function test_compact_detail_keeps_only_the_summary(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->heroWithFullSheet('Talene');
+        $user->defaultGameAccount->userHeroes()->create(['hero_id' => $hero->id, 'level' => 240]);
+
+        $markdown = $this->export($user, ['detail' => 'compact'])->assertOk()->json('markdown');
+
+        $this->assertStringContainsString('**Talene**', $markdown);
+        foreach (['Arcane Burst', 'Arcane Focus', 'Mana Shield also heals', 'Top damage in PvP', 'ficha completa'] as $fullOnly) {
+            $this->assertStringNotContainsString($fullOnly, $markdown);
+        }
+    }
+
+    public function test_invalid_detail_is_rejected(): void
+    {
+        $user = User::factory()->create();
+
+        $this->export($user, ['detail' => 'everything'])->assertJsonValidationErrors('detail');
+    }
+
     private function lineOf(string $heroName, string $markdown): string
     {
         foreach (explode("\n", $markdown) as $line) {

@@ -6,11 +6,14 @@ use App\Enums\Planning;
 use App\Models\ChallengeType;
 use App\Models\GameAccount;
 use App\Models\Hero;
+use App\Models\HeroEngraving;
+use App\Models\HeroFeature;
 use App\Models\HeroRating;
 use App\Models\UserHero;
 use App\Services\Optimization\RosterStageInferrer;
 use App\Services\Optimization\TeamSuggester;
 use App\Services\Optimization\TierRatingScorer;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Str;
 
 /**
@@ -42,7 +45,7 @@ class AiExportService
     /**
      * @return array{markdown: string, warning: ?string}
      */
-    public function build(GameAccount $account, AiExportObjective $objective, Planning $planning, array $params = [], bool $includeSuggestion = false): array
+    public function build(GameAccount $account, AiExportObjective $objective, Planning $planning, array $params = [], bool $includeSuggestion = false, bool $fullDetail = true): array
     {
         $context = $objective->context();
         $teams = $objective->teams($params);
@@ -53,7 +56,7 @@ class AiExportService
         } else {
             $userHeroes = $account->userHeroes()
                 ->with([
-                    'hero.faction', 'hero.heroClass', 'hero.ratings', 'artifact',
+                    'hero.faction', 'hero.heroClass', 'hero.ratings', 'artifact', ...self::sheetRelations('hero.'),
                     'weaponEquipment', 'helmetEquipment', 'chestEquipment', 'bootsEquipment',
                 ])
                 ->get()
@@ -85,6 +88,9 @@ class AiExportService
             ...$objective->formation
                 ? $this->formationRequest($objective, $planning, $teams, $params)
                 : $this->investmentRequest($planning),
+            ...$fullDetail
+                ? ['Cada herói traz a ficha completa (tipo, papel, habilidades, mobília, gravação e destaques) no texto original do jogo, em inglês: use essas mecânicas para combinar os heróis, não só o tier.']
+                : [],
             'Responda em português do Brasil, mas escreva os nomes dos heróis em inglês, exatamente como na lista.',
             '',
             '## Heróis',
@@ -92,6 +98,9 @@ class AiExportService
         ];
         foreach ($entries as $entry) {
             $lines[] = $this->heroLine($entry['hero'], $entry['userHero'], $entry['tier']);
+            if ($fullDetail) {
+                array_push($lines, ...$this->heroSheet($entry['hero']));
+            }
         }
 
         $suggestion = $includeSuggestion && $objective->formation && $objective->challengeType !== null
@@ -188,7 +197,7 @@ class AiExportService
      */
     private function targetEntries(string $context): array
     {
-        return Hero::query()
+        $entries = Hero::query()
             ->with(['faction', 'heroClass', 'ratings'])
             ->where('is_active', true)
             ->where('pending_review', false)
@@ -200,8 +209,12 @@ class AiExportService
                 'tier' => $this->contextTier($hero, $context, HeroRating::STAGE_END),
             ])
             ->filter(fn (array $entry) => in_array($entry['tier'], array_slice(HeroRating::TIERS, 0, self::TARGET_TIER_COUNT), true))
-            ->values()
-            ->all();
+            ->values();
+
+        // A ficha só é carregada para quem passou no corte de tier.
+        (new EloquentCollection($entries->pluck('hero')->all()))->load(self::sheetRelations());
+
+        return $entries->all();
     }
 
     private function contextTier(Hero $hero, string $context, string $stage): ?string
@@ -262,6 +275,77 @@ class AiExportService
         return "Explique o raciocínio e termine com este bloco, exatamente neste formato:\n\n```\n"
             .implode("\n", $block)
             ."\n```";
+    }
+
+    /**
+     * Relações da ficha completa (habilidades, mobília, gravação, destaques).
+     *
+     * @return string[]
+     */
+    private static function sheetRelations(string $prefix = ''): array
+    {
+        return array_map(fn (string $relation) => $prefix.$relation, [
+            'abilities', 'furnitureAbility', 'engravings', 'features',
+        ]);
+    }
+
+    /**
+     * Ficha completa do herói, no texto original do jogo (inglês), para o
+     * modelo combinar heróis por tudo o que eles fazem.
+     *
+     * @return string[]
+     */
+    private function heroSheet(Hero $hero): array
+    {
+        $lines = [];
+        $profile = array_filter([
+            $hero->title ? "Título: {$hero->title}" : null,
+            $hero->type ? 'Tipo: '.ucfirst($hero->type) : null,
+            $hero->role_label ? "Papel: {$hero->role_label}" : null,
+            $hero->special_mechanic ? "Mecânica: {$hero->special_mechanic}" : null,
+        ]);
+        if ($profile !== []) {
+            $lines[] = '  - '.implode(' · ', $profile);
+        }
+
+        // Habilidade sem descrição na wiki ainda sai com nome e tipo.
+        $abilities = $hero->abilities->sortBy('display_order');
+        if ($abilities->isNotEmpty()) {
+            $lines[] = '  - Habilidades:';
+            foreach ($abilities as $ability) {
+                $meta = implode(', ', array_filter([
+                    $ability->type,
+                    $ability->ascension_unlock ? "desbloqueia em {$ability->ascension_unlock}" : null,
+                ]));
+                $lines[] = "    - {$ability->name}".($meta !== '' ? " ({$meta})" : '')
+                    .(filled($ability->description) ? ': '.self::oneLine($ability->description) : '');
+            }
+        }
+
+        $furniture = $hero->furnitureAbility;
+        if ($furniture && ($furniture->f3_description || $furniture->f9_description)) {
+            $lines[] = "  - Mobília ({$furniture->name}): ".implode(' ', array_filter([
+                $furniture->f3_description ? 'F3: '.self::oneLine($furniture->f3_description) : null,
+                $furniture->f9_description ? 'F9: '.self::oneLine($furniture->f9_description) : null,
+            ]));
+        }
+
+        $engravings = $hero->engravings->sortBy('level')->filter(fn (HeroEngraving $engraving) => filled($engraving->description));
+        if ($engravings->isNotEmpty()) {
+            $lines[] = '  - Gravação: '.$engravings->map(fn (HeroEngraving $engraving) => "E{$engraving->level}: ".self::oneLine($engraving->description))->implode(' ');
+        }
+
+        if ($hero->features->isNotEmpty()) {
+            $lines[] = '  - Destaques: '.$hero->features->map(fn (HeroFeature $feature) => $feature->tag.($feature->note ? " ({$feature->note})" : ''))->implode(', ');
+        }
+
+        return $lines;
+    }
+
+    /** Descrições da wiki podem ter quebras de linha; no Markdown da lista elas viram uma linha só. */
+    private static function oneLine(string $text): string
+    {
+        return trim((string) preg_replace('/\s+/', ' ', $text));
     }
 
     /**

@@ -53,6 +53,8 @@ export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
     const [objectiveCode, setObjectiveCode] = useState<string | null | undefined>(undefined);
     const [params, setParams] = useState<Record<string, string>>({});
     const [planning, setPlanning] = useState<Planning>('real');
+    // Completo por padrão: a ficha inteira dos heróis; compacto para modelos com contexto menor.
+    const [detail, setDetail] = useState<'full' | 'compact'>('full');
     // Desmarcado por padrão: a sugestão do app não deve puxar a resposta do modelo.
     const [includeSuggestion, setIncludeSuggestion] = useState(false);
     const [result, setResult] = useState<ExportResult | null>(null);
@@ -104,7 +106,13 @@ export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
         setError(null);
         axios
             .get<ExportResult>(route('roster.ai-export'), {
-                params: { objective: objectiveCode, planning, include_suggestion: objective?.formation && includeSuggestion ? 1 : 0, ...params },
+                params: {
+                    objective: objectiveCode,
+                    planning,
+                    include_suggestion: objective?.formation && includeSuggestion ? 1 : 0,
+                    detail,
+                    ...params,
+                },
             })
             .then((res) => {
                 if (!cancelled) setResult(res.data);
@@ -119,7 +127,7 @@ export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
         return () => {
             cancelled = true;
         };
-    }, [open, objectiveCode, objective?.formation, planning, includeSuggestion, params, paramsComplete]);
+    }, [open, objectiveCode, objective?.formation, planning, detail, includeSuggestion, params, paramsComplete]);
 
     const changeObjective = (code: string) => {
         setObjectiveCode(code);
@@ -179,6 +187,18 @@ export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
                             <SelectContent>
                                 <SelectItem value="real">Real (meu Roster)</SelectItem>
                                 <SelectItem value="target">Alvo (investimento máximo)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="ai_export_detail">Detalhamento</Label>
+                        <Select value={detail} onValueChange={(value) => setDetail(value as 'full' | 'compact')}>
+                            <SelectTrigger id="ai_export_detail">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="full">Completo (habilidades, mobília, gravação)</SelectItem>
+                                <SelectItem value="compact">Compacto (para modelos com limite menor)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
