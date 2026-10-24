@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Planning;
 use App\Models\Beast;
 use App\Models\Faction;
 use App\Models\Formation;
@@ -99,7 +100,7 @@ class FormationCompareController extends Controller
         TeamScorer $scorer,
     ): array {
         // Target formations ignore the roster (see FormationController::loadUserHeroes).
-        if ($formation->mode === 'target') {
+        if ($formation->mode === Planning::Target) {
             $userHeroesById = [];
         }
         $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);

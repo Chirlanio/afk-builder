@@ -2,12 +2,12 @@
 
 namespace App\Services\AiExport;
 
+use App\Enums\Planning;
 use App\Models\ChallengeType;
 use App\Models\GameAccount;
 use App\Models\Hero;
 use App\Models\HeroRating;
 use App\Models\UserHero;
-use App\Services\Optimization\ChallengeTypeMode;
 use App\Services\Optimization\RosterStageInferrer;
 use App\Services\Optimization\TeamSuggester;
 use App\Services\Optimization\TierRatingScorer;
@@ -42,14 +42,12 @@ class AiExportService
     /**
      * @return array{markdown: string, warning: ?string}
      */
-    public function build(GameAccount $account, string $objective, string $planning, array $params = [], bool $includeSuggestion = false): array
+    public function build(GameAccount $account, AiExportObjective $objective, Planning $planning, array $params = [], bool $includeSuggestion = false): array
     {
-        $definition = AiExportObjectives::get($objective);
-        $context = $definition['context'] ?? ChallengeTypeMode::forCode($definition['challenge_type']);
-        $isInvestment = $definition['investment'] ?? false;
-        $teams = ($definition['teams'])($params);
+        $context = $objective->context();
+        $teams = $objective->teams($params);
 
-        if ($planning === 'target') {
+        if ($planning === Planning::Target) {
             $stage = HeroRating::STAGE_END;
             $entries = $this->targetEntries($context);
         } else {
@@ -77,16 +75,16 @@ class AiExportService
         }
 
         $lines = [
-            "# AFK Arena — {$definition['label']}",
+            "# AFK Arena — {$objective->label}",
             '',
             'Gerado pelo AFK Builder em '.now()->format('d/m/Y').' · Estágio da conta: '.self::STAGE_LABELS[$stage],
             '',
             '## Pedido',
             '',
-            'Você é um especialista em AFK Arena. Quero '.($definition['goal'])($params).'.',
-            ...$isInvestment
-                ? $this->investmentRequest($planning)
-                : $this->formationRequest($definition, $planning, $teams, $params),
+            'Você é um especialista em AFK Arena. Quero '.$objective->goal($params).'.',
+            ...$objective->formation
+                ? $this->formationRequest($objective, $planning, $teams, $params)
+                : $this->investmentRequest($planning),
             'Responda em português do Brasil, mas escreva os nomes dos heróis em inglês, exatamente como na lista.',
             '',
             '## Heróis',
@@ -96,8 +94,8 @@ class AiExportService
             $lines[] = $this->heroLine($entry['hero'], $entry['userHero'], $entry['tier']);
         }
 
-        $suggestion = $includeSuggestion && ! $isInvestment
-            ? $this->suggestionSection($account, $definition['challenge_type'], $planning, $teams)
+        $suggestion = $includeSuggestion && $objective->formation && $objective->challengeType !== null
+            ? $this->suggestionSection($account, $objective->challengeType, $planning, $teams)
             : [];
         if ($suggestion !== []) {
             array_push($lines, '', ...$suggestion);
@@ -108,7 +106,7 @@ class AiExportService
             '',
             '## Formato da resposta',
             '',
-            $isInvestment ? $this->investmentAnswerFormat() : $this->answerFormat($teams),
+            $objective->formation ? $this->answerFormat($teams) : $this->investmentAnswerFormat(),
         );
 
         return ['markdown' => implode("\n", $lines)."\n", 'warning' => null];
@@ -121,7 +119,7 @@ class AiExportService
      *
      * @return string[]
      */
-    private function suggestionSection(GameAccount $account, string $challengeCode, string $planning, int $teamsCount): array
+    private function suggestionSection(GameAccount $account, string $challengeCode, Planning $planning, int $teamsCount): array
     {
         $challengeType = ChallengeType::where('code', $challengeCode)->first();
         if ($challengeType === null) {
@@ -153,9 +151,9 @@ class AiExportService
      *
      * @return string[]
      */
-    private function formationRequest(array $definition, string $planning, int $teams, array $params): array
+    private function formationRequest(AiExportObjective $objective, Planning $planning, int $teams, array $params): array
     {
-        $heroesInstruction = $planning === 'target'
+        $heroesInstruction = $planning === Planning::Target
             ? 'com qualquer herói do jogo, todos no Investimento máximo ('.self::MAX_INVESTMENT.'). A lista abaixo é só um recorte com os heróis avaliados A ou melhor para este conteúdo: prefira-os, mas pode sugerir outro herói se ele for claramente melhor.'
             : 'usando **apenas** os heróis da lista abaixo, no investimento informado.';
 
@@ -163,7 +161,7 @@ class AiExportService
             "Monte {$teams} ".($teams === 1 ? 'Equipe' : 'Equipes').' '.$heroesInstruction,
             self::TIER_AND_CAPABILITIES,
             'Posições: 1 e 2 são a linha de frente; 3, 4 e 5, a linha de trás.',
-            ...$this->objectiveRules($definition, $teams, $params),
+            ...$this->objectiveRules($objective, $teams, $params),
         ];
     }
 
@@ -172,10 +170,10 @@ class AiExportService
      *
      * @return string[]
      */
-    private function investmentRequest(string $planning): array
+    private function investmentRequest(Planning $planning): array
     {
         return [
-            $planning === 'target'
+            $planning === Planning::Target
                 ? 'A lista abaixo traz os heróis mais bem avaliados do jogo. Diga, em ordem de prioridade, quais vale buscar e investir primeiro, e por quê.'
                 : 'A lista abaixo é o meu Roster, com o investimento atual de cada herói. Diga, em ordem de prioridade, os próximos investimentos (ascensão, item de assinatura, mobília, gravação) que mais aumentam a força da minha Conta de jogo, e por quê.',
             'O tier de cada herói é a avaliação geral da comunidade (afk.guide), sem um conteúdo específico; "sem tier" quer dizer que ela não avaliou o herói. As capacidades (força 1 ou 2) resumem o que as habilidades fazem.',
@@ -217,16 +215,16 @@ class AiExportService
      *
      * @return string[]
      */
-    private function objectiveRules(array $definition, int $teams, array $params): array
+    private function objectiveRules(AiExportObjective $objective, int $teams, array $params): array
     {
         $rules = [];
-        if (($definition['unique_teams'] ?? false) && $teams > 1) {
+        if ($objective->uniqueTeams && $teams > 1) {
             $rules[] = 'Nenhum herói pode estar em duas Equipes.';
         }
         // O jogo nunca aceita as duas versões juntas, nem dentro de uma Equipe só.
         $rules[] = 'A versão base e a Desperta de um herói (ex.: Shemira e Shemira Desperta) são o mesmo personagem: use no máximo uma delas em toda a Formação.';
 
-        return [...$rules, ...(isset($definition['notes']) ? ($definition['notes'])($params) : [])];
+        return [...$rules, ...$objective->notes($params)];
     }
 
     /**

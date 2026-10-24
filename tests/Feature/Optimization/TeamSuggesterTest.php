@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Optimization;
 
+use App\Enums\Planning;
 use App\Models\ChallengeType;
 use App\Models\Faction;
 use App\Models\Formation;
@@ -79,7 +80,7 @@ class TeamSuggesterTest extends TestCase
 
     public function test_target_planning_suggests_without_any_formation(): void
     {
-        $result = app(TeamSuggester::class)->suggestAll($this->account, $this->campaign(), 'target', 1);
+        $result = app(TeamSuggester::class)->suggestAll($this->account, $this->campaign(), Planning::Target, 1);
 
         $suggested = collect($result['teams'][1])->sort()->values()->all();
         $this->assertSame($this->best, $suggested);
@@ -88,7 +89,7 @@ class TeamSuggesterTest extends TestCase
 
     public function test_real_planning_only_uses_the_roster(): void
     {
-        $result = app(TeamSuggester::class)->suggestAll($this->account, $this->campaign(), 'real', 1);
+        $result = app(TeamSuggester::class)->suggestAll($this->account, $this->campaign(), Planning::Real, 1);
 
         $suggested = collect($result['teams'][1])->sort()->values()->all();
         $this->assertSame($this->owned, $suggested);
@@ -107,7 +108,7 @@ class TeamSuggesterTest extends TestCase
         ]);
         HeroRating::create(['hero_id' => $awakened->id, 'mode' => 'pve', 'stage' => 'end', 'tier' => 'S+', 'source' => 'afk.guide']);
 
-        $result = app(TeamSuggester::class)->suggestAll($this->account, $this->campaign(), 'target', 2);
+        $result = app(TeamSuggester::class)->suggestAll($this->account, $this->campaign(), Planning::Target, 2);
 
         $all = array_merge($result['teams'][1], $result['teams'][2]);
         $this->assertCount(10, $all);
@@ -123,7 +124,7 @@ class TeamSuggesterTest extends TestCase
         $locked = [$this->owned[0]];
         $blocked = [$this->best[0]];
 
-        $result = app(TeamSuggester::class)->suggestTeam($this->account, $this->campaign(), 'target', $locked, $blocked);
+        $result = app(TeamSuggester::class)->suggestTeam($this->account, $this->campaign(), Planning::Target, $locked, $blocked);
 
         $this->assertContains($this->owned[0], $result['hero_ids']);
         $this->assertNotContains($this->best[0], $result['hero_ids']);

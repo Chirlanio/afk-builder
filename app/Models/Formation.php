@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Planning;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -23,6 +24,7 @@ class Formation extends Model
     ];
 
     protected $casts = [
+        'mode' => Planning::class,
         'teams_count' => 'integer',
         'total_score' => 'integer',
         'scoring_weights_override' => 'array',

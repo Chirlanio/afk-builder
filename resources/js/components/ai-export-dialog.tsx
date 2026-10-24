@@ -8,102 +8,24 @@ import axios from 'axios';
 import { AlertTriangle, Check, Copy, Download, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-// Campo de Objetivo: lista de opções, ou texto livre validado por `pattern`.
-type ObjectiveParam =
-    | { name: string; label: string; options: Array<{ value: string; label: string }>; default?: string }
-    | { name: string; label: string; pattern: RegExp; placeholder: string };
+// Campo de Objetivo, como o backend (AiExportField) descreve: lista de
+// opções, ou texto livre validado por `pattern` (regex sem delimitadores).
+type ObjectiveField =
+    | { name: string; label: string; options: Array<{ value: string; label: string }>; default: string | null }
+    | { name: string; label: string; pattern: string; placeholder: string };
 
 interface Objective {
     code: string;
     label: string;
     // false no Objetivo sem Formação (Em quem investir a seguir).
     formation: boolean;
-    params: ObjectiveParam[];
+    fields: ObjectiveField[];
 }
-
-const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => String(from + i));
-
-// Espelha o catálogo de Objetivos do backend (AiExportObjectives).
-const OBJECTIVES: Objective[] = [
-    {
-        code: 'campaign',
-        label: 'Campanha',
-        formation: true,
-        params: [
-            { name: 'stage', label: 'Fase', pattern: /^\d{1,3}-\d{1,2}$/, placeholder: 'ex.: 45-60' },
-            {
-                name: 'teams',
-                label: 'Equipes (fase de várias Equipes)',
-                options: range(1, 5).map((n) => ({ value: n, label: n })),
-                default: '1',
-            },
-        ],
-    },
-    {
-        code: 'dragon_trial',
-        label: 'Provas da Forja Dracônica',
-        formation: true,
-        params: [
-            {
-                name: 'stage',
-                label: 'Fase',
-                options: range(3, 12).map((n) => ({ value: n, label: `${n} (${Number(n) <= 6 ? 2 : 3} equipes)` })),
-            },
-        ],
-    },
-    {
-        code: 'kings_tower',
-        label: 'Torre do Rei / torres de facção',
-        formation: true,
-        params: [
-            {
-                name: 'tower',
-                label: 'Torre',
-                options: [
-                    { value: 'kings_tower', label: 'Torre do Rei' },
-                    { value: 'tower_of_light', label: 'Tower of Light (Lightbearers)' },
-                    { value: 'brutal_citadel', label: 'Brutal Citadel (Maulers)' },
-                    { value: 'world_tree', label: 'World Tree (Wilders)' },
-                    { value: 'forsaken_necropolis', label: 'Forsaken Necropolis (Graveborns)' },
-                    { value: 'celestial_sanctum', label: 'Celestial Sanctum (Celestials)' },
-                    { value: 'infernal_fortress', label: 'Infernal Fortress (Hypogeans)' },
-                ],
-            },
-        ],
-    },
-    {
-        code: 'dream_realm',
-        label: 'Chefe do Reino dos Sonhos',
-        formation: true,
-        params: [],
-    },
-    {
-        code: 'next_investment',
-        label: 'Em quem investir a seguir',
-        formation: false,
-        params: [],
-    },
-    {
-        code: 'arena_of_heroes',
-        label: 'Arena dos Heróis',
-        formation: true,
-        params: [
-            {
-                name: 'side',
-                label: 'Lado',
-                options: [
-                    { value: 'defense', label: 'Defesa' },
-                    { value: 'attack', label: 'Ataque' },
-                ],
-            },
-        ],
-    },
-];
 
 type Planning = 'real' | 'target';
 
 function defaultParams(objective: Objective): Record<string, string> {
-    return Object.fromEntries(objective.params.flatMap((p) => ('default' in p && p.default ? [[p.name, p.default]] : [])));
+    return Object.fromEntries(objective.fields.flatMap((f) => ('default' in f && f.default ? [[f.name, f.default]] : [])));
 }
 
 interface ExportResult {
@@ -125,8 +47,11 @@ interface Props {
 }
 
 export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
-    const [objectiveCode, setObjectiveCode] = useState<string | null>(OBJECTIVES[0].code);
-    const [params, setParams] = useState<Record<string, string>>(() => defaultParams(OBJECTIVES[0]));
+    // O catálogo de Objetivos vem do backend, na primeira abertura.
+    const [objectives, setObjectives] = useState<Objective[] | null>(null);
+    // undefined = ainda não escolhido; null = em branco de propósito.
+    const [objectiveCode, setObjectiveCode] = useState<string | null | undefined>(undefined);
+    const [params, setParams] = useState<Record<string, string>>({});
     const [planning, setPlanning] = useState<Planning>('real');
     // Desmarcado por padrão: a sugestão do app não deve puxar a resposta do modelo.
     const [includeSuggestion, setIncludeSuggestion] = useState(false);
@@ -135,22 +60,38 @@ export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
 
-    const objective = OBJECTIVES.find((o) => o.code === objectiveCode) ?? null;
+    const objective = objectives?.find((o) => o.code === objectiveCode) ?? null;
     const paramsComplete =
         objective !== null &&
-        objective.params.every((p) => {
-            const value = params[p.name];
-            return Boolean(value) && ('pattern' in p ? p.pattern.test(value) : true);
+        objective.fields.every((f) => {
+            const value = params[f.name];
+            return Boolean(value) && ('pattern' in f ? new RegExp(f.pattern).test(value) : true);
         });
 
-    // A cada abertura, o que a tela de origem já define vale por cima dos padrões.
     useEffect(() => {
-        if (!open || !prefill) return;
-        const prefilled = OBJECTIVES.find((o) => o.code === prefill.objective) ?? null;
-        setObjectiveCode(prefilled?.code ?? null);
-        setParams({ ...(prefilled ? defaultParams(prefilled) : {}), ...prefill.params });
-        setPlanning(prefill.planning);
-    }, [open, prefill]);
+        if (!open || objectives !== null) return;
+        axios
+            .get<Objective[]>(route('roster.ai-export.objectives'))
+            .then((res) => setObjectives(res.data))
+            .catch(() => setError('Não foi possível carregar os Objetivos. Tente de novo.'));
+    }, [open, objectives]);
+
+    // A cada abertura, o que a tela de origem já define vale por cima dos padrões;
+    // sem prefill, a primeira abertura começa no primeiro Objetivo do catálogo.
+    useEffect(() => {
+        if (!open || objectives === null) return;
+        if (prefill) {
+            const prefilled = objectives.find((o) => o.code === prefill.objective) ?? null;
+            setObjectiveCode(prefilled?.code ?? null);
+            setParams({ ...(prefilled ? defaultParams(prefilled) : {}), ...prefill.params });
+            setPlanning(prefill.planning);
+        } else if (objectiveCode === undefined && objectives.length > 0) {
+            setObjectiveCode(objectives[0].code);
+            setParams(defaultParams(objectives[0]));
+        }
+        // objectiveCode fica fora de propósito: só a abertura e o catálogo disparam o preenchimento.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, objectives, prefill]);
 
     useEffect(() => {
         if (!open || !paramsComplete) {
@@ -182,7 +123,7 @@ export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
 
     const changeObjective = (code: string) => {
         setObjectiveCode(code);
-        const chosen = OBJECTIVES.find((o) => o.code === code);
+        const chosen = objectives?.find((o) => o.code === code);
         setParams(chosen ? defaultParams(chosen) : {});
     };
 
@@ -248,7 +189,7 @@ export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
                                 <SelectValue placeholder="Escolha o Objetivo..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {OBJECTIVES.map((o) => (
+                                {(objectives ?? []).map((o) => (
                                     <SelectItem key={o.code} value={o.code}>
                                         {o.label}
                                     </SelectItem>
@@ -257,7 +198,7 @@ export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
                         </Select>
                     </div>
 
-                    {objective?.params.map((param) => (
+                    {objective?.fields.map((param) => (
                         <div key={param.name} className="space-y-1.5">
                             <Label htmlFor={`ai_export_${param.name}`}>{param.label}</Label>
                             {'pattern' in param ? (

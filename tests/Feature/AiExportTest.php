@@ -531,6 +531,28 @@ class AiExportTest extends TestCase
         $this->assertStringNotContainsString('Sugestão do AFK Builder', $markdown);
     }
 
+    public function test_objectives_catalog_describes_every_objective_and_its_fields(): void
+    {
+        $objectives = $this->actingAs(User::factory()->create())
+            ->getJson('/roster/ai-export/objectives')
+            ->assertOk()
+            ->json();
+
+        $this->assertSame(
+            ['campaign', 'dragon_trial', 'kings_tower', 'dream_realm', 'next_investment', 'arena_of_heroes'],
+            array_column($objectives, 'code'),
+        );
+        $byCode = array_column($objectives, null, 'code');
+        $this->assertFalse($byCode['next_investment']['formation']);
+        $this->assertTrue($byCode['campaign']['formation']);
+
+        [$stage, $teams] = $byCode['campaign']['fields'];
+        $this->assertSame(['name' => 'stage', 'label' => 'Fase', 'pattern' => '^\d{1,3}-\d{1,2}$', 'placeholder' => 'ex.: 45-60'], $stage);
+        $this->assertSame('1', $teams['default']);
+        $this->assertSame(['1', '2', '3', '4', '5'], array_column($teams['options'], 'value'));
+        $this->assertSame('8 (3 equipes)', $byCode['dragon_trial']['fields'][0]['options'][5]['label']);
+    }
+
     private function lineOf(string $heroName, string $markdown): string
     {
         foreach (explode("\n", $markdown) as $line) {

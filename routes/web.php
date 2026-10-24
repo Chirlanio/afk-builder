@@ -62,6 +62,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('roster/import', [RosterImportController::class, 'store'])->name('roster.import.store');
     Route::patch('roster/resources', [UserResourceController::class, 'update'])->name('roster.resources.update');
     Route::get('roster/ai-export', [AiExportController::class, 'show'])->name('roster.ai-export');
+    Route::get('roster/ai-export/objectives', [AiExportController::class, 'objectives'])->name('roster.ai-export.objectives');
 
     Route::get('equipment', [EquipmentController::class, 'index'])->name('equipment.index');
 

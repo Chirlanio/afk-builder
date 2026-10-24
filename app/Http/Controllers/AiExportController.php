@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Planning;
 use App\Services\ActiveGameAccount;
+use App\Services\AiExport\AiExportObjective;
 use App\Services\AiExport\AiExportObjectives;
 use App\Services\AiExport\AiExportService;
 use Illuminate\Http\JsonResponse;
@@ -20,22 +22,34 @@ class AiExportController extends Controller
         private readonly AiExportService $exporter,
     ) {}
 
+    /**
+     * O catálogo de Objetivos, na ordem do modal, com os campos de cada um.
+     */
+    public function objectives(): JsonResponse
+    {
+        return response()->json(array_values(array_map(
+            fn (AiExportObjective $objective) => $objective->toArray(),
+            AiExportObjectives::all(),
+        )));
+    }
+
     public function show(Request $request): JsonResponse
     {
         $data = $request->validate([
             'objective' => ['required', 'string', Rule::in(AiExportObjectives::codes())],
-            'planning' => ['required', 'string', Rule::in(['real', 'target'])],
+            'planning' => ['required', Rule::enum(Planning::class)],
             'include_suggestion' => ['nullable', 'boolean'],
         ]);
-        $params = $request->validate(AiExportObjectives::get($data['objective'])['rules']);
+        $objective = AiExportObjectives::get($data['objective']);
+        $params = $request->validate($objective->rules());
 
         return response()->json(
             $this->exporter->build(
                 $this->active->get(),
-                $data['objective'],
-                $data['planning'],
+                $objective,
+                Planning::from($data['planning']),
                 $params,
-                (bool) ($data['include_suggestion'] ?? false),
+                $request->boolean('include_suggestion'),
             ),
         );
     }

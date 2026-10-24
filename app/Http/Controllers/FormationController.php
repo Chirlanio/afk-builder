@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Planning;
 use App\Models\Beast;
 use App\Models\ChallengeType;
 use App\Models\Faction;
@@ -115,7 +116,7 @@ class FormationController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'challenge_type_id' => ['required', 'integer', Rule::exists('challenge_types', 'id')],
-            'mode' => ['required', 'string', Rule::in(['real', 'target'])],
+            'mode' => ['required', Rule::enum(Planning::class)],
             'teams_count' => ['nullable', 'integer', 'min:1', 'max:7'],
         ]);
 
@@ -355,7 +356,7 @@ class FormationController extends Controller
             }
         }
 
-        if ($formation->mode === 'real') {
+        if ($formation->mode === Planning::Real) {
             $userHeroIds = $account->userHeroes()->pluck('hero_id')->all();
             foreach ($data['teams'] as $team) {
                 foreach ($team['heroes'] as $h) {
@@ -784,7 +785,7 @@ class FormationController extends Controller
             ->where('is_active', true)
             ->where('pending_review', false);
 
-        if ($formation->mode === 'real') {
+        if ($formation->mode === Planning::Real) {
             $query->whereIn('id', array_keys($rosterByHeroId));
         }
 

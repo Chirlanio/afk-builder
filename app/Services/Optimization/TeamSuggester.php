@@ -2,6 +2,7 @@
 
 namespace App\Services\Optimization;
 
+use App\Enums\Planning;
 use App\Models\Beast;
 use App\Models\ChallengeType;
 use App\Models\GameAccount;
@@ -33,7 +34,7 @@ class TeamSuggester
     public function suggestTeam(
         GameAccount $account,
         ChallengeType $challengeType,
-        string $planning,
+        Planning $planning,
         array $lockedHeroIds = [],
         array $blockedHeroIds = [],
         ?Beast $beast = null,
@@ -63,7 +64,7 @@ class TeamSuggester
     public function suggestAll(
         GameAccount $account,
         ChallengeType $challengeType,
-        string $planning,
+        Planning $planning,
         int $teamsCount,
         array $lockedByTeam = [],
         ?array $weightOverrides = null,
@@ -90,7 +91,7 @@ class TeamSuggester
      * @param  array<string, float>|null  $weightOverrides
      * @return array{heroPoolById: array<int, Hero>, userHeroesById: array<int, UserHero>, synergyWeights: array<string, int>, profile: ScoringProfile, context: ScoringContext}
      */
-    public function inputs(GameAccount $account, ChallengeType $challengeType, string $planning, ?array $weightOverrides = null): array
+    public function inputs(GameAccount $account, ChallengeType $challengeType, Planning $planning, ?array $weightOverrides = null): array
     {
         $heroPoolById = $this->loadHeroPool($account, $planning);
         $userHeroesById = $this->loadUserHeroes($account, $planning);
@@ -112,14 +113,14 @@ class TeamSuggester
     /**
      * @return array<int, Hero>
      */
-    private function loadHeroPool(GameAccount $account, string $planning): array
+    private function loadHeroPool(GameAccount $account, Planning $planning): array
     {
         $query = Hero::query()
             ->with(['faction:id,code', 'heroClass:id,code', 'tier:id,code', 'stats'])
             ->where('is_active', true)
             ->where('pending_review', false);
 
-        if ($planning === 'real') {
+        if ($planning === Planning::Real) {
             $rosterIds = UserHero::where('game_account_id', $account->id)->pluck('hero_id')->all();
             $query->whereIn('id', $rosterIds);
         }
@@ -134,9 +135,9 @@ class TeamSuggester
      *
      * @return array<int, UserHero>
      */
-    private function loadUserHeroes(GameAccount $account, string $planning): array
+    private function loadUserHeroes(GameAccount $account, Planning $planning): array
     {
-        if ($planning === 'target') {
+        if ($planning === Planning::Target) {
             return [];
         }
 
