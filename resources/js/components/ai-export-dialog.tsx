@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +16,8 @@ type ObjectiveParam =
 interface Objective {
     code: string;
     label: string;
+    // false no Objetivo sem Formação (Em quem investir a seguir).
+    formation: boolean;
     params: ObjectiveParam[];
 }
 
@@ -25,6 +28,7 @@ const OBJECTIVES: Objective[] = [
     {
         code: 'campaign',
         label: 'Campanha',
+        formation: true,
         params: [
             { name: 'stage', label: 'Fase', pattern: /^\d{1,3}-\d{1,2}$/, placeholder: 'ex.: 45-60' },
             {
@@ -38,6 +42,7 @@ const OBJECTIVES: Objective[] = [
     {
         code: 'dragon_trial',
         label: 'Provas da Forja Dracônica',
+        formation: true,
         params: [
             {
                 name: 'stage',
@@ -49,6 +54,7 @@ const OBJECTIVES: Objective[] = [
     {
         code: 'kings_tower',
         label: 'Torre do Rei / torres de facção',
+        formation: true,
         params: [
             {
                 name: 'tower',
@@ -68,16 +74,19 @@ const OBJECTIVES: Objective[] = [
     {
         code: 'dream_realm',
         label: 'Chefe do Reino dos Sonhos',
+        formation: true,
         params: [],
     },
     {
         code: 'next_investment',
         label: 'Em quem investir a seguir',
+        formation: false,
         params: [],
     },
     {
         code: 'arena_of_heroes',
         label: 'Arena dos Heróis',
+        formation: true,
         params: [
             {
                 name: 'side',
@@ -111,6 +120,8 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
     const [objectiveCode, setObjectiveCode] = useState(OBJECTIVES[0].code);
     const [params, setParams] = useState<Record<string, string>>(() => defaultParams(OBJECTIVES[0]));
     const [planning, setPlanning] = useState<Planning>('real');
+    // Desmarcado por padrão: a sugestão do app não deve puxar a resposta do modelo.
+    const [includeSuggestion, setIncludeSuggestion] = useState(false);
     const [result, setResult] = useState<ExportResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -132,7 +143,9 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
         setLoading(true);
         setError(null);
         axios
-            .get<ExportResult>(route('roster.ai-export'), { params: { objective: objectiveCode, planning, ...params } })
+            .get<ExportResult>(route('roster.ai-export'), {
+                params: { objective: objectiveCode, planning, include_suggestion: objective.formation && includeSuggestion ? 1 : 0, ...params },
+            })
             .then((res) => {
                 if (!cancelled) setResult(res.data);
             })
@@ -146,7 +159,7 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
         return () => {
             cancelled = true;
         };
-    }, [open, objectiveCode, planning, params, paramsComplete]);
+    }, [open, objectiveCode, objective.formation, planning, includeSuggestion, params, paramsComplete]);
 
     const changeObjective = (code: string) => {
         setObjectiveCode(code);
@@ -251,6 +264,19 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
                         </div>
                     ))}
                 </div>
+
+                {objective.formation && (
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            id="ai_export_include_suggestion"
+                            checked={includeSuggestion}
+                            onCheckedChange={(checked) => setIncludeSuggestion(checked === true)}
+                        />
+                        <Label htmlFor="ai_export_include_suggestion" className="cursor-pointer text-sm font-normal">
+                            Incluir a sugestão do AFK Builder para revisão
+                        </Label>
+                    </div>
+                )}
 
                 {result?.warning && (
                     <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">

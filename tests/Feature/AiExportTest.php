@@ -442,6 +442,95 @@ class AiExportTest extends TestCase
         $this->assertStringContainsString('AFK-BUILDER-INVESTIMENTO v1', $markdown);
     }
 
+    /**
+     * @return string[] nomes dos 5 heróis criados, todos S+ em PvP
+     */
+    private function fiveTopPvpHeroes(): array
+    {
+        $names = [];
+        foreach (['tank', 'warrior', 'ranger', 'mage', 'support'] as $i => $class) {
+            $name = "TopPvp{$i}";
+            $this->rate($this->makeHero($name, 'lightbearer', $class), 'S+');
+            $names[] = $name;
+        }
+
+        return $names;
+    }
+
+    public function test_optimizer_suggestion_is_left_out_unless_asked(): void
+    {
+        $user = User::factory()->create();
+        $this->fiveTopPvpHeroes();
+
+        $markdown = $this->export($user, ['planning' => 'target'])->assertOk()->json('markdown');
+
+        $this->assertStringNotContainsString('Sugestão do AFK Builder', $markdown);
+    }
+
+    public function test_optimizer_suggestion_comes_for_review_without_internal_numbers(): void
+    {
+        $user = User::factory()->create();
+        $names = $this->fiveTopPvpHeroes();
+
+        $markdown = $this->export($user, ['planning' => 'target', 'include_suggestion' => 1])->assertOk()->json('markdown');
+
+        $section = substr($markdown, strpos($markdown, '## Sugestão do AFK Builder'));
+        $this->assertStringContainsString('revisar', $section);
+        $this->assertStringContainsString('Equipe 1:', $section);
+        foreach ($names as $name) {
+            $this->assertStringContainsString($name, $section);
+        }
+        $this->assertStringNotContainsStringIgnoringCase('pontuação', $markdown);
+        $this->assertStringNotContainsStringIgnoringCase('poder', $markdown);
+    }
+
+    public function test_optimizer_suggestion_follows_real_planning_and_every_team(): void
+    {
+        $user = User::factory()->create();
+        $owned = [];
+        foreach (['tank', 'warrior', 'ranger', 'mage', 'support'] as $i => $class) {
+            foreach (['a', 'b'] as $copy) {
+                $hero = $this->makeHero("Owned{$copy}{$i}", 'lightbearer', $class);
+                $this->rate($hero, 'A', 'pve');
+                $user->defaultGameAccount->userHeroes()->create(['hero_id' => $hero->id, 'level' => 240]);
+                $owned[] = $hero->name;
+            }
+        }
+        $this->rate($this->makeHero('NotOwned'), 'S+', 'pve');
+
+        $markdown = $this->exportObjective($user, [
+            'objective' => 'campaign', 'stage' => '45-60', 'teams' => 2, 'planning' => 'real', 'include_suggestion' => 1,
+        ])->assertOk()->json('markdown');
+
+        $section = substr($markdown, strpos($markdown, '## Sugestão do AFK Builder'), strpos($markdown, '## Formato da resposta') - strpos($markdown, '## Sugestão do AFK Builder'));
+        preg_match_all('/^Equipe \d: (.+)$/m', $section, $matches);
+        $this->assertCount(2, $matches[1]);
+        $suggested = array_merge(...array_map(fn (string $line) => explode(', ', $line), $matches[1]));
+        $this->assertCount(10, array_unique($suggested));
+        $this->assertSame([], array_diff($suggested, $owned), 'no real só entram heróis do Roster');
+    }
+
+    public function test_suggestion_section_is_left_out_when_the_optimizer_has_nothing_to_suggest(): void
+    {
+        $user = User::factory()->create();
+
+        $markdown = $this->export($user, ['planning' => 'target', 'include_suggestion' => 1])->assertOk()->json('markdown');
+
+        $this->assertStringNotContainsString('Sugestão do AFK Builder', $markdown);
+    }
+
+    public function test_optimizer_suggestion_is_ignored_for_next_investment(): void
+    {
+        $user = User::factory()->create();
+        $this->rate($this->makeHero('Talene'), 'S+', 'overall');
+
+        $markdown = $this->exportObjective($user, ['objective' => 'next_investment', 'include_suggestion' => 1])
+            ->assertOk()
+            ->json('markdown');
+
+        $this->assertStringNotContainsString('Sugestão do AFK Builder', $markdown);
+    }
+
     private function lineOf(string $heroName, string $markdown): string
     {
         foreach (explode("\n", $markdown) as $line) {

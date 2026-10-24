@@ -2,12 +2,14 @@
 
 namespace App\Services\AiExport;
 
+use App\Models\ChallengeType;
 use App\Models\GameAccount;
 use App\Models\Hero;
 use App\Models\HeroRating;
 use App\Models\UserHero;
 use App\Services\Optimization\ChallengeTypeMode;
 use App\Services\Optimization\RosterStageInferrer;
+use App\Services\Optimization\TeamSuggester;
 use App\Services\Optimization\TierRatingScorer;
 use Illuminate\Support\Str;
 
@@ -34,15 +36,18 @@ class AiExportService
     public function __construct(
         private readonly TierRatingScorer $scorer,
         private readonly RosterStageInferrer $stageInferrer,
+        private readonly TeamSuggester $suggester,
     ) {}
 
     /**
      * @return array{markdown: string, warning: ?string}
      */
-    public function build(GameAccount $account, string $objective, string $planning, array $params = []): array
+    public function build(GameAccount $account, string $objective, string $planning, array $params = [], bool $includeSuggestion = false): array
     {
         $definition = AiExportObjectives::get($objective);
         $context = $definition['context'] ?? ChallengeTypeMode::forCode($definition['challenge_type']);
+        $isInvestment = $definition['investment'] ?? false;
+        $teams = ($definition['teams'])($params);
 
         if ($planning === 'target') {
             $stage = HeroRating::STAGE_END;
@@ -79,9 +84,9 @@ class AiExportService
             '## Pedido',
             '',
             'Você é um especialista em AFK Arena. Quero '.($definition['goal'])($params).'.',
-            ...($definition['investment'] ?? false)
+            ...$isInvestment
                 ? $this->investmentRequest($planning)
-                : $this->formationRequest($definition, $planning, $params),
+                : $this->formationRequest($definition, $planning, $teams, $params),
             'Responda em português do Brasil, mas escreva os nomes dos heróis em inglês, exatamente como na lista.',
             '',
             '## Heróis',
@@ -91,15 +96,55 @@ class AiExportService
             $lines[] = $this->heroLine($entry['hero'], $entry['userHero'], $entry['tier']);
         }
 
+        $suggestion = $includeSuggestion && ! $isInvestment
+            ? $this->suggestionSection($account, $definition['challenge_type'], $planning, $teams)
+            : [];
+        if ($suggestion !== []) {
+            array_push($lines, '', ...$suggestion);
+        }
+
         array_push(
             $lines,
             '',
             '## Formato da resposta',
             '',
-            ($definition['investment'] ?? false) ? $this->investmentAnswerFormat() : $this->answerFormat(($definition['teams'])($params)),
+            $isInvestment ? $this->investmentAnswerFormat() : $this->answerFormat($teams),
         );
 
         return ['markdown' => implode("\n", $lines)."\n", 'warning' => null];
+    }
+
+    /**
+     * A sugestão do otimizador para o mesmo Objetivo e Planejamento, só com os
+     * nomes dos heróis: o modelo deve criticá-la, não copiá-la. Sem Tipo de
+     * desafio no banco ou sem heróis para sugerir, a seção fica de fora.
+     *
+     * @return string[]
+     */
+    private function suggestionSection(GameAccount $account, string $challengeCode, string $planning, int $teamsCount): array
+    {
+        $challengeType = ChallengeType::where('code', $challengeCode)->first();
+        if ($challengeType === null) {
+            return [];
+        }
+
+        $teams = array_filter($this->suggester->suggestAll($account, $challengeType, $planning, $teamsCount)['teams']);
+        if ($teams === []) {
+            return [];
+        }
+        $names = Hero::whereIn('id', array_merge(...array_values($teams)))->pluck('name', 'id');
+
+        $lines = [
+            '## Sugestão do AFK Builder (a revisar)',
+            '',
+            'O otimizador do AFK Builder sugeriu as Equipes abaixo. Não copie: avalie se fazem sentido, aponte os pontos fracos e diga se a sua resposta é melhor.',
+            '',
+        ];
+        foreach ($teams as $position => $heroIds) {
+            $lines[] = "Equipe {$position}: ".implode(', ', array_map(fn (int $id) => $names[$id], $heroIds));
+        }
+
+        return $lines;
     }
 
     /**
@@ -108,9 +153,8 @@ class AiExportService
      *
      * @return string[]
      */
-    private function formationRequest(array $definition, string $planning, array $params): array
+    private function formationRequest(array $definition, string $planning, int $teams, array $params): array
     {
-        $teams = ($definition['teams'])($params);
         $heroesInstruction = $planning === 'target'
             ? 'com qualquer herói do jogo, todos no Investimento máximo ('.self::MAX_INVESTMENT.'). A lista abaixo é só um recorte com os heróis avaliados A ou melhor para este conteúdo: prefira-os, mas pode sugerir outro herói se ele for claramente melhor.'
             : 'usando **apenas** os heróis da lista abaixo, no investimento informado.';

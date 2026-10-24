@@ -25,11 +25,18 @@ class AiExportController extends Controller
         $data = $request->validate([
             'objective' => ['required', 'string', Rule::in(AiExportObjectives::codes())],
             'planning' => ['required', 'string', Rule::in(['real', 'target'])],
+            'include_suggestion' => ['nullable', 'boolean'],
         ]);
         $params = $request->validate(AiExportObjectives::get($data['objective'])['rules']);
 
         return response()->json(
-            $this->exporter->build($this->active->get(), $data['objective'], $data['planning'], $params),
+            $this->exporter->build(
+                $this->active->get(),
+                $data['objective'],
+                $data['planning'],
+                $params,
+                (bool) ($data['include_suggestion'] ?? false),
+            ),
         );
     }
 }
