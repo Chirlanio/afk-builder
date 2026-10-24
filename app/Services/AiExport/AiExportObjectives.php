@@ -14,12 +14,27 @@ class AiExportObjectives
 
     public const DRAGON_TRIAL = 'dragon_trial';
 
+    public const KINGS_TOWER = 'kings_tower';
+
+    public const DREAM_REALM = 'dream_realm';
+
+    /** Torres da Torre do Rei; as de facção só aceitam as facções listadas. */
+    public const TOWERS = [
+        'kings_tower' => ['name' => "King's Tower", 'factions' => []],
+        'tower_of_light' => ['name' => 'Tower of Light', 'factions' => ['Lightbearers']],
+        'brutal_citadel' => ['name' => 'Brutal Citadel', 'factions' => ['Maulers']],
+        'world_tree' => ['name' => 'World Tree', 'factions' => ['Wilders']],
+        'forsaken_necropolis' => ['name' => 'Forsaken Necropolis', 'factions' => ['Graveborns']],
+        'celestial_sanctum' => ['name' => 'Celestial Sanctum', 'factions' => ['Celestials']],
+        'infernal_fortress' => ['name' => 'Infernal Fortress', 'factions' => ['Hypogeans']],
+    ];
+
     /**
      * `goal` descreve, a partir dos parâmetros, o que o modelo deve resolver;
      * `teams` diz quantas Equipes pedir; `unique_teams` liga a regra de
-     * Equipes exclusivas; `notes` são regras extras do Tipo de desafio.
+     * Equipes exclusivas; `notes` dá as regras extras do Tipo de desafio.
      *
-     * @return array<string, array{label: string, challenge_type: ?string, teams: callable(array): int, rules: array<string, array>, goal: callable(array): string, unique_teams?: bool, notes?: string[]}>
+     * @return array<string, array{label: string, challenge_type: ?string, teams: callable(array): int, rules: array<string, array>, goal: callable(array): string, unique_teams?: bool, notes?: callable(array): string[]}>
      */
     public static function all(): array
     {
@@ -43,9 +58,31 @@ class AiExportObjectives
                 'rules' => ['stage' => ['required', 'integer', 'min:3', 'max:12']],
                 'goal' => fn (array $params) => "passar da fase {$params['stage']} das Provas da Forja Dracônica (Dragonforge Trials)",
                 'unique_teams' => true,
-                'notes' => [
+                'notes' => fn () => [
                     'Só podem lutar heróis Draconis, Dimensionals e os heróis que estão no Cristal Ressonante; os demais não são permitidos.',
                     'Os Draconis lutam no nível 600 sem supressão; os outros são suprimidos pela Fúria do Dragão. Coleções, artefatos e pets não valem.',
+                ],
+            ],
+            self::KINGS_TOWER => [
+                'label' => 'Torre do Rei / torres de facção',
+                'challenge_type' => 'kings_tower',
+                'teams' => fn () => 1,
+                'rules' => ['tower' => ['required', 'in:'.implode(',', array_keys(self::TOWERS))]],
+                'goal' => fn (array $params) => $params['tower'] === self::KINGS_TOWER
+                    ? 'subir andares da Torre do Rei (King\'s Tower, PvE)'
+                    : 'subir andares da '.self::TOWERS[$params['tower']]['name'].' (torre de facção, PvE)',
+                'notes' => fn (array $params) => self::TOWERS[$params['tower']]['factions']
+                    ? ['Só heróis '.implode(' e ', self::TOWERS[$params['tower']]['factions']).' podem entrar nesta torre.']
+                    : [],
+            ],
+            self::DREAM_REALM => [
+                'label' => 'Chefe do Reino dos Sonhos',
+                'challenge_type' => 'dream_realm',
+                'teams' => fn () => 1,
+                'rules' => [],
+                'goal' => fn () => 'o máximo de dano no chefe do Reino dos Sonhos (Dream Realm, PvE)',
+                'notes' => fn () => [
+                    'É uma luta contra um único Chefe: o controle não tem efeito, então priorize dano, buffs e sustentação.',
                 ],
             ],
             self::ARENA_OF_HEROES => [

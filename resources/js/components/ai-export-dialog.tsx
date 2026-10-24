@@ -47,6 +47,30 @@ const OBJECTIVES: Objective[] = [
         ],
     },
     {
+        code: 'kings_tower',
+        label: 'Torre do Rei / torres de facção',
+        params: [
+            {
+                name: 'tower',
+                label: 'Torre',
+                options: [
+                    { value: 'kings_tower', label: 'Torre do Rei' },
+                    { value: 'tower_of_light', label: 'Tower of Light (Lightbearers)' },
+                    { value: 'brutal_citadel', label: 'Brutal Citadel (Maulers)' },
+                    { value: 'world_tree', label: 'World Tree (Wilders)' },
+                    { value: 'forsaken_necropolis', label: 'Forsaken Necropolis (Graveborns)' },
+                    { value: 'celestial_sanctum', label: 'Celestial Sanctum (Celestials)' },
+                    { value: 'infernal_fortress', label: 'Infernal Fortress (Hypogeans)' },
+                ],
+            },
+        ],
+    },
+    {
+        code: 'dream_realm',
+        label: 'Chefe do Reino dos Sonhos',
+        params: [],
+    },
+    {
         code: 'arena_of_heroes',
         label: 'Arena dos Heróis',
         params: [

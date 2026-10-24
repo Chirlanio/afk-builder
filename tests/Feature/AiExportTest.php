@@ -381,6 +381,37 @@ class AiExportTest extends TestCase
         $this->assertStringNotContainsString('Nenhum herói pode estar em duas Equipes', $markdown);
     }
 
+    public function test_kings_tower_requires_a_tower_and_faction_towers_restrict_factions(): void
+    {
+        $user = User::factory()->create();
+        $this->rate($this->makeHero('Talene'), 'S+', 'pve');
+
+        $this->exportObjective($user, ['objective' => 'kings_tower'])->assertJsonValidationErrors('tower');
+
+        $main = $this->exportObjective($user, ['objective' => 'kings_tower', 'tower' => 'kings_tower'])->assertOk()->json('markdown');
+        $light = $this->exportObjective($user, ['objective' => 'kings_tower', 'tower' => 'tower_of_light'])->assertOk()->json('markdown');
+
+        $this->assertStringContainsString('Torre do Rei', $main);
+        $this->assertStringNotContainsString('Só heróis', $main);
+        $this->assertStringContainsString('Tower of Light', $light);
+        $this->assertStringContainsString('Só heróis Lightbearers', $light);
+    }
+
+    public function test_dream_realm_boss_uses_its_context_and_says_control_does_not_work(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero('Talene');
+        $this->rate($hero, 'S+', 'twisted_realm');
+        $this->rate($hero, 'D', 'pve');
+
+        $markdown = $this->exportObjective($user, ['objective' => 'dream_realm'])->assertOk()->json('markdown');
+
+        $this->assertStringContainsString('tier S+', $this->lineOf('Talene', $markdown));
+        $this->assertStringContainsString('Reino dos Sonhos', $markdown);
+        $this->assertStringContainsString('controle não tem efeito', $markdown);
+        $this->assertStringContainsString('Monte 1 Equipe ', $markdown);
+    }
+
     private function lineOf(string $heroName, string $markdown): string
     {
         foreach (explode("\n", $markdown) as $line) {
