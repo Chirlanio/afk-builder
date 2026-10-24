@@ -51,7 +51,7 @@ Um conteúdo do jogo para o qual se monta uma Formação (Campanha, Torre do Rei
 _Evitar_: modo de jogo, evento, modo
 
 **Contexto**:
-A família de desafios em que um Herói é avaliado (PvE, PvP, Reino dos Sonhos, Expedição Abissal, Labirinto, Forja Dracônica); sempre derivado do Tipo de desafio. Ratings e tier rating são lidos por Contexto.
+A família de desafios em que um Herói é avaliado (PvE, PvP, Reino dos Sonhos, Expedição Abissal, Labirinto, Forja Dracônica), derivada do Tipo de desafio; um Objetivo sem Tipo de desafio usa o Contexto **Geral**. Ratings e tier rating são lidos por Contexto.
 _Evitar_: modo, fonte de ratings
 
 **Chefe**:

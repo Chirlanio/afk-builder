@@ -71,6 +71,11 @@ const OBJECTIVES: Objective[] = [
         params: [],
     },
     {
+        code: 'next_investment',
+        label: 'Em quem investir a seguir',
+        params: [],
+    },
+    {
         code: 'arena_of_heroes',
         label: 'Arena dos Heróis',
         params: [

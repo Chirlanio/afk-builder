@@ -24,6 +24,8 @@ class AiExportService
         HeroRating::STAGE_END => 'fim de jogo',
     ];
 
+    private const TIER_AND_CAPABILITIES = 'O tier de cada herói é a avaliação da comunidade (afk.guide) para este conteúdo; "sem tier" quer dizer que ela não avaliou o herói aqui. As capacidades (força 1 ou 2) resumem o que as habilidades fazem.';
+
     /** Corte do Planejamento alvo: os 4 primeiros de HeroRating::TIERS (S+, S, A+, A). */
     private const TARGET_TIER_COUNT = 4;
 
@@ -40,7 +42,7 @@ class AiExportService
     public function build(GameAccount $account, string $objective, string $planning, array $params = []): array
     {
         $definition = AiExportObjectives::get($objective);
-        $context = ChallengeTypeMode::forCode($definition['challenge_type']);
+        $context = $definition['context'] ?? ChallengeTypeMode::forCode($definition['challenge_type']);
 
         if ($planning === 'target') {
             $stage = HeroRating::STAGE_END;
@@ -69,10 +71,6 @@ class AiExportService
             ])->all();
         }
 
-        $teams = ($definition['teams'])($params);
-        $heroesInstruction = $planning === 'target'
-            ? 'com qualquer herói do jogo, todos no Investimento máximo ('.self::MAX_INVESTMENT.'). A lista abaixo é só um recorte com os heróis avaliados A ou melhor para este conteúdo: prefira-os, mas pode sugerir outro herói se ele for claramente melhor.'
-            : 'usando **apenas** os heróis da lista abaixo, no investimento informado.';
         $lines = [
             "# AFK Arena — {$definition['label']}",
             '',
@@ -80,11 +78,10 @@ class AiExportService
             '',
             '## Pedido',
             '',
-            'Você é um especialista em AFK Arena. Quero montar '.($definition['goal'])($params).'.',
-            "Monte {$teams} ".($teams === 1 ? 'Equipe' : 'Equipes').' '.$heroesInstruction,
-            'O tier de cada herói é a avaliação da comunidade (afk.guide) para este conteúdo; "sem tier" quer dizer que ela não avaliou o herói aqui. As capacidades (força 1 ou 2) resumem o que as habilidades fazem.',
-            'Posições: 1 e 2 são a linha de frente; 3, 4 e 5, a linha de trás.',
-            ...$this->objectiveRules($definition, $teams, $params),
+            'Você é um especialista em AFK Arena. Quero '.($definition['goal'])($params).'.',
+            ...($definition['investment'] ?? false)
+                ? $this->investmentRequest($planning)
+                : $this->formationRequest($definition, $planning, $params),
             'Responda em português do Brasil, mas escreva os nomes dos heróis em inglês, exatamente como na lista.',
             '',
             '## Heróis',
@@ -94,9 +91,51 @@ class AiExportService
             $lines[] = $this->heroLine($entry['hero'], $entry['userHero'], $entry['tier']);
         }
 
-        array_push($lines, '', '## Formato da resposta', '', $this->answerFormat($teams));
+        array_push(
+            $lines,
+            '',
+            '## Formato da resposta',
+            '',
+            ($definition['investment'] ?? false) ? $this->investmentAnswerFormat() : $this->answerFormat(($definition['teams'])($params)),
+        );
 
         return ['markdown' => implode("\n", $lines)."\n", 'warning' => null];
+    }
+
+    /**
+     * Pedido dos Objetivos que geram Formação: quantas Equipes, de onde vêm os
+     * heróis e as regras do Tipo de desafio.
+     *
+     * @return string[]
+     */
+    private function formationRequest(array $definition, string $planning, array $params): array
+    {
+        $teams = ($definition['teams'])($params);
+        $heroesInstruction = $planning === 'target'
+            ? 'com qualquer herói do jogo, todos no Investimento máximo ('.self::MAX_INVESTMENT.'). A lista abaixo é só um recorte com os heróis avaliados A ou melhor para este conteúdo: prefira-os, mas pode sugerir outro herói se ele for claramente melhor.'
+            : 'usando **apenas** os heróis da lista abaixo, no investimento informado.';
+
+        return [
+            "Monte {$teams} ".($teams === 1 ? 'Equipe' : 'Equipes').' '.$heroesInstruction,
+            self::TIER_AND_CAPABILITIES,
+            'Posições: 1 e 2 são a linha de frente; 3, 4 e 5, a linha de trás.',
+            ...$this->objectiveRules($definition, $teams, $params),
+        ];
+    }
+
+    /**
+     * Pedido do Objetivo sem Formação: uma lista priorizada de investimentos.
+     *
+     * @return string[]
+     */
+    private function investmentRequest(string $planning): array
+    {
+        return [
+            $planning === 'target'
+                ? 'A lista abaixo traz os heróis mais bem avaliados do jogo. Diga, em ordem de prioridade, quais vale buscar e investir primeiro, e por quê.'
+                : 'A lista abaixo é o meu Roster, com o investimento atual de cada herói. Diga, em ordem de prioridade, os próximos investimentos (ascensão, item de assinatura, mobília, gravação) que mais aumentam a força da minha Conta de jogo, e por quê.',
+            'O tier de cada herói é a avaliação geral da comunidade (afk.guide), sem um conteúdo específico; "sem tier" quer dizer que ela não avaliou o herói. As capacidades (força 1 ou 2) resumem o que as habilidades fazem.',
+        ];
     }
 
     /**
@@ -157,6 +196,27 @@ class AiExportService
             $block[] = "Equipe {$i}: 1=<herói> | 2=<herói> | 3=<herói> | 4=<herói> | 5=<herói>";
         }
 
+        return $this->fencedAnswer($block);
+    }
+
+    /**
+     * Bloco fixo e versionado do Objetivo sem Formação: uma lista priorizada.
+     */
+    private function investmentAnswerFormat(): string
+    {
+        $block = ['AFK-BUILDER-INVESTIMENTO v1'];
+        for ($i = 1; $i <= 5; $i++) {
+            $block[] = "{$i}. <herói> — <investimento>";
+        }
+
+        return $this->fencedAnswer($block);
+    }
+
+    /**
+     * @param  string[]  $block
+     */
+    private function fencedAnswer(array $block): string
+    {
         return "Explique o raciocínio e termine com este bloco, exatamente neste formato:\n\n```\n"
             .implode("\n", $block)
             ."\n```";

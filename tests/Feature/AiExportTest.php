@@ -412,6 +412,36 @@ class AiExportTest extends TestCase
         $this->assertStringContainsString('Monte 1 Equipe ', $markdown);
     }
 
+    public function test_next_investment_uses_the_overall_rating_and_asks_for_a_prioritized_list(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero('Talene');
+        $this->rate($hero, 'S', 'overall');
+        $this->rate($hero, 'D', 'pve');
+        $user->defaultGameAccount->userHeroes()->create(['hero_id' => $hero->id, 'level' => 200]);
+
+        $markdown = $this->exportObjective($user, ['objective' => 'next_investment', 'planning' => 'real'])->assertOk()->json('markdown');
+
+        $this->assertStringContainsString('tier S', $this->lineOf('Talene', $markdown));
+        $this->assertStringContainsString('AFK-BUILDER-INVESTIMENTO v1', $markdown);
+        $this->assertStringContainsString('1. <herói>', $markdown);
+        $this->assertStringNotContainsString('Equipe 1:', $markdown);
+        $this->assertStringNotContainsString('Monte ', $markdown);
+    }
+
+    public function test_next_investment_also_works_with_target_planning(): void
+    {
+        $user = User::factory()->create();
+        $this->rate($this->makeHero('Talene'), 'S+', 'overall');
+        $this->rate($this->makeHero('Weak'), 'C', 'overall');
+
+        $markdown = $this->exportObjective($user, ['objective' => 'next_investment'])->assertOk()->json('markdown');
+
+        $this->assertStringContainsString('**Talene**', $markdown);
+        $this->assertStringNotContainsString('**Weak**', $markdown);
+        $this->assertStringContainsString('AFK-BUILDER-INVESTIMENTO v1', $markdown);
+    }
+
     private function lineOf(string $heroName, string $markdown): string
     {
         foreach (explode("\n", $markdown) as $line) {
