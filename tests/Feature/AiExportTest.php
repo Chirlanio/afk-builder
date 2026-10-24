@@ -237,6 +237,77 @@ class AiExportTest extends TestCase
         $this->getJson('/roster/ai-export?objective=arena_of_heroes&planning=real&side=defense')->assertUnauthorized();
     }
 
+    private function rate(Hero $hero, string $tier, string $mode = 'pvp', string $stage = 'end'): void
+    {
+        HeroRating::create(['hero_id' => $hero->id, 'mode' => $mode, 'stage' => $stage, 'tier' => $tier, 'source' => 'afk.guide']);
+    }
+
+    public function test_target_planning_lists_only_catalog_heroes_rated_a_or_better_in_the_context(): void
+    {
+        $user = User::factory()->create();
+        foreach (['S+', 'S', 'A+', 'A'] as $i => $tier) {
+            $this->rate($this->makeHero("Strong{$i}"), $tier);
+        }
+        $this->rate($this->makeHero('Weak'), 'B+');
+        $this->rate($this->makeHero('PveOnly'), 'S+', 'pve');
+        $owned = $this->makeHero('Owned');
+        $this->rate($owned, 'C');
+        $user->defaultGameAccount->userHeroes()->create([
+            'hero_id' => $owned->id, 'level' => 240, 'signature_item' => 30, 'furniture' => 9, 'engraving' => 60,
+        ]);
+        $ownedStar = $this->makeHero('OwnedStar');
+        $this->rate($ownedStar, 'S');
+        $user->defaultGameAccount->userHeroes()->create([
+            'hero_id' => $ownedStar->id, 'level' => 180, 'signature_item' => 10, 'furniture' => 3, 'engraving' => 30, 'hp' => 900_000,
+        ]);
+
+        $markdown = $this->export($user, ['planning' => 'target'])->assertOk()->json('markdown');
+
+        foreach (range(0, 3) as $i) {
+            $this->assertStringContainsString("**Strong{$i}**", $markdown);
+        }
+        $this->assertStringNotContainsString('**Weak**', $markdown);
+        $this->assertStringNotContainsString('**PveOnly**', $markdown);
+        $this->assertStringNotContainsString('**Owned**', $markdown);
+        $this->assertStringNotContainsString('SI +30', $markdown);
+        $ownedStarLine = $this->lineOf('OwnedStar', $markdown);
+        foreach (['nível 180', 'SI +10', 'F3', 'E30', 'Atributos de tela'] as $investment) {
+            $this->assertStringNotContainsString($investment, $ownedStarLine);
+        }
+        $this->assertStringContainsString('Investimento máximo', $markdown);
+        $this->assertStringContainsString('qualquer herói do jogo', $markdown);
+    }
+
+    public function test_target_planning_reads_the_end_game_rating_whatever_the_roster_stage(): void
+    {
+        $user = User::factory()->create();
+        $earlyStar = $this->makeHero('EarlyStar');
+        $this->rate($earlyStar, 'S+', 'pvp', 'early');
+        $this->rate($earlyStar, 'B', 'pvp', 'end');
+        $lateStar = $this->makeHero('LateStar');
+        $this->rate($lateStar, 'C', 'pvp', 'early');
+        $this->rate($lateStar, 'S', 'pvp', 'end');
+        // Roster de início de jogo.
+        $user->defaultGameAccount->userHeroes()->create(['hero_id' => $this->makeHero('Rookie')->id, 'level' => 40, 'ascension_value' => 1]);
+
+        $markdown = $this->export($user, ['planning' => 'target'])->assertOk()->json('markdown');
+
+        $this->assertStringNotContainsString('**EarlyStar**', $markdown);
+        $this->assertStringContainsString('tier S', $this->lineOf('LateStar', $markdown));
+        $this->assertStringContainsString('fim de jogo', $markdown);
+    }
+
+    public function test_empty_roster_does_not_block_target_planning(): void
+    {
+        $user = User::factory()->create();
+        $this->rate($this->makeHero('Talene'), 'S+');
+
+        $response = $this->export($user, ['planning' => 'target'])->assertOk();
+
+        $this->assertNull($response->json('warning'));
+        $this->assertStringContainsString('**Talene**', $response->json('markdown'));
+    }
+
     private function lineOf(string $heroName, string $markdown): string
     {
         foreach (explode("\n", $markdown) as $line) {

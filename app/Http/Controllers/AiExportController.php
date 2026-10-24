@@ -24,7 +24,7 @@ class AiExportController extends Controller
     {
         $data = $request->validate([
             'objective' => ['required', 'string', Rule::in(AiExportObjectives::codes())],
-            'planning' => ['required', 'string', Rule::in(['real'])],
+            'planning' => ['required', 'string', Rule::in(['real', 'target'])],
         ]);
         $params = $request->validate(AiExportObjectives::get($data['objective'])['rules']);
 

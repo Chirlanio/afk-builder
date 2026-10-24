@@ -36,6 +36,8 @@ const OBJECTIVES: Objective[] = [
     },
 ];
 
+type Planning = 'real' | 'target';
+
 interface ExportResult {
     markdown: string;
     warning: string | null;
@@ -49,6 +51,7 @@ interface Props {
 export function AiExportDialog({ open, onOpenChange }: Props) {
     const [objectiveCode, setObjectiveCode] = useState(OBJECTIVES[0].code);
     const [params, setParams] = useState<Record<string, string>>({});
+    const [planning, setPlanning] = useState<Planning>('real');
     const [result, setResult] = useState<ExportResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -67,7 +70,7 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
         setLoading(true);
         setError(null);
         axios
-            .get<ExportResult>(route('roster.ai-export'), { params: { objective: objectiveCode, planning: 'real', ...params } })
+            .get<ExportResult>(route('roster.ai-export'), { params: { objective: objectiveCode, planning, ...params } })
             .then((res) => {
                 if (!cancelled) setResult(res.data);
             })
@@ -81,7 +84,7 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
         return () => {
             cancelled = true;
         };
-    }, [open, objectiveCode, params, paramsComplete]);
+    }, [open, objectiveCode, planning, params, paramsComplete]);
 
     const changeObjective = (code: string) => {
         setObjectiveCode(code);
@@ -125,11 +128,24 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
                         Exportar para IA
                     </DialogTitle>
                     <DialogDescription>
-                        Gera um prompt com os heróis do seu Roster para colar no modelo de IA que você usa (ChatGPT, Claude, Gemini...).
+                        Gera um prompt com os seus heróis (Planejamento real) ou com os melhores heróis do jogo no investimento máximo (Planejamento
+                        alvo), para colar no modelo de IA que você usa (ChatGPT, Claude, Gemini...).
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="ai_export_planning">Planejamento</Label>
+                        <Select value={planning} onValueChange={(value) => setPlanning(value as Planning)}>
+                            <SelectTrigger id="ai_export_planning">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="real">Real (meu Roster)</SelectItem>
+                                <SelectItem value="target">Alvo (investimento máximo)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div className="space-y-1.5">
                         <Label htmlFor="ai_export_objective">Objetivo</Label>
                         <Select value={objectiveCode} onValueChange={changeObjective}>
