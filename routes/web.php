@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\HeroCounterAdminController;
 use App\Http\Controllers\Admin\HeroStatsAdminController;
 use App\Http\Controllers\Admin\SyncCommandController;
 use App\Http\Controllers\AiExportController;
+use App\Http\Controllers\CountersController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\FormationCompareController;
@@ -55,6 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('search', [SearchController::class, 'index'])->name('search');
 
     Route::get('heroes', [HeroController::class, 'index'])->name('heroes.index');
+    Route::get('counters', [CountersController::class, 'index'])->name('counters.index');
     Route::get('heroes/usage', [HeroUsageController::class, 'index'])->name('heroes.usage');
     Route::get('roster/analytics', [RosterAnalyticsController::class, 'index'])->name('roster.analytics');
     Route::get('roster/compare', [HeroComparisonController::class, 'index'])->name('roster.compare');

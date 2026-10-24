@@ -76,6 +76,11 @@ const baseNavItems: NavItem[] = [
         icon: Swords,
     },
     {
+        title: 'Counters',
+        url: '/counters',
+        icon: Crosshair,
+    },
+    {
         title: 'Comps prontos',
         url: '/formations/recommended',
         icon: Sparkles,

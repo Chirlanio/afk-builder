@@ -303,3 +303,6 @@ export const HERO_FEATURE_BADGE: Record<HeroFeatureTag, string> = {
     early_tank: 'border-sky-500/40 bg-sky-500/10 text-sky-200',
     early_utility: 'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-200',
 };
+
+/** Força de um Counter: 1 = vantagem, 2 = counter forte. */
+export const COUNTER_STRENGTH_LABEL: Record<number, string> = { 1: 'Vantagem', 2: 'Counter forte' };

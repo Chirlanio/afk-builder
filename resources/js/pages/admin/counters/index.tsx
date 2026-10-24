@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
+import { COUNTER_STRENGTH_LABEL } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
@@ -46,8 +47,7 @@ const CONTEXT_LABEL: Record<string, string> = {
     dragonforge: 'Forja Dracônica',
 };
 
-const STRENGTH_LABEL: Record<number, string> = { 1: 'Vantagem', 2: 'Counter forte' };
-const STRENGTHS = [1, 2];
+const STRENGTHS = Object.keys(COUNTER_STRENGTH_LABEL).map(Number);
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Counters', href: '/admin/counters' }];
 
@@ -209,7 +209,7 @@ function NewCounterForm({
                         <SelectContent>
                             {STRENGTHS.map((s) => (
                                 <SelectItem key={s} value={String(s)}>
-                                    {s} · {STRENGTH_LABEL[s]}
+                                    {s} · {COUNTER_STRENGTH_LABEL[s]}
                                 </SelectItem>
                             ))}
                         </SelectContent>
@@ -288,7 +288,7 @@ function CounterList({
                                 <SelectContent>
                                     {STRENGTHS.map((s) => (
                                         <SelectItem key={s} value={String(s)}>
-                                            {s} · {STRENGTH_LABEL[s]}
+                                            {s} · {COUNTER_STRENGTH_LABEL[s]}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
