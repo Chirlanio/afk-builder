@@ -111,6 +111,27 @@ class AiExportObjectives
         ];
     }
 
+    /**
+     * O que uma Formação já diz ao Export para IA: o Objetivo do seu Tipo de
+     * desafio (null quando não há), o Planejamento e, na Campanha, quantas
+     * Equipes. Fase, torre e lado não ficam na Formação: o jogador escolhe.
+     *
+     * @return array{objective: ?string, planning: string, params: array<string, string>}
+     */
+    public static function prefillFor(string $challengeCode, string $planning, int $teamsCount): array
+    {
+        $objective = collect(self::all())
+            ->filter(fn (array $definition) => $definition['challenge_type'] === $challengeCode)
+            ->keys()
+            ->first();
+
+        return [
+            'objective' => $objective,
+            'planning' => $planning,
+            'params' => $objective === self::CAMPAIGN ? ['teams' => (string) $teamsCount] : [],
+        ];
+    }
+
     public static function codes(): array
     {
         return array_keys(self::all());

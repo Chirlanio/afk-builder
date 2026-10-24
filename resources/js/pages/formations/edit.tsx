@@ -1,3 +1,4 @@
+import { AiExportDialog, type AiExportPrefill } from '@/components/ai-export-dialog';
 import { EditorPool } from '@/components/formation-editor/editor-pool';
 import { HeroChip } from '@/components/formation-editor/hero-chip';
 import { TeamRow, type TeamSlotsState } from '@/components/formation-editor/team-row';
@@ -39,6 +40,7 @@ import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensor
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import {
+    Bot,
     Copy,
     Download,
     FileText,
@@ -75,6 +77,8 @@ interface PageProps {
     availableTags?: FormationTagPayload[];
     /** Fase 52: hero_id → engraving level do roster do user (badges E30/E60/E80 nos slots). */
     engravingByHeroId?: Record<number, number>;
+    /** Objetivo, Planejamento e parâmetros que a Formação já define para o Export para IA. */
+    aiExport: AiExportPrefill;
 }
 
 const BEAST_DEFAULT_LEVEL = 36;
@@ -114,6 +118,7 @@ export default function FormationsEdit({
     weightPresets = [],
     availableTags = [],
     engravingByHeroId = {},
+    aiExport,
 }: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Formações', href: '/formations' },
@@ -138,6 +143,7 @@ export default function FormationsEdit({
     const [isSuggestingAll, setIsSuggestingAll] = useState(false);
     const [shareToken, setShareToken] = useState<string | null>(formation.share_token);
     const [shareDialogOpen, setShareDialogOpen] = useState(false);
+    const [aiExportOpen, setAiExportOpen] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
     const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
@@ -665,6 +671,10 @@ export default function FormationsEdit({
                                 <Share2 className="size-4" />
                                 {shareToken ? 'Compartilhada' : 'Compartilhar'}
                             </Button>
+                            <Button variant="outline" onClick={() => setAiExportOpen(true)}>
+                                <Bot className="size-4" />
+                                Exportar para IA
+                            </Button>
                             <Button variant="outline" onClick={downloadPng} disabled={isSaving || isExporting}>
                                 {isExporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
                                 {isExporting ? 'Gerando...' : 'PNG'}
@@ -704,6 +714,10 @@ export default function FormationsEdit({
                                     <DropdownMenuItem onClick={() => setShareDialogOpen(true)} disabled={isSaving}>
                                         <Share2 className="size-4" />
                                         {shareToken ? 'Compartilhada' : 'Compartilhar'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setAiExportOpen(true)}>
+                                        <Bot className="size-4" />
+                                        Exportar para IA
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={downloadPng} disabled={isSaving || isExporting}>
                                         {isExporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
@@ -934,6 +948,8 @@ export default function FormationsEdit({
                         setIsDirty(true);
                     }}
                 />
+
+                <AiExportDialog open={aiExportOpen} onOpenChange={setAiExportOpen} prefill={aiExport} />
 
                 {/* Fase 50: dialog pra mudar quantidade de equipes */}
                 <TeamsCountDialog

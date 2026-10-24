@@ -13,6 +13,7 @@ use App\Models\HeroClass;
 use App\Models\Tier;
 use App\Models\UserHero;
 use App\Services\ActiveGameAccount;
+use App\Services\AiExport\AiExportObjectives;
 use App\Services\Formations\FormationVersioning;
 use App\Services\Optimization\ChallengeTypeMode;
 use App\Services\Optimization\RecommendedFormationMatcher;
@@ -205,6 +206,7 @@ class FormationController extends Controller
             'scoringProfileOverrides' => $scoringProfileOverrides,
             'weightPresets' => $weightPresets,
             'availableTags' => $availableTags,
+            'aiExport' => AiExportObjectives::prefillFor($formation->challengeType->code, $formation->mode, $formation->teams_count),
             'factions' => Faction::orderBy('display_order')
                 ->get(['id', 'code', 'name', 'name_pt', 'color_hex', 'display_order']),
             'heroClasses' => HeroClass::orderBy('display_order')

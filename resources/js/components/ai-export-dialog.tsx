@@ -100,24 +100,32 @@ const OBJECTIVES: Objective[] = [
     },
 ];
 
+type Planning = 'real' | 'target';
+
 function defaultParams(objective: Objective): Record<string, string> {
     return Object.fromEntries(objective.params.flatMap((p) => ('default' in p && p.default ? [[p.name, p.default]] : [])));
 }
-
-type Planning = 'real' | 'target';
 
 interface ExportResult {
     markdown: string;
     warning: string | null;
 }
 
+/** O que a tela que abre o modal já sabe (ex.: a Formação). Objetivo null = em branco. */
+export interface AiExportPrefill {
+    objective: string | null;
+    planning: Planning;
+    params: Record<string, string>;
+}
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    prefill?: AiExportPrefill;
 }
 
-export function AiExportDialog({ open, onOpenChange }: Props) {
-    const [objectiveCode, setObjectiveCode] = useState(OBJECTIVES[0].code);
+export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
+    const [objectiveCode, setObjectiveCode] = useState<string | null>(OBJECTIVES[0].code);
     const [params, setParams] = useState<Record<string, string>>(() => defaultParams(OBJECTIVES[0]));
     const [planning, setPlanning] = useState<Planning>('real');
     // Desmarcado por padrão: a sugestão do app não deve puxar a resposta do modelo.
@@ -127,11 +135,22 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
 
-    const objective = OBJECTIVES.find((o) => o.code === objectiveCode) ?? OBJECTIVES[0];
-    const paramsComplete = objective.params.every((p) => {
-        const value = params[p.name];
-        return Boolean(value) && ('pattern' in p ? p.pattern.test(value) : true);
-    });
+    const objective = OBJECTIVES.find((o) => o.code === objectiveCode) ?? null;
+    const paramsComplete =
+        objective !== null &&
+        objective.params.every((p) => {
+            const value = params[p.name];
+            return Boolean(value) && ('pattern' in p ? p.pattern.test(value) : true);
+        });
+
+    // A cada abertura, o que a tela de origem já define vale por cima dos padrões.
+    useEffect(() => {
+        if (!open || !prefill) return;
+        const prefilled = OBJECTIVES.find((o) => o.code === prefill.objective) ?? null;
+        setObjectiveCode(prefilled?.code ?? null);
+        setParams({ ...(prefilled ? defaultParams(prefilled) : {}), ...prefill.params });
+        setPlanning(prefill.planning);
+    }, [open, prefill]);
 
     useEffect(() => {
         if (!open || !paramsComplete) {
@@ -144,7 +163,7 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
         setError(null);
         axios
             .get<ExportResult>(route('roster.ai-export'), {
-                params: { objective: objectiveCode, planning, include_suggestion: objective.formation && includeSuggestion ? 1 : 0, ...params },
+                params: { objective: objectiveCode, planning, include_suggestion: objective?.formation && includeSuggestion ? 1 : 0, ...params },
             })
             .then((res) => {
                 if (!cancelled) setResult(res.data);
@@ -159,11 +178,12 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
         return () => {
             cancelled = true;
         };
-    }, [open, objectiveCode, objective.formation, planning, includeSuggestion, params, paramsComplete]);
+    }, [open, objectiveCode, objective?.formation, planning, includeSuggestion, params, paramsComplete]);
 
     const changeObjective = (code: string) => {
         setObjectiveCode(code);
-        setParams(defaultParams(OBJECTIVES.find((o) => o.code === code) ?? OBJECTIVES[0]));
+        const chosen = OBJECTIVES.find((o) => o.code === code);
+        setParams(chosen ? defaultParams(chosen) : {});
     };
 
     // Sem heróis o backend devolve texto vazio (só o aviso): nada a exportar.
@@ -223,9 +243,9 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
                     </div>
                     <div className="space-y-1.5">
                         <Label htmlFor="ai_export_objective">Objetivo</Label>
-                        <Select value={objectiveCode} onValueChange={changeObjective}>
+                        <Select value={objectiveCode ?? ''} onValueChange={changeObjective}>
                             <SelectTrigger id="ai_export_objective">
-                                <SelectValue />
+                                <SelectValue placeholder="Escolha o Objetivo..." />
                             </SelectTrigger>
                             <SelectContent>
                                 {OBJECTIVES.map((o) => (
@@ -237,7 +257,7 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
                         </Select>
                     </div>
 
-                    {objective.params.map((param) => (
+                    {objective?.params.map((param) => (
                         <div key={param.name} className="space-y-1.5">
                             <Label htmlFor={`ai_export_${param.name}`}>{param.label}</Label>
                             {'pattern' in param ? (
@@ -265,7 +285,7 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
                     ))}
                 </div>
 
-                {objective.formation && (
+                {objective?.formation && (
                     <div className="flex items-center gap-2">
                         <Checkbox
                             id="ai_export_include_suggestion"
