@@ -103,7 +103,7 @@ _Evitar_: score, poder do time
 Uma das parcelas da Pontuação (facção, tier rating, sinergias, classes, destaques, mobília, Poder estimado...).
 
 **Counter**:
-Relação curada e direcional "Herói X é forte contra Herói Y". Capacidades podem explicá-la, mas não a definem.
+Relação curada e direcional "Herói X é forte contra Herói Y", num Contexto, com força 1 (vantagem) ou 2 (counter forte) e um motivo. Vale para o Herói, não para o Personagem: a versão Desperta tem os seus próprios Counters. Capacidades podem explicá-la, mas não a definem.
 _Evitar_: contra-ataque, anti
 
 ## Comunidade
