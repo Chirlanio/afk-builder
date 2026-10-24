@@ -69,7 +69,7 @@ class AiExportService
             ])->all();
         }
 
-        $teams = $definition['teams'];
+        $teams = ($definition['teams'])($params);
         $heroesInstruction = $planning === 'target'
             ? 'com qualquer herói do jogo, todos no Investimento máximo ('.self::MAX_INVESTMENT.'). A lista abaixo é só um recorte com os heróis avaliados A ou melhor para este conteúdo: prefira-os, mas pode sugerir outro herói se ele for claramente melhor.'
             : 'usando **apenas** os heróis da lista abaixo, no investimento informado.';
@@ -84,6 +84,7 @@ class AiExportService
             "Monte {$teams} ".($teams === 1 ? 'Equipe' : 'Equipes').' '.$heroesInstruction,
             'O tier de cada herói é a avaliação da comunidade (afk.guide) para este conteúdo; "sem tier" quer dizer que ela não avaliou o herói aqui. As capacidades (força 1 ou 2) resumem o que as habilidades fazem.',
             'Posições: 1 e 2 são a linha de frente; 3, 4 e 5, a linha de trás.',
+            ...$this->objectiveRules($definition, $teams),
             'Responda em português do Brasil, mas escreva os nomes dos heróis em inglês, exatamente como na lista.',
             '',
             '## Heróis',
@@ -125,6 +126,24 @@ class AiExportService
     private function contextTier(Hero $hero, string $context, string $stage): ?string
     {
         return $this->scorer->contextRatingForHero($hero->id, [$hero->id => $hero->ratings], $context, $stage)?->tier;
+    }
+
+    /**
+     * Regras do Tipo de desafio que o modelo precisa respeitar para não sugerir
+     * algo impossível no jogo.
+     *
+     * @return string[]
+     */
+    private function objectiveRules(array $definition, int $teams): array
+    {
+        $rules = [];
+        if (($definition['unique_teams'] ?? false) && $teams > 1) {
+            $rules[] = 'Nenhum herói pode estar em duas Equipes.';
+        }
+        // O jogo nunca aceita as duas versões juntas, nem dentro de uma Equipe só.
+        $rules[] = 'A versão base e a Desperta de um herói (ex.: Shemira e Shemira Desperta) são o mesmo personagem: use no máximo uma delas em toda a Formação.';
+
+        return [...$rules, ...($definition['notes'] ?? [])];
     }
 
     /**

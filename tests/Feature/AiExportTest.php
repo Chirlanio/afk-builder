@@ -308,6 +308,79 @@ class AiExportTest extends TestCase
         $this->assertStringContainsString('**Talene**', $response->json('markdown'));
     }
 
+    private function exportObjective(User $user, array $params): TestResponse
+    {
+        return $this->actingAs($user)->getJson('/roster/ai-export?'.http_build_query($params + ['planning' => 'target']));
+    }
+
+    public function test_campaign_requires_a_stage_and_asks_for_the_chosen_number_of_teams(): void
+    {
+        $user = User::factory()->create();
+        $this->rate($this->makeHero('Talene'), 'S+', 'pve');
+
+        $this->exportObjective($user, ['objective' => 'campaign'])->assertJsonValidationErrors('stage');
+
+        $markdown = $this->exportObjective($user, ['objective' => 'campaign', 'stage' => '45-60', 'teams' => 3])
+            ->assertOk()
+            ->json('markdown');
+
+        $this->assertStringContainsString('45-60', $markdown);
+        $this->assertStringContainsString('Monte 3 Equipes', $markdown);
+        $this->assertStringContainsString('Equipe 3:', $markdown);
+        $this->assertStringNotContainsString('Equipe 4:', $markdown);
+    }
+
+    public function test_dragon_trial_asks_two_or_three_teams_by_stage_with_its_own_context_and_allowed_heroes(): void
+    {
+        $user = User::factory()->create();
+        $draconis = $this->makeHero('Talene');
+        $this->rate($draconis, 'S+', 'dragonforge');
+        $this->rate($draconis, 'D', 'pve');
+
+        $this->exportObjective($user, ['objective' => 'dragon_trial'])->assertJsonValidationErrors('stage');
+        $this->exportObjective($user, ['objective' => 'dragon_trial', 'stage' => 13])->assertJsonValidationErrors('stage');
+
+        $stage4 = $this->exportObjective($user, ['objective' => 'dragon_trial', 'stage' => 4])->assertOk()->json('markdown');
+        $stage8 = $this->exportObjective($user, ['objective' => 'dragon_trial', 'stage' => 8])->assertOk()->json('markdown');
+
+        $this->assertStringContainsString('Monte 2 Equipes', $stage4);
+        $this->assertStringContainsString('Monte 3 Equipes', $stage8);
+        $this->assertStringContainsString('tier S+', $this->lineOf('Talene', $stage8));
+        $this->assertStringContainsString('Draconis', $stage8);
+        $this->assertStringContainsString('Dimensionals', $stage8);
+        $this->assertStringContainsString('Cristal', $stage8);
+    }
+
+    public function test_multi_team_objectives_explain_exclusive_teams_and_single_character(): void
+    {
+        $user = User::factory()->create();
+        $this->rate($this->makeHero('Talene'), 'S+', 'pve');
+        $this->rate($this->makeHero('DraconisHero'), 'S+', 'dragonforge');
+
+        foreach ([
+            ['objective' => 'campaign', 'stage' => '45-60', 'teams' => 2],
+            ['objective' => 'dragon_trial', 'stage' => 5],
+        ] as $params) {
+            $markdown = $this->exportObjective($user, $params)->assertOk()->json('markdown');
+
+            $this->assertStringContainsString('Nenhum herói pode estar em duas Equipes', $markdown);
+            $this->assertStringContainsString('Desperta', $markdown);
+        }
+    }
+
+    public function test_single_character_rule_holds_even_with_a_single_team(): void
+    {
+        $user = User::factory()->create();
+        $this->rate($this->makeHero('Talene'), 'S+', 'pve');
+
+        $markdown = $this->exportObjective($user, ['objective' => 'campaign', 'stage' => '45-60', 'teams' => 1])
+            ->assertOk()
+            ->json('markdown');
+
+        $this->assertStringContainsString('Desperta', $markdown);
+        $this->assertStringNotContainsString('Nenhum herói pode estar em duas Equipes', $markdown);
+    }
+
     private function lineOf(string $heroName, string $markdown): string
     {
         foreach (explode("\n", $markdown) as $line) {

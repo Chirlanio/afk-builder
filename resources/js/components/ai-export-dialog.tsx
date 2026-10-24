@@ -1,16 +1,16 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import axios from 'axios';
 import { AlertTriangle, Check, Copy, Download, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-interface ObjectiveParam {
-    name: string;
-    label: string;
-    options: Array<{ value: string; label: string }>;
-}
+// Campo de Objetivo: lista de opções, ou texto livre validado por `pattern`.
+type ObjectiveParam =
+    | { name: string; label: string; options: Array<{ value: string; label: string }>; default?: string }
+    | { name: string; label: string; pattern: RegExp; placeholder: string };
 
 interface Objective {
     code: string;
@@ -18,8 +18,34 @@ interface Objective {
     params: ObjectiveParam[];
 }
 
+const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => String(from + i));
+
 // Espelha o catálogo de Objetivos do backend (AiExportObjectives).
 const OBJECTIVES: Objective[] = [
+    {
+        code: 'campaign',
+        label: 'Campanha',
+        params: [
+            { name: 'stage', label: 'Fase', pattern: /^\d{1,3}-\d{1,2}$/, placeholder: 'ex.: 45-60' },
+            {
+                name: 'teams',
+                label: 'Equipes (fase de várias Equipes)',
+                options: range(1, 5).map((n) => ({ value: n, label: n })),
+                default: '1',
+            },
+        ],
+    },
+    {
+        code: 'dragon_trial',
+        label: 'Provas da Forja Dracônica',
+        params: [
+            {
+                name: 'stage',
+                label: 'Fase',
+                options: range(3, 12).map((n) => ({ value: n, label: `${n} (${Number(n) <= 6 ? 2 : 3} equipes)` })),
+            },
+        ],
+    },
     {
         code: 'arena_of_heroes',
         label: 'Arena dos Heróis',
@@ -36,6 +62,10 @@ const OBJECTIVES: Objective[] = [
     },
 ];
 
+function defaultParams(objective: Objective): Record<string, string> {
+    return Object.fromEntries(objective.params.flatMap((p) => ('default' in p && p.default ? [[p.name, p.default]] : [])));
+}
+
 type Planning = 'real' | 'target';
 
 interface ExportResult {
@@ -50,7 +80,7 @@ interface Props {
 
 export function AiExportDialog({ open, onOpenChange }: Props) {
     const [objectiveCode, setObjectiveCode] = useState(OBJECTIVES[0].code);
-    const [params, setParams] = useState<Record<string, string>>({});
+    const [params, setParams] = useState<Record<string, string>>(() => defaultParams(OBJECTIVES[0]));
     const [planning, setPlanning] = useState<Planning>('real');
     const [result, setResult] = useState<ExportResult | null>(null);
     const [loading, setLoading] = useState(false);
@@ -58,7 +88,10 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
     const [copied, setCopied] = useState(false);
 
     const objective = OBJECTIVES.find((o) => o.code === objectiveCode) ?? OBJECTIVES[0];
-    const paramsComplete = objective.params.every((p) => params[p.name]);
+    const paramsComplete = objective.params.every((p) => {
+        const value = params[p.name];
+        return Boolean(value) && ('pattern' in p ? p.pattern.test(value) : true);
+    });
 
     useEffect(() => {
         if (!open || !paramsComplete) {
@@ -88,7 +121,7 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
 
     const changeObjective = (code: string) => {
         setObjectiveCode(code);
-        setParams({});
+        setParams(defaultParams(OBJECTIVES.find((o) => o.code === code) ?? OBJECTIVES[0]));
     };
 
     // Sem heróis o backend devolve texto vazio (só o aviso): nada a exportar.
@@ -165,18 +198,27 @@ export function AiExportDialog({ open, onOpenChange }: Props) {
                     {objective.params.map((param) => (
                         <div key={param.name} className="space-y-1.5">
                             <Label htmlFor={`ai_export_${param.name}`}>{param.label}</Label>
-                            <Select value={params[param.name] ?? ''} onValueChange={(value) => setParams((p) => ({ ...p, [param.name]: value }))}>
-                                <SelectTrigger id={`ai_export_${param.name}`}>
-                                    <SelectValue placeholder="Escolha..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {param.options.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            {'pattern' in param ? (
+                                <Input
+                                    id={`ai_export_${param.name}`}
+                                    placeholder={param.placeholder}
+                                    value={params[param.name] ?? ''}
+                                    onChange={(e) => setParams((p) => ({ ...p, [param.name]: e.target.value.trim() }))}
+                                />
+                            ) : (
+                                <Select value={params[param.name] ?? ''} onValueChange={(value) => setParams((p) => ({ ...p, [param.name]: value }))}>
+                                    <SelectTrigger id={`ai_export_${param.name}`}>
+                                        <SelectValue placeholder="Escolha..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {param.options.map((opt) => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
                         </div>
                     ))}
                 </div>
