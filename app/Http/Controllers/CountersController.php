@@ -24,6 +24,9 @@ class CountersController extends Controller
 {
     private const MAX_ENEMY = 5;
 
+    /** Posições 1 até esta são a linha de frente; as demais, a de trás. */
+    private const FRONTLINE = 2;
+
     /** Planejamento alvo: o ranking mostra os primeiros 15 até o jogador pedir todos. */
     private const TARGET_RANKING_PAGE_SIZE = 15;
 
@@ -74,6 +77,8 @@ class CountersController extends Controller
             'ranking' => $showAll ? $ranking : array_slice($ranking, 0, self::TARGET_RANKING_PAGE_SIZE),
             'rankingTotal' => count($ranking),
             'threatened' => $threatened,
+            'maxEnemy' => self::MAX_ENEMY,
+            'frontline' => self::FRONTLINE,
         ]);
     }
 

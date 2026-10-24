@@ -123,7 +123,7 @@ const FEATURE_TAG_LABEL: Record<HeroFeatureTag, string> = {
     early_tank: 'Tank Early Game',
     early_utility: 'Utilidade Early Game',
     pvp_top: 'Top PvP',
-    twisted_realm_top: 'Top Realidade Distorcida',
+    twisted_realm_top: 'Top Reino dos Sonhos',
 };
 
 const FEATURE_TAG_BADGE: Record<HeroFeatureTag, string> = {
@@ -140,7 +140,7 @@ const RATING_MODE_LABEL: Record<HeroRatingMode, string> = {
     pvp: 'PvP',
     pve: 'PvE',
     labyrinth: 'Labirinto',
-    twisted_realm: 'Realidade Distorcida',
+    twisted_realm: 'Reino dos Sonhos',
     temporal_rift: 'Sala do Tempo',
     abyssal_expedition: 'Expedição Abissal',
 };

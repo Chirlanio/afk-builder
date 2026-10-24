@@ -44,16 +44,7 @@ class CounterRanking
                     'hero' => $hero->only(['id', 'name', 'portrait_url']),
                     'total_strength' => (int) $heroCounters->sum('strength'),
                     'tier' => $this->scorer->contextRatingForHero($hero->id, [$hero->id => $hero->ratings], $context, $stage)?->tier,
-                    'counters' => $heroCounters
-                        ->sortByDesc('strength')
-                        ->map(fn (HeroCounter $counter) => [
-                            'target' => $counter->target->only(['id', 'name']),
-                            'strength' => $counter->strength,
-                            'reason' => $counter->reason,
-                            'source_url' => $counter->source_url,
-                        ])
-                        ->values()
-                        ->all(),
+                    'counters' => self::counterLines($heroCounters, 'target'),
                 ];
             })
             ->sort(fn (array $a, array $b) => [$b['total_strength'], self::tierRank($a['tier']), $a['hero']['name']]
@@ -82,18 +73,31 @@ class CounterRanking
             ->map(fn (Collection $targetCounters) => [
                 'hero' => $targetCounters->first()->target->only(['id', 'name', 'portrait_url']),
                 'total_strength' => (int) $targetCounters->sum('strength'),
-                'counters' => $targetCounters
-                    ->sortByDesc('strength')
-                    ->map(fn (HeroCounter $counter) => [
-                        'by' => $counter->hero->only(['id', 'name']),
-                        'strength' => $counter->strength,
-                        'reason' => $counter->reason,
-                        'source_url' => $counter->source_url,
-                    ])
-                    ->values()
-                    ->all(),
+                'counters' => self::counterLines($targetCounters, 'by'),
             ])
             ->sort(fn (array $a, array $b) => [$b['total_strength'], $a['hero']['name']] <=> [$a['total_strength'], $b['hero']['name']])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Os Counters de um herói, mais fortes primeiro. `target` = contra quem ele
+     * é forte (ranking); `by` = quem o countera (seção inversa).
+     *
+     * @param  Collection<int, HeroCounter>  $counters
+     * @param  'target'|'by'  $side
+     * @return array<int, array<string, mixed>>
+     */
+    private static function counterLines(Collection $counters, string $side): array
+    {
+        return $counters
+            ->sortByDesc('strength')
+            ->map(fn (HeroCounter $counter) => [
+                $side => ($side === 'target' ? $counter->target : $counter->hero)->only(['id', 'name']),
+                'strength' => $counter->strength,
+                'reason' => $counter->reason,
+                'source_url' => $counter->source_url,
+            ])
             ->values()
             ->all();
     }

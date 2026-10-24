@@ -86,6 +86,8 @@ class CountersPageTest extends TestCase
         $this->assertSame([], $props['enemy']);
         $this->assertSame([], $props['ranking']);
         $this->assertSame([], $props['threatened']);
+        $this->assertSame(5, $props['maxEnemy']);
+        $this->assertSame(2, $props['frontline']);
     }
 
     public function test_ranking_orders_by_total_strength_and_breaks_ties_by_pvp_tier(): void

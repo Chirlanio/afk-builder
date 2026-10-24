@@ -25,7 +25,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const MODE_LABEL: Record<RecommendedFormationMode, string> = {
     pvp: 'PvP',
     pve: 'PvE',
-    twisted_realm: 'Realidade Distorcida',
+    twisted_realm: 'Reino dos Sonhos',
     labyrinth: 'Labirinto',
     king_tower: 'Torre do Rei',
     arcane_labyrinth: 'Labirinto Arcano',

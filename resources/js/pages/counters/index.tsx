@@ -56,16 +56,27 @@ interface PageProps {
     ranking: RankedHero[];
     rankingTotal: number;
     threatened: ThreatenedHero[] | null;
+    maxEnemy: number;
+    frontline: number;
     [key: string]: unknown;
 }
 
 type Planning = 'real' | 'target';
 
-const POSITIONS = [1, 2, 3, 4, 5];
-
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Counters', href: '/counters' }];
 
-export default function CountersIndex({ heroes, enemy, contexts, context, planning, ranking, rankingTotal, threatened }: PageProps) {
+export default function CountersIndex({
+    heroes,
+    enemy,
+    contexts,
+    context,
+    planning,
+    ranking,
+    rankingTotal,
+    threatened,
+    maxEnemy,
+    frontline,
+}: PageProps) {
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const enemyByPosition = Object.fromEntries(enemy.map((e) => [e.position, e.hero])) as Record<number, HeroOption | undefined>;
 
@@ -135,10 +146,11 @@ export default function CountersIndex({ heroes, enemy, contexts, context, planni
                 <section className="rounded-xl border p-4">
                     <h2 className="mb-3 text-sm font-semibold">Equipe inimiga</h2>
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                        {POSITIONS.map((position) => (
+                        {Array.from({ length: maxEnemy }, (_, i) => i + 1).map((position) => (
                             <EnemySlot
                                 key={position}
                                 position={position}
+                                frontline={frontline}
                                 hero={enemyByPosition[position]}
                                 heroes={heroes.filter((h) => !usedIds.has(h.id) || enemyByPosition[position]?.id === h.id)}
                                 onPick={(hero) => setEnemy({ ...enemyByPosition, [position]: hero })}
@@ -146,7 +158,9 @@ export default function CountersIndex({ heroes, enemy, contexts, context, planni
                             />
                         ))}
                     </div>
-                    <p className="text-muted-foreground mt-2 text-xs">Posições 1 e 2: linha de frente · 3, 4 e 5: linha de trás.</p>
+                    <p className="text-muted-foreground mt-2 text-xs">
+                        Posições 1 a {frontline}: linha de frente · {frontline + 1} a {maxEnemy}: linha de trás.
+                    </p>
                     {errors.enemy && (
                         <p className="text-destructive mt-2 flex items-center gap-1.5 text-sm">
                             <AlertTriangle className="size-4" />
@@ -230,12 +244,14 @@ export default function CountersIndex({ heroes, enemy, contexts, context, planni
 
 function EnemySlot({
     position,
+    frontline,
     hero,
     heroes,
     onPick,
     onClear,
 }: {
     position: number;
+    frontline: number;
     hero: HeroOption | undefined;
     heroes: HeroOption[];
     onPick: (hero: HeroOption) => void;
@@ -244,9 +260,9 @@ function EnemySlot({
     const [open, setOpen] = useState(false);
 
     return (
-        <div className={cn('relative rounded-lg border p-2', position <= 2 ? 'border-amber-500/40' : 'border-sky-500/30')}>
+        <div className={cn('relative rounded-lg border p-2', position <= frontline ? 'border-amber-500/40' : 'border-sky-500/30')}>
             <div className="text-muted-foreground mb-1 text-[10px] uppercase">
-                {position} · {position <= 2 ? 'frente' : 'trás'}
+                {position} · {position <= frontline ? 'frente' : 'trás'}
             </div>
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
