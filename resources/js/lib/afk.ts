@@ -306,3 +306,14 @@ export const HERO_FEATURE_BADGE: Record<HeroFeatureTag, string> = {
 
 /** Força de um Counter: 1 = vantagem, 2 = counter forte. */
 export const COUNTER_STRENGTH_LABEL: Record<number, string> = { 1: 'Vantagem', 2: 'Counter forte' };
+
+/** Rótulo de cada Contexto (os mesmos valores dos ratings), como no glossário. */
+export const CONTEXT_LABEL: Record<string, string> = {
+    overall: 'Geral',
+    pvp: 'PvP',
+    pve: 'PvE',
+    twisted_realm: 'Reino dos Sonhos',
+    abyssal_expedition: 'Expedição Abissal',
+    labyrinth: 'Labirinto',
+    dragonforge: 'Forja Dracônica',
+};

@@ -212,6 +212,67 @@ class CountersPageTest extends TestCase
         $this->assertSame([], $this->props($response)['ranking']);
     }
 
+    public function test_target_planning_ranks_any_hero_and_limits_to_fifteen_unless_asked_for_all(): void
+    {
+        $lucius = $this->makeHero('Lucius');
+        $owned = $this->makeHero('Owned');
+        $this->own($owned);
+        $this->counter($owned, $lucius);
+        foreach (range(1, 16) as $i) {
+            $this->counter($this->makeHero(sprintf('Hero%02d', $i)), $lucius, 2);
+        }
+
+        $query = ['enemy' => [1 => $lucius->id], 'planning' => 'target'];
+        $limited = $this->props($this->actingAs($this->user)->get('/counters?'.http_build_query($query)));
+        $all = $this->props($this->actingAs($this->user)->get('/counters?'.http_build_query($query + ['all' => 1])));
+
+        $this->assertSame('target', $limited['planning']);
+        $this->assertCount(15, $limited['ranking']);
+        $this->assertSame(17, $limited['rankingTotal']);
+        $this->assertSame('Hero01', $limited['ranking'][0]['hero']['name']);
+        $this->assertCount(17, $all['ranking']);
+        $this->assertContains('Owned', array_column(array_column($all['ranking'], 'hero'), 'name'));
+    }
+
+    public function test_context_selector_lists_only_contexts_with_counters_and_defaults_to_pvp(): void
+    {
+        [$lucius, $fawkes] = [$this->makeHero('Lucius'), $this->makeHero('Fawkes')];
+        $this->counter($fawkes, $lucius, 1, 'pve');
+        $this->counter($fawkes, $lucius, 1, 'pvp');
+
+        $props = $this->props($this->actingAs($this->user)->get('/counters'));
+
+        $this->assertSame('pvp', $props['context']);
+        $this->assertSame(['pvp', 'pve'], $props['contexts']);
+    }
+
+    public function test_pve_context_uses_pve_counters_and_pve_tier(): void
+    {
+        $lucius = $this->makeHero('Lucius');
+        [$a, $b] = [$this->makeHero('Alpha'), $this->makeHero('Beta')];
+        $this->own($a, $b);
+        $this->counter($a, $lucius, 1, 'pve');
+        $this->counter($b, $lucius, 1, 'pve');
+        $this->counter($a, $lucius, 2, 'pvp');
+        $this->rate($a, 'C', 'pve');
+        $this->rate($b, 'S', 'pve');
+        $this->rate($a, 'S+', 'pvp');
+
+        $ranking = $this->props($this->actingAs($this->user)->get('/counters?'.http_build_query(['enemy' => [1 => $lucius->id], 'context' => 'pve'])))['ranking'];
+
+        $this->assertSame(['Beta', 'Alpha'], array_column(array_column($ranking, 'hero'), 'name'));
+        $this->assertSame([1, 1], array_column($ranking, 'total_strength'));
+    }
+
+    public function test_invalid_context_or_planning_is_rejected(): void
+    {
+        [$lucius, $fawkes] = [$this->makeHero('Lucius'), $this->makeHero('Fawkes')];
+        $this->counter($fawkes, $lucius);
+
+        $this->actingAs($this->user)->get('/counters?context=labyrinth')->assertSessionHasErrors('context');
+        $this->actingAs($this->user)->get('/counters?planning=maybe')->assertSessionHasErrors('planning');
+    }
+
     public function test_guests_are_sent_to_login(): void
     {
         $this->get('/counters')->assertRedirect('/login');

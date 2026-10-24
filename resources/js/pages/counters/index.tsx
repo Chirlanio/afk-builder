@@ -2,9 +2,11 @@ import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import { COUNTER_STRENGTH_LABEL } from '@/lib/afk';
+import { CONTEXT_LABEL, COUNTER_STRENGTH_LABEL } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -35,24 +37,41 @@ interface RankedHero {
 interface PageProps {
     heroes: HeroOption[];
     enemy: Array<{ position: number; hero: HeroOption }>;
+    contexts: string[];
     context: string;
+    planning: Planning;
     ranking: RankedHero[];
+    rankingTotal: number;
     [key: string]: unknown;
 }
+
+type Planning = 'real' | 'target';
 
 const POSITIONS = [1, 2, 3, 4, 5];
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Counters', href: '/counters' }];
 
-export default function CountersIndex({ heroes, enemy, ranking }: PageProps) {
+export default function CountersIndex({ heroes, enemy, contexts, context, planning, ranking, rankingTotal }: PageProps) {
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const enemyByPosition = Object.fromEntries(enemy.map((e) => [e.position, e.hero])) as Record<number, HeroOption | undefined>;
 
-    // A Equipe inimiga vive na URL (posição => herói), para voltar ou compartilhar.
-    const setEnemy = (next: Record<number, HeroOption | undefined>) => {
-        const query = Object.fromEntries(Object.entries(next).flatMap(([pos, hero]) => (hero ? [[pos, hero.id]] : [])));
-        router.get('/counters', Object.keys(query).length ? { enemy: query } : {}, { preserveState: true, preserveScroll: true });
+    // Equipe inimiga (posição => herói), Contexto e Planejamento vivem na URL, para voltar ou compartilhar.
+    const navigate = (changes: { enemy?: Record<number, HeroOption | undefined>; context?: string; planning?: Planning; all?: boolean }) => {
+        const nextEnemy = changes.enemy ?? enemyByPosition;
+        const enemyQuery = Object.fromEntries(Object.entries(nextEnemy).flatMap(([pos, hero]) => (hero ? [[pos, hero.id]] : [])));
+        router.get(
+            '/counters',
+            {
+                ...(Object.keys(enemyQuery).length ? { enemy: enemyQuery } : {}),
+                context: changes.context ?? context,
+                planning: changes.planning ?? planning,
+                ...(changes.all ? { all: 1 } : {}),
+            },
+            { preserveState: true, preserveScroll: true },
+        );
     };
+    const setEnemy = (next: Record<number, HeroOption | undefined>) => navigate({ enemy: next });
+    const isTarget = planning === 'target';
 
     const usedIds = new Set(enemy.map((e) => e.hero.id));
 
@@ -60,13 +79,43 @@ export default function CountersIndex({ heroes, enemy, ranking }: PageProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Counters" />
 
-            <PageShell title="Counters" icon={Crosshair} description="Monte a Equipe inimiga e veja quais heróis do seu Roster a counteram no PvP.">
+            <PageShell title="Counters" icon={Crosshair} description="Monte a Equipe inimiga e veja quais heróis a counteram.">
                 <div className="flex items-start gap-2 rounded-md border border-sky-500/30 bg-sky-500/10 p-3 text-xs text-sky-800 dark:text-sky-200">
                     <Info className="mt-0.5 size-4 shrink-0" />
                     <p>
                         A base de Counters é curada e está em construção: um herói sem Counters aqui não quer dizer que ninguém o countera. Os
-                        Counters são informativos e não mudam a pontuação das formações.
+                        Counters são informativos e não mudam a Pontuação das Equipes.
                     </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="counters_planning">Planejamento</Label>
+                        <Select value={planning} onValueChange={(value) => navigate({ planning: value as Planning })}>
+                            <SelectTrigger id="counters_planning" className="w-[230px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="real">Real (meu Roster)</SelectItem>
+                                <SelectItem value="target">Alvo (qualquer herói do jogo)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="counters_context">Contexto</Label>
+                        <Select value={context} onValueChange={(value) => navigate({ context: value })}>
+                            <SelectTrigger id="counters_context" className="w-[180px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {contexts.map((c) => (
+                                    <SelectItem key={c} value={c}>
+                                        {CONTEXT_LABEL[c] ?? c}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 <section className="rounded-xl border p-4">
@@ -94,10 +143,14 @@ export default function CountersIndex({ heroes, enemy, ranking }: PageProps) {
 
                 {enemy.length > 0 && (
                     <section className="space-y-2">
-                        <h2 className="text-sm font-semibold">Quem do seu Roster countera esta Equipe inimiga</h2>
+                        <h2 className="text-sm font-semibold">
+                            {isTarget ? 'Quem do jogo countera esta Equipe inimiga' : 'Quem do seu Roster countera esta Equipe inimiga'}
+                        </h2>
                         {ranking.length === 0 ? (
                             <p className="text-muted-foreground rounded-xl border p-4 text-sm">
-                                Nenhum herói do seu Roster tem Counter cadastrado contra esta Equipe inimiga.
+                                {isTarget
+                                    ? 'Nenhum herói tem Counter cadastrado contra esta Equipe inimiga neste Contexto.'
+                                    : 'Nenhum herói do seu Roster tem Counter cadastrado contra esta Equipe inimiga neste Contexto.'}
                             </p>
                         ) : (
                             <ol className="space-y-2">
@@ -136,6 +189,11 @@ export default function CountersIndex({ heroes, enemy, ranking }: PageProps) {
                                     </li>
                                 ))}
                             </ol>
+                        )}
+                        {isTarget && ranking.length < rankingTotal && (
+                            <Button variant="outline" size="sm" onClick={() => navigate({ all: true })}>
+                                Ver mais ({rankingTotal - ranking.length})
+                            </Button>
                         )}
                     </section>
                 )}

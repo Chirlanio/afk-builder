@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Planning;
 use App\Models\Hero;
+use App\Models\HeroCounter;
 use App\Models\HeroRating;
 use App\Services\ActiveGameAccount;
 use App\Services\Counters\CounterRanking;
@@ -22,6 +24,9 @@ class CountersController extends Controller
 {
     private const MAX_ENEMY = 5;
 
+    /** Planejamento alvo: o ranking mostra os primeiros 15 até o jogador pedir todos. */
+    private const TARGET_RANKING_PAGE_SIZE = 15;
+
     public function __construct(
         private readonly ActiveGameAccount $active,
         private readonly CounterRanking $ranking,
@@ -30,19 +35,25 @@ class CountersController extends Controller
 
     public function index(Request $request): Response
     {
+        $contexts = HeroCounter::availableContexts();
+        $filters = $request->validate([
+            'context' => ['nullable', Rule::in($contexts)],
+            'planning' => ['nullable', Rule::enum(Planning::class)],
+            'all' => ['nullable', 'boolean'],
+        ]);
+        $context = $filters['context'] ?? HeroRating::MODE_PVP;
+        $planning = Planning::tryFrom($filters['planning'] ?? '') ?? Planning::Real;
+
         $enemy = $request->has('enemy') ? $this->validatedEnemy($request) : collect();
-        $context = HeroRating::MODE_PVP;
 
         $ranking = [];
         if ($enemy->isNotEmpty()) {
-            $userHeroes = $this->active->get()->userHeroes()->get(['hero_id', 'ascension_value']);
-            $ranking = $this->ranking->rank(
-                $enemy->pluck('hero.id')->all(),
-                $userHeroes->pluck('hero_id')->all(),
-                $context,
-                $this->stageInferrer->inferFromRoster($userHeroes),
-            );
+            $ranking = $planning === Planning::Target
+                // Alvo: qualquer herói ativo do jogo, no fim de jogo.
+                ? $this->ranking->rank($enemy->pluck('hero.id')->all(), null, $context, HeroRating::STAGE_END)
+                : $this->rosterRanking($enemy->pluck('hero.id')->all(), $context);
         }
+        $showAll = $planning === Planning::Real || $request->boolean('all');
 
         return Inertia::render('counters/index', [
             'heroes' => Hero::query()
@@ -51,9 +62,28 @@ class CountersController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'slug', 'name', 'portrait_url']),
             'enemy' => $enemy->values()->all(),
+            'contexts' => $contexts,
             'context' => $context,
-            'ranking' => $ranking,
+            'planning' => $planning->value,
+            'ranking' => $showAll ? $ranking : array_slice($ranking, 0, self::TARGET_RANKING_PAGE_SIZE),
+            'rankingTotal' => count($ranking),
         ]);
+    }
+
+    /**
+     * @param  int[]  $enemyHeroIds
+     * @return array<int, array<string, mixed>>
+     */
+    private function rosterRanking(array $enemyHeroIds, string $context): array
+    {
+        $userHeroes = $this->active->get()->userHeroes()->get(['hero_id', 'ascension_value']);
+
+        return $this->ranking->rank(
+            $enemyHeroIds,
+            $userHeroes->pluck('hero_id')->all(),
+            $context,
+            $this->stageInferrer->inferFromRoster($userHeroes),
+        );
     }
 
     /**

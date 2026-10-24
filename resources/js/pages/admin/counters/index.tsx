@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import { COUNTER_STRENGTH_LABEL } from '@/lib/afk';
+import { CONTEXT_LABEL, COUNTER_STRENGTH_LABEL } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
@@ -37,15 +37,6 @@ interface PageProps {
     counters: CounterRow[];
     counteredBy: CounterRow[];
 }
-
-const CONTEXT_LABEL: Record<string, string> = {
-    pvp: 'PvP',
-    pve: 'PvE',
-    twisted_realm: 'Reino dos Sonhos',
-    abyssal_expedition: 'Expedição Abissal',
-    labyrinth: 'Labirinto',
-    dragonforge: 'Forja Dracônica',
-};
 
 const STRENGTHS = Object.keys(COUNTER_STRENGTH_LABEL).map(Number);
 

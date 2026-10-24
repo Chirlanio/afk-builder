@@ -37,6 +37,19 @@ class HeroCounter extends Model
         'strength' => 'integer',
     ];
 
+    /**
+     * Contextos que têm Counters cadastrados, na ordem de CONTEXTS. PvP vem
+     * sempre, por ser o padrão da página de Counters.
+     *
+     * @return string[]
+     */
+    public static function availableContexts(): array
+    {
+        $used = self::query()->distinct()->pluck('context')->push(HeroRating::MODE_PVP)->all();
+
+        return array_values(array_intersect(self::CONTEXTS, $used));
+    }
+
     public function hero(): BelongsTo
     {
         return $this->belongsTo(Hero::class);
