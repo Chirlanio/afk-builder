@@ -3941,6 +3941,23 @@ O otimizador enxergava os heróis por rótulos (facção, classe, tier rating, s
 - **Modo alvo no investimento máximo:** heróis Ascendidos entram como Ascendido 5★, nível 240, F9, item de assinatura e gravação no limite da facção (+40/E80 para Celestiais e Hypogeans, +30/E60 para os demais), pela mesma fórmula do roster. Antes: Ascendido 1★ sem investimento, poder igual para todos.
 - **`optimizer:benchmark`** (agora com custos de SI no banco de teste): total 88,2 → **91,6**; pior comp 54 → 75. Testados também peso 2-4 no tier rating (até 93,2 de média, mas pior comp 65-70) e metade/zero da vantagem de facção (90,1/88,4): mantidos peso 1 e limites completos.
 
+### ✅ Fase 68 — Export para IA (2026-10-24)
+
+Spec na issue #8 (tickets #9–#16). O jogador gera um texto Markdown (prompt + dados) para colar no modelo de IA que quiser; o app **não chama nenhuma API de IA**.
+
+- **Modal "Exportar para IA":** no catálogo de heróis e em cada Formação (que já preenche Objetivo, Planejamento e, na Campanha, o número de Equipes). Prévia, tamanho aproximado em tokens, Copiar e Baixar `.md`.
+- **Objetivos** (`AiExportObjectives`, catálogo fechado e única fonte — o modal o busca em `roster/ai-export/objectives`): Campanha (fase, 1-5 Equipes), Provas da Forja Dracônica (fase 3-12 → 2 ou 3 Equipes, heróis permitidos), Torre do Rei / torres de facção (cada torre de facção aceita só a sua facção), Chefe do Reino dos Sonhos, Arena dos Heróis (defesa/ataque) e Em quem investir a seguir (sem Formação, rating geral). Cada campo (`AiExportField`) gera a validação e a descrição do modal.
+- **Planejamento real:** o Roster da Conta de jogo ativa com investimento (ascensão, nível, SI, mobília, gravação, equipamentos, artefato), Atributos de tela quando houver, tier rating **só do Contexto** do Objetivo (sem cair no geral — "sem tier" quando a comunidade não avaliou) e capacidades. Roster vazio devolve só o aviso.
+- **Planejamento alvo:** o catálogo com tier A ou melhor no Contexto, no fim de jogo, no Investimento máximo; o prompt deixa claro que a lista é um recorte.
+- **Regras no prompt:** Personagem único (base ou Desperta) sempre; Equipes exclusivas com 2+ Equipes; regras do Tipo de desafio (facção da torre, heróis da Forja, controle inútil contra Chefe).
+- **Resposta em formato fixo:** `AFK-BUILDER-RESPOSTA v1` (Equipes e posições) ou `AFK-BUILDER-INVESTIMENTO v1` (lista priorizada), para comparar modelos e, no futuro, importar como Formação.
+- **Sugestão do AFK Builder (opcional, desmarcada):** as Equipes do otimizador para o mesmo Objetivo, só com os nomes, "a revisar". Pontuação e Poder estimado nunca entram no texto.
+- **`TeamSuggester`:** a sugestão de Equipes saiu do `FormationController` e passou a ser chamável por Conta de jogo + Tipo de desafio + Planejamento, sem Formação salva; as telas de Formação usam o mesmo ponto de entrada.
+- **`App\Enums\Planning`:** `formations.mode` virou enum (`real`/`target`), usado no otimizador e no export.
+- **`TierRatingScorer`:** `ratingForHero` (com os fallbacks da pontuação) e `contextRatingForHero` (só o Contexto), extraídos de `pointsForHero` sem mudar a pontuação.
+- **Testes:** o `TestCase` base limpa o cache estático de custos de SI — um teste que chamava o otimizador sem o seeder vazava custos zerados para o `InvestmentPlannerTest`.
+- **Glossário e ADR:** `GLOSSARY.md` (termos do domínio, inclusive Objetivo e Contexto Geral) e `docs/adr/0001` (só sinais validados por benchmark entram na Pontuação).
+
 ### ✅ Correções pós-auditoria (2026-10-16)
 
 - **OCR quebrado:** o `post()` do `useForm` ignorava a opção `data` (o backend nunca recebia `heroes`) e `lines` vinha `undefined` no tesseract.js v7. Corrigido conforme a Fase 59, com testes.
