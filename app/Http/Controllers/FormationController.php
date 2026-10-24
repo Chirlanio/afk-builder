@@ -7,25 +7,18 @@ use App\Models\ChallengeType;
 use App\Models\Faction;
 use App\Models\Formation;
 use App\Models\FormationTeam;
+use App\Models\GameAccount;
 use App\Models\Hero;
 use App\Models\HeroClass;
-use App\Models\HeroFeature;
-use App\Models\HeroFurnitureAbility;
-use App\Models\HeroRating;
-use App\Models\HeroSynergy;
 use App\Models\Tier;
 use App\Models\UserHero;
 use App\Services\ActiveGameAccount;
 use App\Services\Formations\FormationVersioning;
 use App\Services\Optimization\ChallengeTypeMode;
-use App\Services\Optimization\MultiTeamPartitioner;
-use App\Services\Optimization\PowerCalculator;
 use App\Services\Optimization\RecommendedFormationMatcher;
-use App\Services\Optimization\RosterStageInferrer;
-use App\Services\Optimization\ScoringContext;
 use App\Services\Optimization\ScoringProfile;
-use App\Services\Optimization\SingleTeamOptimizer;
 use App\Services\Optimization\TeamScorer;
+use App\Services\Optimization\TeamSuggester;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +29,10 @@ use Inertia\Response;
 
 class FormationController extends Controller
 {
-    public function __construct(private readonly ActiveGameAccount $active) {}
+    public function __construct(
+        private readonly ActiveGameAccount $active,
+        private readonly TeamSuggester $suggester,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -174,7 +170,7 @@ class FormationController extends Controller
 
         // Fase 26.4 + 27: breakdown completo de score por team. Aplica overrides
         // salvos no DB pra que o detalhamento reflita os pesos custom do user.
-        $scoresByTeamPosition = $this->computeScoresByPosition($formation, $account->id, $scorer);
+        $scoresByTeamPosition = $this->computeScoresByPosition($formation, $account, $scorer);
 
         // Fase 26.5: pesos default do challenge_type para o slider tuner do frontend
         $scoringProfileDefaults = $this->extractScoringWeights($formation->challengeType->scoring_profile ?? []);
@@ -246,21 +242,23 @@ class FormationController extends Controller
      *
      * @return array<int, array<string, mixed>|null>
      */
-    private function computeScoresByPosition(Formation $formation, int $accountId, TeamScorer $scorer): array
+    private function computeScoresByPosition(Formation $formation, GameAccount $account, TeamScorer $scorer): array
     {
         $scores = [];
 
-        $heroPoolById = $this->loadHeroPool($formation, $accountId);
-        $userHeroesById = $this->loadUserHeroes($formation, $accountId);
-        $synergyWeights = $this->loadSynergyWeights();
-        $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
         // Fase 27: aplica overrides persistidos quando presentes — breakdown reflete pesos custom.
-        if (! empty($formation->scoring_weights_override)) {
-            $profile = $profile->withOverrides($formation->scoring_weights_override);
-        }
-        $ctx = ! empty($heroPoolById)
-            ? $this->loadScoringContext($formation, $heroPoolById, $userHeroesById)
-            : new ScoringContext;
+        [
+            'heroPoolById' => $heroPoolById,
+            'userHeroesById' => $userHeroesById,
+            'synergyWeights' => $synergyWeights,
+            'profile' => $profile,
+            'context' => $ctx,
+        ] = $this->suggester->inputs(
+            $account,
+            $formation->challengeType,
+            $formation->mode,
+            $formation->scoring_weights_override,
+        );
 
         foreach ($formation->teams as $team) {
             $heroIds = $team->teamHeroes->sortBy('slot')->pluck('hero_id')->all();
@@ -414,7 +412,6 @@ class FormationController extends Controller
         Request $request,
         Formation $formation,
         int $position,
-        SingleTeamOptimizer $optimizer,
     ): JsonResponse {
         $account = $this->active->get();
         abort_unless($formation->game_account_id === $account->id, 403);
@@ -464,26 +461,15 @@ class FormationController extends Controller
             }
         }
 
-        $heroPoolById = $this->loadHeroPool($formation, $account->id);
-        $userHeroesById = $this->loadUserHeroes($formation, $account->id);
-        $synergyWeights = $this->loadSynergyWeights();
-        $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
         // Prioridade: body weight_overrides > formation.scoring_weights_override > defaults.
-        $effectiveOverrides = $data['weight_overrides'] ?? $formation->scoring_weights_override ?? null;
-        if (! empty($effectiveOverrides)) {
-            $profile = $profile->withOverrides($effectiveOverrides);
-        }
-        $ctx = $this->loadScoringContext($formation, $heroPoolById, $userHeroesById);
-
-        $result = $optimizer->optimize(
-            $heroPoolById,
-            $userHeroesById,
-            $synergyWeights,
-            $profile,
+        $result = $this->suggester->suggestTeam(
+            $account,
+            $formation->challengeType,
+            $formation->mode,
             array_values($lockedHeroIds),
             $blockedHeroIds,
             $teamBeast,
-            $ctx,
+            $data['weight_overrides'] ?? $formation->scoring_weights_override ?? null,
         );
 
         $suggestedIds = $result['hero_ids'];
@@ -516,7 +502,6 @@ class FormationController extends Controller
     public function suggestAll(
         Request $request,
         Formation $formation,
-        MultiTeamPartitioner $partitioner,
     ): JsonResponse {
         $account = $this->active->get();
         abort_unless($formation->game_account_id === $account->id, 403);
@@ -551,30 +536,16 @@ class FormationController extends Controller
             $lockedByTeam[$pos] = $ids;
         }
 
-        $heroPoolById = $this->loadHeroPool($formation, $account->id);
-        $userHeroesById = $this->loadUserHeroes($formation, $account->id);
-        $synergyWeights = $this->loadSynergyWeights();
-        $profile = ScoringProfile::fromArray($formation->challengeType->scoring_profile);
         // Prioridade: body weight_overrides > formation.scoring_weights_override > defaults.
-        $effectiveOverrides = $data['weight_overrides'] ?? $formation->scoring_weights_override ?? null;
-        if (! empty($effectiveOverrides)) {
-            $profile = $profile->withOverrides($effectiveOverrides);
-        }
-        $ctx = $this->loadScoringContext($formation, $heroPoolById, $userHeroesById);
-
         // Fase 48: suggestAll otimiza só distribuição de heróis entre teams. Beasts por
-        // team são definidas separadamente (endpoint best-beast por team) — passar null aqui
-        // evita a complexidade de avaliar combinações team×beast num único otimizador multi-team.
-        $result = $partitioner->optimize(
-            $heroPoolById,
-            $userHeroesById,
-            $synergyWeights,
-            $profile,
-            $lockedByTeam,
+        // team são definidas separadamente (endpoint best-beast por team).
+        $result = $this->suggester->suggestAll(
+            $account,
+            $formation->challengeType,
+            $formation->mode,
             $teamsCount,
-            (bool) $formation->challengeType->teams_must_be_unique,
-            null,
-            $ctx,
+            $lockedByTeam,
+            $data['weight_overrides'] ?? $formation->scoring_weights_override ?? null,
         );
 
         $teamsResponse = [];
@@ -790,106 +761,6 @@ class FormationController extends Controller
             'beast' => $best,
             'score' => round($bestScore, 2),
         ]);
-    }
-
-    /**
-     * @return array<int, Hero>
-     */
-    private function loadHeroPool(Formation $formation, int $accountId): array
-    {
-        $query = Hero::query()
-            ->with(['faction:id,code', 'heroClass:id,code', 'tier:id,code', 'stats'])
-            ->where('is_active', true)
-            ->where('pending_review', false);
-
-        if ($formation->mode === 'real') {
-            $rosterIds = UserHero::where('game_account_id', $accountId)->pluck('hero_id')->all();
-            $query->whereIn('id', $rosterIds);
-        }
-
-        return $query->get()->keyBy('id')->all();
-    }
-
-    /**
-     * Target formations plan with any hero of the game at the target investment,
-     * so the roster stays out of scoring: otherwise owned heroes (with real power)
-     * crowd out stronger heroes the account does not have yet.
-     *
-     * @return array<int, UserHero>
-     */
-    private function loadUserHeroes(Formation $formation, int $accountId): array
-    {
-        if ($formation->mode === 'target') {
-            return [];
-        }
-
-        $userHeroes = UserHero::where('game_account_id', $accountId)
-            ->with([
-                'artifact:id,attributes',
-                'collection:id,hp_bonus,attack_bonus,defense_bonus',
-            ])
-            ->get()
-            ->keyBy('hero_id')
-            ->all();
-        (new PowerCalculator)->imputeMissingRealStats($userHeroes);
-
-        return $userHeroes;
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    private function loadSynergyWeights(): array
-    {
-        $map = [];
-        foreach (HeroSynergy::all(['hero_a_id', 'hero_b_id', 'weight']) as $s) {
-            $map[TeamScorer::pairKey($s->hero_a_id, $s->hero_b_id)] = $s->weight;
-        }
-
-        return $map;
-    }
-
-    /**
-     * Constrói o ScoringContext (P1+P2 da Fase 24): pré-carrega ratings e features
-     * dos heróis do pool, infere stage do roster do user e mapeia challenge_type → mode.
-     *
-     * @param  array<int, Hero>  $heroPoolById
-     * @param  array<int, UserHero>  $userHeroesById
-     */
-    private function loadScoringContext(Formation $formation, array $heroPoolById, array $userHeroesById): ScoringContext
-    {
-        $heroIds = array_keys($heroPoolById);
-        if (empty($heroIds)) {
-            return new ScoringContext;
-        }
-
-        $ratingsByHeroId = HeroRating::whereIn('hero_id', $heroIds)
-            ->get(['id', 'hero_id', 'mode', 'stage', 'tier', 'source'])
-            ->groupBy('hero_id')
-            ->all();
-
-        $featuresByHeroId = HeroFeature::whereIn('hero_id', $heroIds)
-            ->get(['id', 'hero_id', 'tag'])
-            ->groupBy('hero_id')
-            ->all();
-
-        $furnitureAbilitiesByHeroId = HeroFurnitureAbility::whereIn('hero_id', $heroIds)
-            ->whereNotNull('effects')
-            ->get(['id', 'hero_id', 'effects'])
-            ->keyBy('hero_id')
-            ->all();
-
-        $mode = ChallengeTypeMode::forCode($formation->challengeType->code ?? null);
-        $stage = (new RosterStageInferrer)->inferFromRoster($userHeroesById);
-
-        return new ScoringContext(
-            ratingsByHeroId: $ratingsByHeroId,
-            featuresByHeroId: $featuresByHeroId,
-            furnitureAbilitiesByHeroId: $furnitureAbilitiesByHeroId,
-            mode: $mode,
-            stage: $stage,
-            challengeCode: $formation->challengeType->code ?? null,
-        );
     }
 
     /**
