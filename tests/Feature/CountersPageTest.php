@@ -85,6 +85,7 @@ class CountersPageTest extends TestCase
 
         $this->assertSame([], $props['enemy']);
         $this->assertSame([], $props['ranking']);
+        $this->assertSame([], $props['threatened']);
     }
 
     public function test_ranking_orders_by_total_strength_and_breaks_ties_by_pvp_tier(): void
@@ -271,6 +272,42 @@ class CountersPageTest extends TestCase
 
         $this->actingAs($this->user)->get('/counters?context=labyrinth')->assertSessionHasErrors('context');
         $this->actingAs($this->user)->get('/counters?planning=maybe')->assertSessionHasErrors('planning');
+    }
+
+    public function test_real_planning_lists_roster_heroes_the_enemy_team_counters(): void
+    {
+        [$lucius, $brutus] = [$this->makeHero('Lucius'), $this->makeHero('Brutus')];
+        [$fawkes, $kaz, $safe, $notOwned] = [$this->makeHero('Fawkes'), $this->makeHero('Kaz'), $this->makeHero('Safe'), $this->makeHero('NotOwned')];
+        $this->own($fawkes, $kaz, $safe);
+        $this->counter($brutus, $kaz, 2);
+        $this->counter($lucius, $fawkes, 1);
+        $this->counter($brutus, $fawkes, 1);
+        $this->counter($lucius, $notOwned, 2);
+        $this->counter($lucius, $safe, 2, 'pve');
+
+        $threatened = $this->props($this->visit([1 => $lucius, 2 => $brutus]))['threatened'];
+
+        $this->assertSame(['Fawkes', 'Kaz'], array_column(array_column($threatened, 'hero'), 'name'));
+        $this->assertSame([2, 2], array_column($threatened, 'total_strength'));
+        $this->assertEqualsCanonicalizing(['Lucius', 'Brutus'], array_column(array_column($threatened[0]['counters'], 'by'), 'name'));
+        $kazEntry = $threatened[1];
+        $this->assertSame([[
+            'by' => ['id' => $brutus->id, 'name' => 'Brutus'],
+            'strength' => 2,
+            'reason' => 'Brutus vence Kaz',
+            'source_url' => 'https://afk.guide/?p=2337',
+        ]], $kazEntry['counters']);
+    }
+
+    public function test_threatened_section_is_absent_in_target_planning(): void
+    {
+        [$lucius, $fawkes] = [$this->makeHero('Lucius'), $this->makeHero('Fawkes')];
+        $this->own($fawkes);
+        $this->counter($lucius, $fawkes);
+
+        $props = $this->props($this->actingAs($this->user)->get('/counters?'.http_build_query(['enemy' => [1 => $lucius->id], 'planning' => 'target'])));
+
+        $this->assertNull($props['threatened']);
     }
 
     public function test_guests_are_sent_to_login(): void

@@ -9,9 +9,10 @@ use App\Services\Optimization\TierRatingScorer;
 use Illuminate\Support\Collection;
 
 /**
- * Ranking dos heróis que counteram uma Equipe inimiga num Contexto: soma das
- * forças dos Counters contra os inimigos, desempate pelo tier rating do
- * próprio Contexto. Informativo: não entra na Pontuação (ADR 0001).
+ * Counters de uma Equipe inimiga num Contexto, nas duas direções: o ranking
+ * dos heróis que a counteram (soma das forças, desempate pelo tier rating do
+ * próprio Contexto) e os heróis do Roster que ela countera. Informativo: não
+ * entra na Pontuação (ADR 0001).
  */
 class CounterRanking
 {
@@ -57,6 +58,42 @@ class CounterRanking
             })
             ->sort(fn (array $a, array $b) => [$b['total_strength'], self::tierRank($a['tier']), $a['hero']['name']]
                 <=> [$a['total_strength'], self::tierRank($b['tier']), $b['hero']['name']])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * O inverso do ranking: os heróis do Roster que algum herói da Equipe
+     * inimiga countera, os mais ameaçados primeiro (soma das forças).
+     *
+     * @param  int[]  $enemyHeroIds
+     * @param  int[]  $rosterHeroIds
+     * @return array<int, array{hero: array{id: int, name: string, portrait_url: ?string}, total_strength: int, counters: array<int, array<string, mixed>>}>
+     */
+    public function threatened(array $enemyHeroIds, array $rosterHeroIds, string $context): array
+    {
+        return HeroCounter::query()
+            ->with(['hero:id,name', 'target:id,name,portrait_url'])
+            ->where('context', $context)
+            ->whereIn('hero_id', $enemyHeroIds)
+            ->whereIn('target_hero_id', $rosterHeroIds)
+            ->get()
+            ->groupBy('target_hero_id')
+            ->map(fn (Collection $targetCounters) => [
+                'hero' => $targetCounters->first()->target->only(['id', 'name', 'portrait_url']),
+                'total_strength' => (int) $targetCounters->sum('strength'),
+                'counters' => $targetCounters
+                    ->sortByDesc('strength')
+                    ->map(fn (HeroCounter $counter) => [
+                        'by' => $counter->hero->only(['id', 'name']),
+                        'strength' => $counter->strength,
+                        'reason' => $counter->reason,
+                        'source_url' => $counter->source_url,
+                    ])
+                    ->values()
+                    ->all(),
+            ])
+            ->sort(fn (array $a, array $b) => [$b['total_strength'], $a['hero']['name']] <=> [$a['total_strength'], $b['hero']['name']])
             ->values()
             ->all();
     }

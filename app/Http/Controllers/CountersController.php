@@ -47,11 +47,17 @@ class CountersController extends Controller
         $enemy = $request->has('enemy') ? $this->validatedEnemy($request) : collect();
 
         $ranking = [];
-        if ($enemy->isNotEmpty()) {
-            $ranking = $planning === Planning::Target
-                // Alvo: qualquer herói ativo do jogo, no fim de jogo.
-                ? $this->ranking->rank($enemy->pluck('hero.id')->all(), null, $context, HeroRating::STAGE_END)
-                : $this->rosterRanking($enemy->pluck('hero.id')->all(), $context);
+        // Seção inversa: só no real, porque no alvo não há Roster a proteger.
+        $threatened = $planning === Planning::Real ? [] : null;
+        $enemyIds = $enemy->pluck('hero.id')->all();
+        if ($enemy->isNotEmpty() && $planning === Planning::Target) {
+            // Alvo: qualquer herói ativo do jogo, no fim de jogo.
+            $ranking = $this->ranking->rank($enemyIds, null, $context, HeroRating::STAGE_END);
+        } elseif ($enemy->isNotEmpty()) {
+            $userHeroes = $this->active->get()->userHeroes()->get(['hero_id', 'ascension_value']);
+            $rosterIds = $userHeroes->pluck('hero_id')->all();
+            $ranking = $this->ranking->rank($enemyIds, $rosterIds, $context, $this->stageInferrer->inferFromRoster($userHeroes));
+            $threatened = $this->ranking->threatened($enemyIds, $rosterIds, $context);
         }
         $showAll = $planning === Planning::Real || $request->boolean('all');
 
@@ -67,23 +73,8 @@ class CountersController extends Controller
             'planning' => $planning->value,
             'ranking' => $showAll ? $ranking : array_slice($ranking, 0, self::TARGET_RANKING_PAGE_SIZE),
             'rankingTotal' => count($ranking),
+            'threatened' => $threatened,
         ]);
-    }
-
-    /**
-     * @param  int[]  $enemyHeroIds
-     * @return array<int, array<string, mixed>>
-     */
-    private function rosterRanking(array $enemyHeroIds, string $context): array
-    {
-        $userHeroes = $this->active->get()->userHeroes()->get(['hero_id', 'ascension_value']);
-
-        return $this->ranking->rank(
-            $enemyHeroIds,
-            $userHeroes->pluck('hero_id')->all(),
-            $context,
-            $this->stageInferrer->inferFromRoster($userHeroes),
-        );
     }
 
     /**

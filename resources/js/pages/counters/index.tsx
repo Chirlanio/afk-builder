@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { AlertTriangle, Crosshair, ExternalLink, Info, Plus, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 interface HeroOption {
     id: number;
@@ -34,6 +34,19 @@ interface RankedHero {
     counters: RankedCounter[];
 }
 
+interface ThreateningCounter {
+    by: { id: number; name: string };
+    strength: number;
+    reason: string;
+    source_url: string | null;
+}
+
+interface ThreatenedHero {
+    hero: { id: number; name: string; portrait_url: string | null };
+    total_strength: number;
+    counters: ThreateningCounter[];
+}
+
 interface PageProps {
     heroes: HeroOption[];
     enemy: Array<{ position: number; hero: HeroOption }>;
@@ -42,6 +55,7 @@ interface PageProps {
     planning: Planning;
     ranking: RankedHero[];
     rankingTotal: number;
+    threatened: ThreatenedHero[] | null;
     [key: string]: unknown;
 }
 
@@ -51,7 +65,7 @@ const POSITIONS = [1, 2, 3, 4, 5];
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Counters', href: '/counters' }];
 
-export default function CountersIndex({ heroes, enemy, contexts, context, planning, ranking, rankingTotal }: PageProps) {
+export default function CountersIndex({ heroes, enemy, contexts, context, planning, ranking, rankingTotal, threatened }: PageProps) {
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const enemyByPosition = Object.fromEntries(enemy.map((e) => [e.position, e.hero])) as Record<number, HeroOption | undefined>;
 
@@ -164,26 +178,9 @@ export default function CountersIndex({ heroes, enemy, contexts, context, planni
                                         </div>
                                         <ul className="mt-2 space-y-1 pl-7 text-sm">
                                             {entry.counters.map((counter) => (
-                                                <li key={counter.target.id} className="flex flex-wrap items-center gap-1.5">
-                                                    <span>
-                                                        contra <strong>{counter.target.name}</strong>
-                                                    </span>
-                                                    <Badge variant={counter.strength === 2 ? 'default' : 'outline'} className="text-[10px]">
-                                                        {COUNTER_STRENGTH_LABEL[counter.strength] ?? counter.strength}
-                                                    </Badge>
-                                                    <span className="text-muted-foreground">{counter.reason}</span>
-                                                    {counter.source_url && (
-                                                        <a
-                                                            href={counter.source_url}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="text-muted-foreground hover:text-foreground"
-                                                            aria-label="Abrir fonte"
-                                                        >
-                                                            <ExternalLink className="size-3.5" />
-                                                        </a>
-                                                    )}
-                                                </li>
+                                                <CounterLine key={counter.target.id} counter={counter}>
+                                                    contra <strong>{counter.target.name}</strong>
+                                                </CounterLine>
                                             ))}
                                         </ul>
                                     </li>
@@ -194,6 +191,35 @@ export default function CountersIndex({ heroes, enemy, contexts, context, planni
                             <Button variant="outline" size="sm" onClick={() => navigate({ all: true })}>
                                 Ver mais ({rankingTotal - ranking.length})
                             </Button>
+                        )}
+                    </section>
+                )}
+
+                {enemy.length > 0 && threatened !== null && (
+                    <section className="space-y-2">
+                        <h2 className="text-sm font-semibold">Heróis do seu Roster que esta Equipe inimiga countera</h2>
+                        {threatened.length === 0 ? (
+                            <p className="text-muted-foreground rounded-xl border p-4 text-sm">
+                                Nenhum herói do seu Roster é counterado por esta Equipe inimiga neste Contexto.
+                            </p>
+                        ) : (
+                            <ul className="space-y-2">
+                                {threatened.map((entry) => (
+                                    <li key={entry.hero.id} className="rounded-xl border border-rose-500/30 p-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium">{entry.hero.name}</span>
+                                            <Badge variant="destructive">força {entry.total_strength}</Badge>
+                                        </div>
+                                        <ul className="mt-2 space-y-1 text-sm">
+                                            {entry.counters.map((counter) => (
+                                                <CounterLine key={counter.by.id} counter={counter}>
+                                                    <strong>{counter.by.name}</strong> countera
+                                                </CounterLine>
+                                            ))}
+                                        </ul>
+                                    </li>
+                                ))}
+                            </ul>
                         )}
                     </section>
                 )}
@@ -268,5 +294,29 @@ function EnemySlot({
                 </button>
             )}
         </div>
+    );
+}
+
+/** Uma linha de Counter: quem / contra quem (children), força, motivo e fonte. */
+function CounterLine({ counter, children }: { counter: { strength: number; reason: string; source_url: string | null }; children: ReactNode }) {
+    return (
+        <li className="flex flex-wrap items-center gap-1.5">
+            <span>{children}</span>
+            <Badge variant={counter.strength === 2 ? 'default' : 'outline'} className="text-[10px]">
+                {COUNTER_STRENGTH_LABEL[counter.strength] ?? counter.strength}
+            </Badge>
+            <span className="text-muted-foreground">{counter.reason}</span>
+            {counter.source_url && (
+                <a
+                    href={counter.source_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label="Abrir fonte"
+                >
+                    <ExternalLink className="size-3.5" />
+                </a>
+            )}
+        </li>
     );
 }
