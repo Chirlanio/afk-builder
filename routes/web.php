@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\HeroAdminController;
 use App\Http\Controllers\Admin\HeroCapabilityAdminController;
 use App\Http\Controllers\Admin\HeroStatsAdminController;
 use App\Http\Controllers\Admin\SyncCommandController;
+use App\Http\Controllers\AiExportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\FormationCompareController;
@@ -60,6 +61,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('roster/import', [RosterImportController::class, 'index'])->name('roster.import');
     Route::post('roster/import', [RosterImportController::class, 'store'])->name('roster.import.store');
     Route::patch('roster/resources', [UserResourceController::class, 'update'])->name('roster.resources.update');
+    Route::get('roster/ai-export', [AiExportController::class, 'show'])->name('roster.ai-export');
 
     Route::get('equipment', [EquipmentController::class, 'index'])->name('equipment.index');
 

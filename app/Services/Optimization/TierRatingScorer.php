@@ -62,9 +62,50 @@ class TierRatingScorer
      */
     public function pointsForHero(int $heroId, array $ratingsByHeroId, string $mode, string $stage): float
     {
+        $rating = $this->ratingForHero($heroId, $ratingsByHeroId, $mode, $stage);
+
+        return $rating ? (self::TIER_POINTS[$rating->tier] ?? 0.0) : 0.0;
+    }
+
+    /**
+     * O rating que a pontuação usa para o herói num Contexto+estágio: o do
+     * próprio Contexto e, na falta dele, o geral (afk.guide e depois allclash).
+     *
+     * @param  array<int, Collection<int, HeroRating>>  $ratingsByHeroId
+     */
+    public function ratingForHero(int $heroId, array $ratingsByHeroId, string $mode, string $stage): ?HeroRating
+    {
+        $rating = $this->contextRatingForHero($heroId, $ratingsByHeroId, $mode, $stage);
+        if ($rating) {
+            return $rating;
+        }
+
+        $ratings = $ratingsByHeroId[$heroId] ?? null;
+        if (! $ratings) {
+            return null;
+        }
+
+        // 3ª: afk.guide overall qualquer estágio
+        $rating = $ratings->first(fn (HeroRating $r) => $r->source === 'afk.guide' && $r->mode === HeroRating::MODE_OVERALL);
+        if ($rating) {
+            return $rating;
+        }
+
+        // 4ª: allclash (overall/all)
+        return $ratings->first(fn (HeroRating $r) => $r->source === 'allclash');
+    }
+
+    /**
+     * Só o rating afk.guide do próprio Contexto (estágio exato ou o mais
+     * próximo do fim de jogo); null quando o Contexto não avalia o herói.
+     *
+     * @param  array<int, Collection<int, HeroRating>>  $ratingsByHeroId
+     */
+    public function contextRatingForHero(int $heroId, array $ratingsByHeroId, string $mode, string $stage): ?HeroRating
+    {
         $ratings = $ratingsByHeroId[$heroId] ?? null;
         if (! $ratings || $ratings->isEmpty()) {
-            return 0.0;
+            return null;
         }
 
         // 1ª tentativa: afk.guide com modo + estágio exatos
@@ -72,11 +113,11 @@ class TierRatingScorer
             fn (HeroRating $r) => $r->source === 'afk.guide' && $r->mode === $mode && $r->stage === $stage,
         );
         if ($rating) {
-            return self::TIER_POINTS[$rating->tier] ?? 0.0;
+            return $rating;
         }
 
         // 2ª: afk.guide com mesmo modo, qualquer estágio (preferência: end > mid > early)
-        $rating = $ratings
+        return $ratings
             ->filter(fn (HeroRating $r) => $r->source === 'afk.guide' && $r->mode === $mode)
             ->sortBy(fn (HeroRating $r) => match ($r->stage) {
                 HeroRating::STAGE_END => 0,
@@ -85,22 +126,5 @@ class TierRatingScorer
                 default => 3,
             })
             ->first();
-        if ($rating) {
-            return self::TIER_POINTS[$rating->tier] ?? 0.0;
-        }
-
-        // 3ª: afk.guide overall qualquer estágio
-        $rating = $ratings->first(fn (HeroRating $r) => $r->source === 'afk.guide' && $r->mode === HeroRating::MODE_OVERALL);
-        if ($rating) {
-            return self::TIER_POINTS[$rating->tier] ?? 0.0;
-        }
-
-        // 4ª: allclash (overall/all)
-        $rating = $ratings->first(fn (HeroRating $r) => $r->source === 'allclash');
-        if ($rating) {
-            return self::TIER_POINTS[$rating->tier] ?? 0.0;
-        }
-
-        return 0.0;
     }
 }

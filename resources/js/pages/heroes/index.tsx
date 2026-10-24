@@ -1,3 +1,4 @@
+import { AiExportDialog } from '@/components/ai-export-dialog';
 import { HeroCard } from '@/components/hero-card';
 import { HeroDetailModal } from '@/components/hero-detail-modal';
 import {
@@ -17,7 +18,7 @@ import type { BreadcrumbItem } from '@/types';
 import type { ClassCode, Faction, FactionCode, Hero, HeroClass, HeroFeatureTag, RosterByHeroId, Tier, TierCode } from '@/types/afk';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { CheckSquare, Heart, HeartOff, Loader2, MinusCircle, PlusCircle, Search, Upload, Users, X } from 'lucide-react';
+import { CheckSquare, Heart, HeartOff, Loader2, MinusCircle, PlusCircle, Search, Sparkles, Upload, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 interface PageProps {
@@ -56,6 +57,8 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [bulkProcessing, setBulkProcessing] = useState(false);
+
+    const [aiExportOpen, setAiExportOpen] = useState(false);
 
     const exitSelectionMode = () => {
         setSelectionMode(false);
@@ -212,10 +215,16 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                 icon={Users}
                 description={`${heroes.length} heróis no catálogo · ${ownedCount} no seu roster · ${totalShown} exibidos`}
                 actions={
-                    <Button variant="outline" size="sm" onClick={() => router.get(route('roster.import'))}>
-                        <Upload className="mr-2 size-4" />
-                        Importar OCR
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setAiExportOpen(true)}>
+                            <Sparkles className="mr-2 size-4" />
+                            Exportar para IA
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => router.get(route('roster.import'))}>
+                            <Upload className="mr-2 size-4" />
+                            Importar OCR
+                        </Button>
+                    </div>
                 }
             >
                 <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-0 z-10 flex flex-col gap-3 rounded-xl border p-3 backdrop-blur">
@@ -471,6 +480,8 @@ export default function HeroesIndex({ heroes, factions, heroClasses, tiers, rost
                     </p>
                 </div>
             )}
+
+            <AiExportDialog open={aiExportOpen} onOpenChange={setAiExportOpen} />
         </AppLayout>
     );
 }
