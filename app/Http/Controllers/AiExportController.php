@@ -7,6 +7,7 @@ use App\Services\ActiveGameAccount;
 use App\Services\AiExport\AiExportObjective;
 use App\Services\AiExport\AiExportObjectives;
 use App\Services\AiExport\AiExportService;
+use App\Services\Counters\EnemyTeam;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -52,6 +53,7 @@ class AiExportController extends Controller
                 $params,
                 $request->boolean('include_suggestion'),
                 ($data['detail'] ?? 'full') === 'full',
+                $request->has('enemy') ? EnemyTeam::fromRequest($request)->all() : [],
             ),
         );
     }

@@ -7,6 +7,7 @@ use App\Models\Equipment;
 use App\Models\Faction;
 use App\Models\Hero;
 use App\Models\HeroClass;
+use App\Models\HeroCounter;
 use App\Models\HeroRating;
 use App\Models\Tier;
 use App\Models\User;
@@ -618,6 +619,81 @@ class AiExportTest extends TestCase
         $user = User::factory()->create();
 
         $this->export($user, ['detail' => 'everything'])->assertJsonValidationErrors('detail');
+    }
+
+    private function counterOf(Hero $hero, Hero $target, string $reason, string $context = 'pvp'): void
+    {
+        HeroCounter::create([
+            'hero_id' => $hero->id, 'target_hero_id' => $target->id, 'context' => $context,
+            'strength' => 2, 'reason' => $reason, 'source_url' => 'https://afk.guide/best-team/',
+        ]);
+    }
+
+    public function test_enemy_team_and_known_counters_go_into_the_arena_prompt(): void
+    {
+        $user = User::factory()->create();
+        [$eironn, $gwyneth, $athalia, $kaz] = [$this->makeHero('Eironn'), $this->makeHero('Gwyneth'), $this->makeHero('Athalia'), $this->makeHero('Kaz')];
+        $user->defaultGameAccount->userHeroes()->create(['hero_id' => $athalia->id, 'level' => 240]);
+        $user->defaultGameAccount->userHeroes()->create(['hero_id' => $kaz->id, 'level' => 240]);
+        $this->counterOf($athalia, $eironn, 'Interrompe o Eironn no início.');
+        $this->counterOf($gwyneth, $kaz, 'O burst derruba a Kaz.');
+
+        $markdown = $this->export($user, ['side' => 'attack', 'enemy' => [3 => $eironn->id, 4 => $gwyneth->id]])->assertOk()->json('markdown');
+
+        $this->assertStringContainsString('## Equipe inimiga', $markdown);
+        $this->assertStringContainsString('Posição 3 (trás): Eironn', $markdown);
+        $this->assertStringContainsString('Posição 4 (trás): Gwyneth', $markdown);
+        $this->assertStringContainsString('Athalia → Eironn: Interrompe o Eironn no início.', $markdown);
+        $this->assertStringContainsString('Gwyneth → Kaz: O burst derruba a Kaz.', $markdown);
+        $this->assertStringContainsString('vencer esta Equipe inimiga', $markdown);
+    }
+
+    public function test_target_planning_lists_game_counters_but_not_threatened_roster_heroes(): void
+    {
+        $user = User::factory()->create();
+        [$eironn, $athalia, $kaz] = [$this->makeHero('Eironn'), $this->makeHero('Athalia'), $this->makeHero('Kaz')];
+        $this->rate($athalia, 'S+');
+        $user->defaultGameAccount->userHeroes()->create(['hero_id' => $kaz->id, 'level' => 240]);
+        $this->counterOf($athalia, $eironn, 'Interrompe o Eironn no início.');
+        $this->counterOf($eironn, $kaz, 'Puxa a Kaz para o centro.');
+
+        $markdown = $this->export($user, ['planning' => 'target', 'side' => 'attack', 'enemy' => [1 => $eironn->id]])->assertOk()->json('markdown');
+
+        $this->assertStringContainsString('Athalia → Eironn', $markdown);
+        $this->assertStringNotContainsString('Eironn → Kaz', $markdown);
+    }
+
+    public function test_invalid_enemy_team_is_rejected_in_the_export(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero('Eironn');
+
+        $this->export($user, ['enemy' => [1 => $hero->id, 2 => $hero->id]])->assertJsonValidationErrors('enemy');
+        $this->export($user, ['enemy' => [7 => $hero->id]])->assertJsonValidationErrors('enemy');
+        $awakened = $this->makeHero('EironnAwakened');
+        $awakened->update(['name' => 'Eironn', 'slug' => 'eironn-the-cleansing-wind']);
+        $this->export($user, ['enemy' => [1 => $hero->id, 2 => $awakened->id]])->assertJsonValidationErrors('enemy');
+    }
+
+    public function test_enemy_team_is_left_out_of_objectives_without_formation(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero('Eironn');
+        $user->defaultGameAccount->userHeroes()->create(['hero_id' => $this->makeHero('Lucius')->id, 'level' => 240]);
+
+        $markdown = $this->exportObjective($user, ['objective' => 'next_investment', 'planning' => 'real', 'enemy' => [1 => $hero->id]])
+            ->assertOk()
+            ->json('markdown');
+
+        $this->assertStringNotContainsString('## Equipe inimiga', $markdown);
+    }
+
+    public function test_without_enemy_team_there_is_no_enemy_section(): void
+    {
+        $user = User::factory()->create();
+        $user->defaultGameAccount->userHeroes()->create(['hero_id' => $this->makeHero('Lucius')->id, 'level' => 240]);
+
+        $this->assertStringNotContainsString('## Equipe inimiga', $this->export($user)->assertOk()->json('markdown'));
     }
 
     private function lineOf(string $heroName, string $markdown): string

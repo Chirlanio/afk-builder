@@ -44,9 +44,11 @@ interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     prefill?: AiExportPrefill;
+    /** Parâmetros extras da tela de origem (ex.: a Equipe inimiga da página de Counters). Memorize-os (useMemo): uma referência nova refaz a prévia. */
+    extraParams?: Record<string, unknown>;
 }
 
-export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
+export function AiExportDialog({ open, onOpenChange, prefill, extraParams }: Props) {
     // O catálogo de Objetivos vem do backend, na primeira abertura.
     const [objectives, setObjectives] = useState<Objective[] | null>(null);
     // undefined = ainda não escolhido; null = em branco de propósito.
@@ -109,6 +111,7 @@ export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
                 params: {
                     objective: objectiveCode,
                     planning,
+                    ...extraParams,
                     include_suggestion: objective?.formation && includeSuggestion ? 1 : 0,
                     detail,
                     ...params,
@@ -127,7 +130,7 @@ export function AiExportDialog({ open, onOpenChange, prefill }: Props) {
         return () => {
             cancelled = true;
         };
-    }, [open, objectiveCode, objective?.formation, planning, detail, includeSuggestion, params, paramsComplete]);
+    }, [open, objectiveCode, objective?.formation, planning, detail, includeSuggestion, params, paramsComplete, extraParams]);
 
     const changeObjective = (code: string) => {
         setObjectiveCode(code);

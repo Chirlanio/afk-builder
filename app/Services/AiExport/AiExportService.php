@@ -10,6 +10,8 @@ use App\Models\HeroEngraving;
 use App\Models\HeroFeature;
 use App\Models\HeroRating;
 use App\Models\UserHero;
+use App\Services\Counters\CounterRanking;
+use App\Services\Counters\EnemyTeam;
 use App\Services\Optimization\RosterStageInferrer;
 use App\Services\Optimization\TeamSuggester;
 use App\Services\Optimization\TierRatingScorer;
@@ -40,14 +42,24 @@ class AiExportService
         private readonly TierRatingScorer $scorer,
         private readonly RosterStageInferrer $stageInferrer,
         private readonly TeamSuggester $suggester,
+        private readonly CounterRanking $counters,
     ) {}
 
     /**
      * @return array{markdown: string, warning: ?string}
      */
-    public function build(GameAccount $account, AiExportObjective $objective, Planning $planning, array $params = [], bool $includeSuggestion = false, bool $fullDetail = true): array
-    {
+    public function build(
+        GameAccount $account,
+        AiExportObjective $objective,
+        Planning $planning,
+        array $params = [],
+        bool $includeSuggestion = false,
+        bool $fullDetail = true,
+        array $enemy = [],
+    ): array {
         $context = $objective->context();
+        // A Equipe inimiga só faz sentido em Objetivos que montam Equipes.
+        $enemy = $objective->formation ? $enemy : [];
         $teams = $objective->teams($params);
 
         if ($planning === Planning::Target) {
@@ -85,6 +97,7 @@ class AiExportService
             '## Pedido',
             '',
             'Você é um especialista em AFK Arena. Quero '.$objective->goal($params).'.',
+            ...$enemy !== [] ? ['O objetivo é vencer esta Equipe inimiga: veja a seção "Equipe inimiga", com as posições e os Counters já conhecidos.'] : [],
             ...$objective->formation
                 ? $this->formationRequest($objective, $planning, $teams, $params)
                 : $this->investmentRequest($planning),
@@ -103,6 +116,11 @@ class AiExportService
             }
         }
 
+        if ($enemy !== []) {
+            $rosterIds = $planning === Planning::Real ? array_map(fn (array $entry) => $entry['hero']->id, $entries) : null;
+            array_push($lines, '', ...$this->enemySection($enemy, $rosterIds, $context, $stage));
+        }
+
         $suggestion = $includeSuggestion && $objective->formation && $objective->challengeType !== null
             ? $this->suggestionSection($account, $objective->challengeType, $planning, $teams)
             : [];
@@ -119,6 +137,47 @@ class AiExportService
         );
 
         return ['markdown' => implode("\n", $lines)."\n", 'warning' => null];
+    }
+
+    /**
+     * A Equipe inimiga e os Counters da base curada contra ela: quem a countera
+     * (do Roster no real; do jogo no alvo) e, no real, quem do Roster ela countera.
+     *
+     * @param  array<int, array{position: int, hero: array<string, mixed>}>  $enemy
+     * @param  int[]|null  $rosterIds  null no Planejamento alvo
+     * @return string[]
+     */
+    private function enemySection(array $enemy, ?array $rosterIds, string $context, string $stage): array
+    {
+        $lines = ['## Equipe inimiga', ''];
+        foreach ($enemy as $slot) {
+            $row = EnemyTeam::isFrontline($slot['position']) ? 'frente' : 'trás';
+            $lines[] = "- Posição {$slot['position']} ({$row}): {$slot['hero']['name']}";
+        }
+
+        $enemyIds = array_map(fn (array $slot) => $slot['hero']['id'], $enemy);
+        $known = [];
+        foreach ($this->counters->rank($enemyIds, $rosterIds, $context, $stage) as $entry) {
+            foreach ($entry['counters'] as $counter) {
+                $known[] = "- {$entry['hero']['name']} → {$counter['target']['name']}: {$counter['reason']}";
+            }
+        }
+        $threatened = [];
+        if ($rosterIds !== null) {
+            foreach ($this->counters->threatened($enemyIds, $rosterIds, $context) as $entry) {
+                foreach ($entry['counters'] as $counter) {
+                    $threatened[] = "- {$counter['by']['name']} → {$entry['hero']['name']}: {$counter['reason']}";
+                }
+            }
+        }
+
+        array_push($lines, '', 'Counters conhecidos (base curada do AFK Builder; incompleta, use também o seu conhecimento do jogo):');
+        array_push($lines, ...($known !== [] ? $known : ['- Nenhum Counter cadastrado contra esta equipe.']));
+        if ($threatened !== []) {
+            array_push($lines, '', 'Heróis da minha lista que esta Equipe inimiga countera (evite-os ou proteja-os):', ...$threatened);
+        }
+
+        return $lines;
     }
 
     /**

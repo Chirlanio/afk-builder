@@ -17,12 +17,14 @@ import {
     Users,
 } from 'lucide-react';
 
+import { AiExportDialog } from '@/components/ai-export-dialog';
 import { RosterPowerChart, type PowerHistoryPoint } from '@/components/roster-power-chart';
 import AppLayout from '@/layouts/app-layout';
 import { CLASS_ICON, CLASS_LABEL, FACTION_THEME, TIER_THEME } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import type { ClassCode, FactionCode, TierCode } from '@/types/afk';
+import { useState } from 'react';
 
 interface DashboardStats {
     roster_total: number;
@@ -111,6 +113,7 @@ export default function Dashboard({
     const allFactions: FactionCode[] = ['lightbearer', 'mauler', 'wilder', 'graveborn', 'celestial', 'hypogean', 'dimensional', 'draconis'];
     const allClasses: ClassCode[] = ['tank', 'warrior', 'ranger', 'mage', 'support'];
     const allTiers: TierCode[] = ['common', 'legendary', 'ascended'];
+    const [aiExportOpen, setAiExportOpen] = useState(false);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -151,6 +154,14 @@ export default function Dashboard({
                                 <Users className="size-4" />
                                 Meu roster
                             </Link>
+                            <button
+                                type="button"
+                                onClick={() => setAiExportOpen(true)}
+                                className="inline-flex items-center gap-2 rounded-md border border-amber-400/30 bg-white/5 px-4 py-2 text-sm font-semibold text-amber-100 transition-colors hover:bg-white/10"
+                            >
+                                <Sparkles className="size-4" />
+                                Exportar para IA
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -498,6 +509,8 @@ export default function Dashboard({
                     )}
                 </section>
             </div>
+
+            <AiExportDialog open={aiExportOpen} onOpenChange={setAiExportOpen} />
         </AppLayout>
     );
 }

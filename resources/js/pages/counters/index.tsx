@@ -1,3 +1,4 @@
+import { AiExportDialog, type AiExportPrefill } from '@/components/ai-export-dialog';
 import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,8 +11,8 @@ import { CONTEXT_LABEL, COUNTER_STRENGTH_LABEL } from '@/lib/afk';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, Crosshair, ExternalLink, Info, Plus, X } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { AlertTriangle, Crosshair, ExternalLink, Info, Plus, Sparkles, X } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
 
 interface HeroOption {
     id: number;
@@ -96,6 +97,12 @@ export default function CountersIndex({
         );
     };
     const setEnemy = (next: Record<number, HeroOption | undefined>) => navigate({ enemy: next });
+
+    // Export para IA: Arena (ataque) com a Equipe inimiga e os Counters conhecidos no prompt.
+    // Memorizados para o modal não reaplicar o pré-preenchimento a cada render.
+    const [aiExportOpen, setAiExportOpen] = useState(false);
+    const aiExportPrefill = useMemo<AiExportPrefill>(() => ({ objective: 'arena_of_heroes', planning, params: { side: 'attack' } }), [planning]);
+    const aiExportParams = useMemo(() => ({ enemy: Object.fromEntries(enemy.map((e) => [e.position, e.hero.id])) }), [enemy]);
     const isTarget = planning === 'target';
 
     const usedIds = new Set(enemy.map((e) => e.hero.id));
@@ -104,7 +111,17 @@ export default function CountersIndex({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Counters" />
 
-            <PageShell title="Counters" icon={Crosshair} description="Monte a Equipe inimiga e veja quais heróis a counteram.">
+            <PageShell
+                title="Counters"
+                icon={Crosshair}
+                description="Monte a Equipe inimiga e veja quais heróis a counteram."
+                actions={
+                    <Button variant="outline" size="sm" onClick={() => setAiExportOpen(true)} disabled={enemy.length === 0}>
+                        <Sparkles className="mr-2 size-4" />
+                        Exportar para IA
+                    </Button>
+                }
+            >
                 <div className="flex items-start gap-2 rounded-md border border-sky-500/30 bg-sky-500/10 p-3 text-xs text-sky-800 dark:text-sky-200">
                     <Info className="mt-0.5 size-4 shrink-0" />
                     <p>
@@ -238,6 +255,8 @@ export default function CountersIndex({
                     </section>
                 )}
             </PageShell>
+
+            <AiExportDialog open={aiExportOpen} onOpenChange={setAiExportOpen} prefill={aiExportPrefill} extraParams={aiExportParams} />
         </AppLayout>
     );
 }

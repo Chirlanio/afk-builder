@@ -1,3 +1,4 @@
+import { AiExportDialog, type AiExportPrefill } from '@/components/ai-export-dialog';
 import { ResourceEditorDialog, type UserResources } from '@/components/resource-editor-dialog';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
@@ -78,6 +79,9 @@ const RESOURCE_LABEL: Record<keyof UserResources, string> = {
     hero_essence: 'Essência',
 };
 
+// O Planner é sobre investimento: o Export para IA abre em "Em quem investir a seguir".
+const PLANNER_AI_EXPORT: AiExportPrefill = { objective: 'next_investment', planning: 'real', params: {} };
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Roster', href: '/heroes' },
     { title: 'Planner', href: '/roster/planner' },
@@ -143,6 +147,7 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
     const [formationId, setFormationId] = useState<number | ''>(selectedFormationId ?? '');
     const [currentResources, setCurrentResources] = useState<UserResources>(resources);
     const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
+    const [aiExportOpen, setAiExportOpen] = useState(false);
     const [onlyAffordable, setOnlyAffordable] = useState(false);
 
     const applyFilter = useCallback(
@@ -195,7 +200,13 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                     <div className="flex items-start gap-3">
                         <Compass className="mt-0.5 size-5 text-amber-300" />
                         <div className="flex-1">
-                            <h1 className="text-lg font-semibold text-amber-100">Próximos investimentos</h1>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h1 className="text-lg font-semibold text-amber-100">Próximos investimentos</h1>
+                                <Button variant="outline" size="sm" onClick={() => setAiExportOpen(true)}>
+                                    <Sparkles className="mr-2 size-4" />
+                                    Exportar para IA
+                                </Button>
+                            </div>
                             <p className="mt-1 text-xs text-amber-100/60">
                                 Sugestões priorizadas por <strong>ROI</strong> (ganho de power ÷ esforço), ajustadas por contexto: facção
                                 sub-investida, tier Ascended, herói Desperto, presença na formação selecionada.
@@ -405,6 +416,8 @@ export default function RosterPlanner({ suggestions, formations, selectedFormati
                 initial={currentResources}
                 onSaved={onResourcesSaved}
             />
+
+            <AiExportDialog open={aiExportOpen} onOpenChange={setAiExportOpen} prefill={PLANNER_AI_EXPORT} />
         </AppLayout>
     );
 }
