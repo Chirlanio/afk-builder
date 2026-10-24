@@ -101,6 +101,23 @@ class HeroShowTest extends TestCase
             ->assertJsonPath('synergies.0.weight', 15);
     }
 
+    public function test_details_aponta_para_os_counters_do_heroi(): void
+    {
+        $user = User::factory()->create();
+        $hero = $this->makeHero('lucius');
+
+        $url = $this->actingAs($user)->getJson("/heroes/{$hero->slug}/details")->assertOk()->json('countersUrl');
+
+        $this->assertSame('/counters?enemy%5B1%5D='.$hero->id, $url);
+        $this->actingAs($user)->get($url)->assertOk()->assertInertia(fn ($page) => $page
+            ->component('counters/index')
+            ->where('enemy.0.hero.id', $hero->id)
+        );
+
+        $hero->update(['pending_review' => true]);
+        $this->assertNull($this->actingAs($user)->getJson("/heroes/{$hero->slug}/details")->json('countersUrl'));
+    }
+
     public function test_details_404_quando_slug_nao_existe(): void
     {
         $user = User::factory()->create();

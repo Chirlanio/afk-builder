@@ -251,6 +251,9 @@ class HeroController extends Controller
             'features' => $hero->features,
             'signatureItem' => $signatureItemSummary,
             'isFavorited' => $isFavorited,
+            // Página de Counters com este herói como Equipe inimiga de um só: quem o countera.
+            // Herói pendente de revisão não entra numa Equipe inimiga, então fica sem link.
+            'countersUrl' => $hero->pending_review ? null : route('counters.index', ['enemy' => [1 => $hero->id]], false),
         ]);
     }
 }

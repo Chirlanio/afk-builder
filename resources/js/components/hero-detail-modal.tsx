@@ -1,8 +1,9 @@
-import { router, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import {
     BarChart3,
     BookText,
+    Crosshair,
     Crown,
     ExternalLink,
     Flame,
@@ -112,6 +113,8 @@ interface DetailsPayload {
     features: HeroFeature[];
     signatureItem: SignatureItemSummary;
     isFavorited: boolean;
+    /** Página de Counters com este herói como Equipe inimiga: quem o countera. */
+    countersUrl: string | null;
 }
 
 const FEATURE_TAG_LABEL: Record<HeroFeatureTag, string> = {
@@ -470,6 +473,16 @@ function HeroDetailContent({ data, locale, isAdmin, onEditRoster, onEditStats, o
                         )}
                         {hero.role_label && <Badge variant="secondary">{hero.role_label}</Badge>}
                     </div>
+                    {data.countersUrl && (
+                        <Link
+                            href={data.countersUrl}
+                            title="Quem countera este herói"
+                            className="text-muted-foreground hover:text-foreground mt-1 inline-flex items-center gap-1 text-xs underline-offset-2 hover:underline"
+                        >
+                            <Crosshair className="size-3.5" />
+                            Counters deste herói
+                        </Link>
+                    )}
                 </div>
             </header>
 
