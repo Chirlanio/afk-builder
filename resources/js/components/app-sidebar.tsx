@@ -10,6 +10,7 @@ import {
     BarChart3,
     BookOpen,
     Compass,
+    Crosshair,
     Folder,
     Gauge,
     Gem,
@@ -101,6 +102,11 @@ const adminNavItems: NavItem[] = [
         title: 'Capacidades',
         url: '/admin/heroes/capabilities',
         icon: Sparkles,
+    },
+    {
+        title: 'Counters',
+        url: '/admin/counters',
+        icon: Crosshair,
     },
     {
         title: 'Coleções',

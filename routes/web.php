@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\BeastAdminController;
 use App\Http\Controllers\Admin\CollectionAdminController;
 use App\Http\Controllers\Admin\HeroAdminController;
 use App\Http\Controllers\Admin\HeroCapabilityAdminController;
+use App\Http\Controllers\Admin\HeroCounterAdminController;
 use App\Http\Controllers\Admin\HeroStatsAdminController;
 use App\Http\Controllers\Admin\SyncCommandController;
 use App\Http\Controllers\AiExportController;
@@ -174,6 +175,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('heroes/{slug}/stats', [HeroStatsAdminController::class, 'update'])
             ->where('slug', '[a-z0-9-]+')
             ->name('heroes.stats.update');
+
+        Route::get('counters', [HeroCounterAdminController::class, 'index'])->name('counters.index');
+        Route::post('counters', [HeroCounterAdminController::class, 'store'])->name('counters.store');
+        Route::patch('counters/{counter}', [HeroCounterAdminController::class, 'update'])->name('counters.update');
+        Route::delete('counters/{counter}', [HeroCounterAdminController::class, 'destroy'])->name('counters.destroy');
 
         Route::get('collections', [CollectionAdminController::class, 'index'])->name('collections.index');
         Route::post('collections', [CollectionAdminController::class, 'store'])->name('collections.store');

@@ -147,6 +147,18 @@ class Hero extends Model
             ->withTimestamps();
     }
 
+    /** Counters em que este Herói é forte contra outro. */
+    public function counters(): HasMany
+    {
+        return $this->hasMany(HeroCounter::class);
+    }
+
+    /** Counters em que este Herói é o alvo. */
+    public function counteredBy(): HasMany
+    {
+        return $this->hasMany(HeroCounter::class, 'target_hero_id');
+    }
+
     public function ratings(): HasMany
     {
         return $this->hasMany(HeroRating::class);
