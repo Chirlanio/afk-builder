@@ -11,6 +11,10 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // Páginas Inertia renderizam o @vite: sem isso os testes dependem de um
+        // public/hot ou public/build deixado na máquina.
+        $this->withoutVite();
+
         // Cache estático de custos de SI: preenchido por um teste sem o seeder,
         // vazaria custos zerados para os testes seguintes.
         SignatureItemCost::flushCumulativeCache();
