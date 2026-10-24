@@ -54,7 +54,7 @@ class HeroCounterSeeder extends Seeder
         ['brutus', 'tasi', 'pve', 1, 'Serve de isca: a Tasi gasta o banimento nele.', self::COUNTER_GUIDE],
         // Counter Guide — Graveborns
         ['fawkes', 'shemira', 'pve', 1, 'Tira de jogo a Shemira, a inimiga mais forte.', self::COUNTER_GUIDE],
-        ['nemora', 'ferael', 'pve', 2, 'Counter forte: o charm desmonta o Ferael.', self::COUNTER_GUIDE],
+        ['nemora', 'ferael', 'pve', 2, 'O charm desmonta o Ferael.', self::COUNTER_GUIDE],
         ['athalia', 'ferael', 'pve', 1, 'Neutraliza o Ferael.', self::COUNTER_GUIDE],
         ['nara', 'ferael', 'pve', 1, 'Neutraliza o Ferael.', self::COUNTER_GUIDE],
         ['arden', 'ferael', 'pve', 1, 'Indicado pela fonte como boa resposta ao Ferael.', self::COUNTER_GUIDE],
