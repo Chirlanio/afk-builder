@@ -40,8 +40,7 @@ class SearchController extends Controller
 
         // Heroes — catálogo público (qualquer user vê os mesmos)
         $heroes = Hero::query()
-            ->where('is_active', true)
-            ->where('pending_review', false)
+            ->available()
             ->where(function ($q) use ($like) {
                 $q->where('name', 'like', $like)
                     ->orWhere('title', 'like', $like)

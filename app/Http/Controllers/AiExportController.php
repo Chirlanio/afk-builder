@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ExportDetail;
 use App\Enums\Planning;
+use App\Rules\ValidEnemyTeam;
 use App\Services\ActiveGameAccount;
 use App\Services\AiExport\AiExportObjective;
 use App\Services\AiExport\AiExportObjectives;
@@ -40,7 +42,7 @@ class AiExportController extends Controller
             'objective' => ['required', 'string', Rule::in(AiExportObjectives::codes())],
             'planning' => ['required', Rule::enum(Planning::class)],
             'include_suggestion' => ['nullable', 'boolean'],
-            'detail' => ['nullable', Rule::in(['full', 'compact'])],
+            'detail' => ['nullable', Rule::enum(ExportDetail::class)],
         ]);
         $objective = AiExportObjectives::get($data['objective']);
         $params = $request->validate($objective->rules());
@@ -52,8 +54,8 @@ class AiExportController extends Controller
                 Planning::from($data['planning']),
                 $params,
                 $request->boolean('include_suggestion'),
-                ($data['detail'] ?? 'full') === 'full',
-                $request->has('enemy') ? EnemyTeam::fromRequest($request)->all() : [],
+                ExportDetail::tryFrom($data['detail'] ?? '') ?? ExportDetail::Full,
+                $request->has('enemy') ? EnemyTeam::fromIds($request->validate(ValidEnemyTeam::rules())['enemy'])->all() : [],
             ),
         );
     }

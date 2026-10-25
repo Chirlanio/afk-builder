@@ -782,8 +782,7 @@ class FormationController extends Controller
         }
 
         $query = Hero::query()
-            ->where('is_active', true)
-            ->where('pending_review', false);
+            ->available();
 
         if ($formation->mode === Planning::Real) {
             $query->whereIn('id', array_keys($rosterByHeroId));

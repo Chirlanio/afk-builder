@@ -6,6 +6,7 @@ use App\Enums\Planning;
 use App\Models\Hero;
 use App\Models\HeroCounter;
 use App\Models\HeroRating;
+use App\Rules\ValidEnemyTeam;
 use App\Services\ActiveGameAccount;
 use App\Services\Counters\CounterRanking;
 use App\Services\Counters\EnemyTeam;
@@ -41,7 +42,7 @@ class CountersController extends Controller
         $context = $filters['context'] ?? HeroRating::MODE_PVP;
         $planning = Planning::tryFrom($filters['planning'] ?? '') ?? Planning::Real;
 
-        $enemy = $request->has('enemy') ? EnemyTeam::fromRequest($request) : collect();
+        $enemy = $request->has('enemy') ? EnemyTeam::fromIds($request->validate(ValidEnemyTeam::rules())['enemy']) : collect();
 
         $ranking = [];
         // Seção inversa: só no real, porque no alvo não há Roster a proteger.
@@ -60,8 +61,7 @@ class CountersController extends Controller
 
         return Inertia::render('counters/index', [
             'heroes' => Hero::query()
-                ->where('is_active', true)
-                ->where('pending_review', false)
+                ->available()
                 ->orderBy('name')
                 ->get(['id', 'slug', 'name', 'portrait_url']),
             'enemy' => $enemy->values()->all(),

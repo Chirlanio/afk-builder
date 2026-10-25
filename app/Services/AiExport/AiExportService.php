@@ -2,6 +2,7 @@
 
 namespace App\Services\AiExport;
 
+use App\Enums\ExportDetail;
 use App\Enums\Planning;
 use App\Models\ChallengeType;
 use App\Models\GameAccount;
@@ -54,7 +55,7 @@ class AiExportService
         Planning $planning,
         array $params = [],
         bool $includeSuggestion = false,
-        bool $fullDetail = true,
+        ExportDetail $detail = ExportDetail::Full,
         array $enemy = [],
     ): array {
         $context = $objective->context();
@@ -101,7 +102,7 @@ class AiExportService
             ...$objective->formation
                 ? $this->formationRequest($objective, $planning, $teams, $params)
                 : $this->investmentRequest($planning),
-            ...$fullDetail
+            ...$detail === ExportDetail::Full
                 ? ['Cada herói traz a ficha completa (tipo, papel, habilidades, mobília, gravação e destaques) no texto original do jogo, em inglês: use essas mecânicas para combinar os heróis, não só o tier.']
                 : [],
             'Responda em português do Brasil, mas escreva os nomes dos heróis em inglês, exatamente como na lista.',
@@ -111,7 +112,7 @@ class AiExportService
         ];
         foreach ($entries as $entry) {
             $lines[] = $this->heroLine($entry['hero'], $entry['userHero'], $entry['tier']);
-            if ($fullDetail) {
+            if ($detail === ExportDetail::Full) {
                 array_push($lines, ...$this->heroSheet($entry['hero']));
             }
         }
@@ -258,8 +259,7 @@ class AiExportService
     {
         $entries = Hero::query()
             ->with(['faction', 'heroClass', 'ratings'])
-            ->where('is_active', true)
-            ->where('pending_review', false)
+            ->available()
             ->orderBy('name')
             ->get()
             ->map(fn (Hero $hero) => [

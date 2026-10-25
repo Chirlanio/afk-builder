@@ -83,8 +83,7 @@ class UserTierListController extends Controller
         $tierList->load(['rows.items.hero:id,slug,name,faction_id,hero_class_id,portrait_url']);
 
         $heroes = Hero::query()
-            ->where('is_active', true)
-            ->where('pending_review', false)
+            ->available()
             ->orderBy('name')
             ->get(['id', 'slug', 'name', 'faction_id', 'hero_class_id', 'type', 'portrait_url']);
 

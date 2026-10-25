@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -41,6 +42,16 @@ class Hero extends Model
         'capabilities' => 'array',
         'capabilities_manual' => 'array',
     ];
+
+    /**
+     * Heróis que o jogador vê no catálogo: ativos e já revisados.
+     *
+     * @param  Builder<Hero>  $query
+     */
+    public function scopeAvailable(Builder $query): void
+    {
+        $query->where('is_active', true)->where('pending_review', false);
+    }
 
     /**
      * Herói Desperto (Awakened): o slug da wiki é o nome + o título da versão

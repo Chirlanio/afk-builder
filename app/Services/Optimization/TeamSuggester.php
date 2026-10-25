@@ -117,8 +117,7 @@ class TeamSuggester
     {
         $query = Hero::query()
             ->with(['faction:id,code', 'heroClass:id,code', 'tier:id,code', 'stats'])
-            ->where('is_active', true)
-            ->where('pending_review', false);
+            ->available();
 
         if ($planning === Planning::Real) {
             $rosterIds = UserHero::where('game_account_id', $account->id)->pluck('hero_id')->all();

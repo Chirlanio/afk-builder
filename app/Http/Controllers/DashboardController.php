@@ -141,8 +141,7 @@ class DashboardController extends Controller
             ])->values());
 
         $catalogTotal = Hero::query()
-            ->where('is_active', true)
-            ->where('pending_review', false)
+            ->available()
             ->count();
 
         $factionsCount = Faction::count();

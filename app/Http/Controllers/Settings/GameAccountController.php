@@ -40,8 +40,7 @@ class GameAccountController extends Controller
             });
 
         $heroes = Hero::query()
-            ->where('is_active', true)
-            ->where('pending_review', false)
+            ->available()
             ->orderBy('name')
             ->get(['id', 'slug', 'name', 'portrait_url']);
 

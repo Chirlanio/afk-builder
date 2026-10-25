@@ -54,7 +54,7 @@ class OptimizerBenchmarkCommand extends Command
     public function handle(): int
     {
         $heroes = Hero::with(['faction', 'heroClass', 'tier', 'stats'])
-            ->where('is_active', true)->where('pending_review', false)
+            ->available()
             ->get()->keyBy('slug');
         if ($heroes->count() < 10) {
             $this->error('Catálogo vazio — rode o sync de heróis antes.');

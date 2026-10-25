@@ -28,8 +28,7 @@ class HeroController extends Controller
         $account = $this->active->get();
 
         $heroes = Hero::query()
-            ->where('is_active', true)
-            ->where('pending_review', false)
+            ->available()
             ->orderBy('name')
             ->with('features:id,hero_id,tag,note')
             ->get([
